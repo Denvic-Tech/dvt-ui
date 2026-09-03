@@ -1,0 +1,4 @@
+interface:
+  display_name: 'DVT Node Extension Builder'
+  short_description: 'Scaffold DVT node extensions from names'
+  default_prompt: 'Use $dvt-node-extension-builder to scaffold a modal extension for CreateTable.'

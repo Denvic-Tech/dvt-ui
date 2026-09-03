@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.tmp/
+tmp/
+.git/
+.env
+.env.*
+!.env.example
+.codex/
+.idea/
+.npm-cache/
+.playwright-mcp/

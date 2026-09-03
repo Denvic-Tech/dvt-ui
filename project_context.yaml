@@ -1,0 +1,22 @@
+root_dir: '.'
+name: DVT_Frontend
+
+patterns:
+  - 'AGENTS.md'
+  - '**/*.md'
+  - '*.ts' # Включить все .ts файлы в root_dir
+  - 'src/**/*.ts' # Включить все .ts файлы рекурсивно в директории src
+  - 'src/**/*.tsx' # Включить все .ts файлы рекурсивно в директории src
+
+ignore_patterns:
+  - '.idea' # Исключить директорию venv
+  - 'node_modules' # Исключить директорию venv
+  - 'public' # Исключить директорию tests
+  - 'trash'
+  - '*.log' # Исключить все .log файлы
+  - 'vite.config.ts' # Исключить конфигурационный файл vite.config.ts
+  - 'src/**/_*.tsx'
+
+# Опциональный параметр: игнорировать ли пустые файлы __init__.py.
+# Если true, пустые __init__.py будут исключены.
+ignore_empty_init_py: true

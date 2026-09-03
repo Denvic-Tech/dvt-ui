@@ -1,0 +1,7 @@
+- [x] On the projects page, open the project in a new window instead of the current one.
+- [x] Come up with approaches on how to beautifully and informatively show in nodes in NodeEditor that the input metadata (metadata of the node connected to the one you want to show) we haven't loaded up for the node yet.  Write the approaches to a separate temporary file in Russian.
+- [x] Create step-by-step plan for refactor `src/entities` in `tmp/`. Many entities have too deep functionality that needs to be separated in a good way. Some of the functionality needs to be moved to `src/features` or other locations. Provide a detailed step-by-step plan for the refactor to further facilitate development support. Important: I don't want to use rtk-query.
+- [x] Some problems exist in custom `nested-sdk` plugin for `openapi-ts`, for example `client.projects.projectId(projectID).cache.metadata.invalidate.node` not callable, but contain `createNodeByProjectId` function, it's not correct. Fix it. You can checking with the `openapi.json` from api url in `.env` file. 
+- [x] Resolve all problems with types in `openapi-ts` code generation with custom `nested-sdk` plugin. Don't change generated code, i think you should fix the custom plugin.
+- [x] Methods from custom `nested-sdk` plugin for `openapi-ts` don't provide input and output types (arguments and returnings). Fix it.
+- [x] Make the methods from custom `nested-sdk` plugin for `openapi-ts` async.

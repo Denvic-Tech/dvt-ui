@@ -1,0 +1,1 @@
+export { getDefaultValueForTypeInternal } from './value';

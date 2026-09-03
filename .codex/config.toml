@@ -1,0 +1,83 @@
+[mcp_servers.webstorm]
+command = "npx"
+args = [
+    "mcp-remote",
+    "http://localhost:64344/sse",
+    "--header",
+    "IJ_MCP_SERVER_PROJECT_PATH: ${PROJECT_PATH}"
+]
+startup_timeout_sec = 20
+tool_timeout_sec = 45
+enabled = true
+
+[mcp_servers.webstorm.tools.get_file_text_by_path]
+approval_mode = "approve"
+
+[mcp_servers.webstorm.tools.search_in_files_by_text]
+approval_mode = "approve"
+
+[mcp_servers.webstorm.tools.find_files_by_glob]
+approval_mode = "approve"
+
+[mcp_servers.webstorm.tools.reformat_file]
+approval_mode = "approve"
+
+[mcp_servers.webstorm.tools.get_file_problems]
+approval_mode = "approve"
+
+[mcp_servers.webstorm.tools.search_in_files_by_regex]
+approval_mode = "approve"
+
+[mcp_servers.webstorm.tools.find_files_by_name_keyword]
+approval_mode = "approve"
+
+[mcp_servers.webstorm.tools.list_directory_tree]
+approval_mode = "approve"
+
+[mcp_servers.playwright]
+command = "npx"
+args = [
+    "-y",
+    "@playwright/mcp@latest",
+    "--user-data-dir",
+    "tmp/playwright"
+]
+
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+[mcp_servers.playwright.tools.browser_navigate]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_fill_form]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_click]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_type]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_run_code]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_resize]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_close]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_press_key]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_evaluate]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_tabs]
+approval_mode = "approve"
+
+[mcp_servers.playwright.tools.browser_run_code_unsafe]
+approval_mode = "approve"
+
+[sandbox_workspace_write]
+network_access = true

@@ -1,0 +1,156 @@
+@layer theme, base, mui, components, utilities;
+@import 'tailwindcss';
+@import '@fontsource-variable/geist';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * MUI theme is the source of truth for new UI.
+ * This file keeps only a small bridge for remaining Tailwind/plain-DOM surfaces.
+ */
+@theme inline {
+  --font-sans:
+    'Geist Variable', 'SF Pro Display', 'SF Pro Text', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: var(--font-sans);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --background: #eef2f8;
+  --foreground: #1f2937;
+  --card: #ffffff;
+  --card-foreground: #1f2937;
+  --popover: #ffffff;
+  --popover-foreground: #1f2937;
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #374151;
+  --muted: #f7f8fc;
+  --muted-foreground: #6b7280;
+  --accent: #eef2ff;
+  --accent-foreground: #4f46e5;
+  --destructive: #ef4444;
+  --border: #e5e7eb;
+  --input: #dbe3f0;
+  --ring: rgba(99, 102, 241, 0.45);
+  --dvt-danger-surface: #fef2f2;
+  --dvt-danger-surface-hover: #fee2e2;
+  --dvt-danger-border: rgba(248, 113, 113, 0.22);
+  --dvt-danger-foreground: #dc2626;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #111827;
+  --card-foreground: #f8fafc;
+  --popover: #111827;
+  --popover-foreground: #f8fafc;
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+  --secondary: #1f2937;
+  --secondary-foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #f8fafc;
+  --destructive: #f87171;
+  --border: rgba(148, 163, 184, 0.18);
+  --input: rgba(148, 163, 184, 0.18);
+  --ring: rgba(129, 140, 248, 0.42);
+  --dvt-danger-surface: rgba(127, 29, 29, 0.22);
+  --dvt-danger-surface-hover: rgba(127, 29, 29, 0.3);
+  --dvt-danger-border: rgba(248, 113, 113, 0.24);
+  --dvt-danger-foreground: rgb(254, 202, 202);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    min-height: 100vh;
+  }
+
+  html[data-route='home'],
+  body[data-route='home'] {
+    scrollbar-width: thin;
+    scrollbar-color: #c7cbd1 transparent;
+  }
+
+  html[data-route='home']::-webkit-scrollbar,
+  body[data-route='home']::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  html[data-route='home']::-webkit-scrollbar-track,
+  body[data-route='home']::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html[data-route='home']::-webkit-scrollbar-thumb,
+  body[data-route='home']::-webkit-scrollbar-thumb {
+    background-color: #c7cbd1;
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  html[data-route='home']::-webkit-scrollbar-thumb:hover,
+  body[data-route='home']::-webkit-scrollbar-thumb:hover {
+    background-color: #aeb4be;
+  }
+
+  html[data-route='home']::-webkit-scrollbar-button,
+  body[data-route='home']::-webkit-scrollbar-button,
+  html[data-route='home']::-webkit-scrollbar-button:single-button,
+  body[data-route='home']::-webkit-scrollbar-button:single-button,
+  html[data-route='home']::-webkit-scrollbar-button:vertical:decrement,
+  body[data-route='home']::-webkit-scrollbar-button:vertical:decrement,
+  html[data-route='home']::-webkit-scrollbar-button:vertical:increment,
+  body[data-route='home']::-webkit-scrollbar-button:vertical:increment,
+  html[data-route='home']::-webkit-scrollbar-button:horizontal:decrement,
+  body[data-route='home']::-webkit-scrollbar-button:horizontal:decrement,
+  html[data-route='home']::-webkit-scrollbar-button:horizontal:increment,
+  body[data-route='home']::-webkit-scrollbar-button:horizontal:increment {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
+
+  html[data-route='home']::-webkit-scrollbar-corner,
+  body[data-route='home']::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.16);
+  }
+}

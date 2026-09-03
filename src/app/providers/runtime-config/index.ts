@@ -1,0 +1,1 @@
+export { RuntimeConfigProvider } from './RuntimeConfigProvider';
