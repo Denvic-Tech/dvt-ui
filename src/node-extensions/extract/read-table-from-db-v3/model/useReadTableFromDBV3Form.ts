@@ -27,7 +27,6 @@ import {
   buildSelectedTableLabel,
   findSelectedTable,
   getDatabaseOptions,
-  getFilteredColumns,
   getFilteredTables,
   getFirstErrorSection,
   getInitialActiveSection,
@@ -213,10 +212,6 @@ export const useReadTableFromDBV3Form = ({
     return selectedTable?.columns ?? [];
   }, [selectedTable]);
 
-  const filteredSelectedColumns = useMemo(() => {
-    return getFilteredColumns(selectedTable, localInputData?.columns);
-  }, [selectedTable, localInputData?.columns]);
-
   const selectedColumnsCount = useMemo(() => {
     return getSelectedColumnsCount(localInputData?.columns);
   }, [localInputData?.columns]);
@@ -232,9 +227,9 @@ export const useReadTableFromDBV3Form = ({
   const partitionColumnType = useMemo(() => {
     return getPartitionColumnType(
       localInputData?.partition_col,
-      filteredSelectedColumns
+      availableColumns
     );
-  }, [filteredSelectedColumns, localInputData?.partition_col]);
+  }, [availableColumns, localInputData?.partition_col]);
 
   const sectionErrors = useMemo(() => {
     return getSectionErrors(errors);
@@ -578,9 +573,22 @@ export const useReadTableFromDBV3Form = ({
           };
         }
 
+        const nextPartitionColumnType = getPartitionColumnType(
+          columnName,
+          availableColumns
+        );
+
         return {
           ...current,
           partition_col: columnName,
+          partition_grouping:
+            current.partition_grouping &&
+            !isPartitionGroupingModeCompatible(
+              current.partition_grouping,
+              nextPartitionColumnType
+            )
+              ? undefined
+              : current.partition_grouping,
         };
       });
 
@@ -591,7 +599,12 @@ export const useReadTableFromDBV3Form = ({
         'max_rows_per_partition',
       ]);
     },
-    [clearErrors, localInputData?.partition_col, updateInputData]
+    [
+      availableColumns,
+      clearErrors,
+      localInputData?.partition_col,
+      updateInputData,
+    ]
   );
 
   const handlePartitionGroupingChange = useCallback(
@@ -738,25 +751,6 @@ export const useReadTableFromDBV3Form = ({
   }, [updateInputData]);
 
   useEffect(() => {
-    updateInputData(current => {
-      if (
-        !current.partition_grouping ||
-        isPartitionGroupingModeCompatible(
-          current.partition_grouping,
-          partitionColumnType
-        )
-      ) {
-        return current;
-      }
-
-      return {
-        ...current,
-        partition_grouping: undefined,
-      };
-    });
-  }, [partitionColumnType, updateInputData]);
-
-  useEffect(() => {
     if (localInputData?.partition_grouping) {
       return;
     }
@@ -772,35 +766,13 @@ export const useReadTableFromDBV3Form = ({
     });
   }, [localInputData?.partition_grouping]);
 
-  useEffect(() => {
-    if (!localInputData?.partition_col) {
-      return;
-    }
-
-    const allowedColumns = new Set(
-      filteredSelectedColumns.map(column => column.name)
-    );
-
-    updateInputData(current => {
-      if (!current.partition_col || allowedColumns.has(current.partition_col)) {
-        return current;
-      }
-
-      return {
-        ...current,
-        partition_col: undefined,
-        partition_grouping: undefined,
-        npartitions: undefined,
-        max_rows_per_partition: undefined,
-      };
-    });
-  }, [filteredSelectedColumns, localInputData?.partition_col, updateInputData]);
-
   const validateInputData = useCallback(() => {
     const validationResult = validateReadTableFromDBV3({
       inputData: localInputData,
       isPartitionColumnRequired,
       partitionColumnType,
+      availablePartitionColumns:
+        selectedTable?.columns.map(column => column.name) ?? null,
     });
 
     setErrors(validationResult.errors);
@@ -812,7 +784,12 @@ export const useReadTableFromDBV3Form = ({
     }
 
     return validationResult.isValid;
-  }, [isPartitionColumnRequired, localInputData, partitionColumnType]);
+  }, [
+    isPartitionColumnRequired,
+    localInputData,
+    partitionColumnType,
+    selectedTable,
+  ]);
 
   useEffect(() => {
     setValidationCallback?.(() => validateInputData);
@@ -825,7 +802,6 @@ export const useReadTableFromDBV3Form = ({
     databaseCollapsedValue,
     databaseOptions,
     errors,
-    filteredColumns: filteredSelectedColumns,
     filteredTables,
     handleDatabaseSelect,
     handleDatabaseValueChange,

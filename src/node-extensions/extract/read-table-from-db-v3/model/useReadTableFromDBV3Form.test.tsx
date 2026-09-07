@@ -6,21 +6,26 @@ import type { ReadTableFromDBV3Values } from '../lib/types';
 
 import { useReadTableFromDBV3Form } from './useReadTableFromDBV3Form';
 
-const { metadataRef, tableDetailRef } = vi.hoisted(() => ({
-  metadataRef: {
-    current: null as any,
-  },
-  tableDetailRef: {
-    current: null as any,
-  },
-}));
+const { metadataRef, metadataActualityRef, tableDetailRef } = vi.hoisted(
+  () => ({
+    metadataRef: {
+      current: null as any,
+    },
+    metadataActualityRef: {
+      current: true,
+    },
+    tableDetailRef: {
+      current: null as any,
+    },
+  })
+);
 
 vi.mock('@/features/node/get-node-metadata', () => ({
   useConnectedNodeMetadata: () => ({
     connectedNodeMetadataByInput: metadataRef.current,
     actualConnectedNodeMetadataByInput: metadataRef.current,
     connectedNodeMetadataActualityByInput: {
-      connection: true,
+      connection: metadataActualityRef.current,
     },
   }),
 }));
@@ -149,6 +154,7 @@ const renderReadTableForm = (initialValue: ReadTableFromDBV3Values) => {
 
 describe('useReadTableFromDBV3Form', () => {
   beforeEach(() => {
+    metadataActualityRef.current = true;
     tableDetailRef.current = null;
   });
 
@@ -312,7 +318,7 @@ describe('useReadTableFromDBV3Form', () => {
     expect(result.current.form.isSchemaSupported).toBe(true);
   });
 
-  it('keeps saved column selection when lazy table detail loads on reopen', async () => {
+  it('keeps saved partition settings while lazy table detail loads on reopen', async () => {
     metadataRef.current = {
       connection: {
         type: 'DATABASE',
@@ -334,6 +340,35 @@ describe('useReadTableFromDBV3Form', () => {
         tables: [],
       },
     };
+    tableDetailRef.current = {
+      item: null,
+      state: 'loading',
+      error: null,
+      meta: null,
+      isRefreshing: false,
+      retry: vi.fn(),
+    };
+
+    const { result, rerender } = renderReadTableForm({
+      database_name: 'analytics',
+      schema_name: 'public',
+      table_name: 'orders',
+      columns: ['amount'],
+      partition_col: 'id',
+      partition_grouping: { mode: 'range', size: 100 },
+      npartitions: 4,
+      max_rows_per_partition: 1000,
+    });
+
+    expect(result.current.form.selectedTable).toBeNull();
+    expect(result.current.localInputData).toMatchObject({
+      columns: ['amount'],
+      partition_col: 'id',
+      partition_grouping: { mode: 'range', size: 100 },
+      npartitions: 4,
+      max_rows_per_partition: 1000,
+    });
+
     tableDetailRef.current = {
       item: {
         name: 'orders',
@@ -367,19 +402,56 @@ describe('useReadTableFromDBV3Form', () => {
       isRefreshing: false,
       retry: vi.fn(),
     };
-
-    const { result } = renderReadTableForm({
-      database_name: 'analytics',
-      schema_name: 'public',
-      table_name: 'orders',
-      columns: ['id'],
-      partition_col: 'id',
-    });
+    rerender();
 
     await waitFor(() => {
       expect(result.current.form.selectedTable?.name).toBe('orders');
     });
-    expect(result.current.localInputData.columns).toEqual(['id']);
-    expect(result.current.localInputData.partition_col).toBe('id');
+    expect(result.current.localInputData).toMatchObject({
+      columns: ['amount'],
+      partition_col: 'id',
+      partition_grouping: { mode: 'range', size: 100 },
+      npartitions: 4,
+      max_rows_per_partition: 1000,
+    });
+    expect(
+      result.current.form.availableColumns.map(column => column.name)
+    ).toEqual(['id', 'amount']);
+  });
+
+  it('keeps saved partition settings while connection metadata is stale', () => {
+    metadataRef.current = { connection: baseMetadata };
+    metadataActualityRef.current = false;
+
+    const { result, rerender } = renderReadTableForm({
+      database_name: 'analytics',
+      schema_name: 'public',
+      table_name: 'orders',
+      columns: ['amount'],
+      partition_col: 'id',
+      partition_grouping: { mode: 'hash', buckets: 8 },
+      npartitions: 8,
+      max_rows_per_partition: 500,
+    });
+
+    expect(result.current.form.isConnectionMetadataLoading).toBe(true);
+    expect(result.current.localInputData).toMatchObject({
+      partition_col: 'id',
+      partition_grouping: { mode: 'hash', buckets: 8 },
+      npartitions: 8,
+      max_rows_per_partition: 500,
+    });
+
+    metadataActualityRef.current = true;
+    rerender();
+
+    expect(result.current.form.isConnectionMetadataLoading).toBe(false);
+    expect(result.current.form.selectedTable?.name).toBe('orders');
+    expect(result.current.localInputData).toMatchObject({
+      partition_col: 'id',
+      partition_grouping: { mode: 'hash', buckets: 8 },
+      npartitions: 8,
+      max_rows_per_partition: 500,
+    });
   });
 });
