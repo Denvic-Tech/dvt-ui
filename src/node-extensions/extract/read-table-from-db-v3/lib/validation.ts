@@ -12,12 +12,14 @@ type ValidateReadTableFromDBV3Args = {
   inputData?: ReadTableFromDBV3Values | null | undefined;
   isPartitionColumnRequired: boolean;
   partitionColumnType: ColumnBaseType;
+  availablePartitionColumns?: readonly string[] | null;
 };
 
 export const validateReadTableFromDBV3 = ({
   inputData,
   isPartitionColumnRequired,
   partitionColumnType,
+  availablePartitionColumns,
 }: ValidateReadTableFromDBV3Args): ReadTableFromDBV3ValidationResult => {
   const errors: ReadTableFromDBV3ValidationResult['errors'] = {};
 
@@ -28,6 +30,15 @@ export const validateReadTableFromDBV3 = ({
   if (isPartitionColumnRequired && !inputData?.partition_col) {
     errors.partition_col =
       'Выберите колонку сегментации: у таблицы нет одиночного primary key';
+  }
+
+  if (
+    inputData?.partition_col &&
+    availablePartitionColumns &&
+    !availablePartitionColumns.includes(inputData.partition_col)
+  ) {
+    errors.partition_col =
+      'Сохранённая колонка сегментации отсутствует в выбранной таблице. Выберите другую колонку.';
   }
 
   if (

@@ -335,7 +335,7 @@ export const ReadTableFromDBV3: React.FC<
       disabled={areMetadataSectionsDisabled}
       disabledReason={columnsDisabledReason}
       loading={form.isTableMetadataLoading}
-      columns={form.filteredColumns}
+      columns={form.availableColumns}
       errors={form.errors}
       hasError={form.sectionErrors.options}
       isOpen
