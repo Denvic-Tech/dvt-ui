@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -27,27 +27,10 @@ import { ColumnDropdownSelect } from '@/entities/data/dataframe';
 import { DataFrameMetadata } from '@/shared/gatewayClient';
 import { Panel } from '@/shared/ui';
 
-const BACKEND_FUNCS = [
-  'sum',
-  'mean',
-  'min',
-  'max',
-  'count',
-  'first',
-  'last',
-  'nunique',
-  'std',
-  'var',
-] as const;
-
-type BackendFunc = (typeof BACKEND_FUNCS)[number];
-
-// Группировка разрешенных функций на основе типов (только из списка бэкенда)
-const AGG_GROUPS = {
-  NUMERIC: ['sum', 'mean', 'std', 'var'] as BackendFunc[],
-  COMMON: ['count', 'nunique', 'first', 'last'] as BackendFunc[],
-  ORDERED: ['min', 'max'] as BackendFunc[],
-};
+import {
+  type BackendFunc,
+  getAvailableAggregationFunctions,
+} from '../lib/aggregation-functions';
 
 interface GroupByNodeValues {
   group_by_columns?: string[];
@@ -65,62 +48,22 @@ interface AggItem {
 
 export const GroupByAggregationEditor: React.FC<
   NodeModalExtensionProps<GroupByNodeValues>
-> = ({
-  id: nodeID,
-  isOpen,
-  nodeDefinition,
-  localInputData,
-  setLocalInputData,
-}) => {
+> = ({ id: nodeID, localInputData, setLocalInputData }) => {
   const { getConnectedInputMetadata } = useNodeConnections(nodeID);
-
-  useEffect(() => {
-    if (isOpen && typeof localInputData.group_by_columns === 'undefined') {
-      setLocalInputData({
-        ...localInputData,
-        group_by_columns: [],
-      });
-    }
-  }, [isOpen, localInputData.group_by_columns, setLocalInputData]);
 
   const inputMetadata = useMemo(
     () => getConnectedInputMetadata('df') as DataFrameMetadata | undefined,
     [getConnectedInputMetadata]
   );
 
-  const isNumericColumn = useCallback(
-    (columnName: string) => {
-      const col = inputMetadata?.columns.find(c => c.name === columnName);
-      if (!col?.dtype) return false;
-      const type = String(col.dtype).toUpperCase();
-      return (
-        type.includes('INT') ||
-        type.includes('FLOAT') ||
-        type.includes('DOUBLE') ||
-        type.includes('DECIMAL')
-      );
-    },
-    [inputMetadata]
-  );
-
   const getAvailableFuncs = useCallback(
-    (columnName: string): BackendFunc[] => {
-      if (!columnName) return [...AGG_GROUPS.COMMON];
-
-      const isNumeric = isNumericColumn(columnName);
-      // Для чисел: все функции. Для остальных: COMMON + ORDERED (min/max)
-      const options = [...AGG_GROUPS.COMMON, ...AGG_GROUPS.ORDERED];
-
-      if (isNumeric) {
-        options.push(...AGG_GROUPS.NUMERIC);
-      }
-
-      // Возвращаем уникальные значения, пересеченные с разрешенным списком бэкенда
-      return Array.from(new Set(options)).filter(f =>
-        BACKEND_FUNCS.includes(f)
-      );
-    },
-    [isNumericColumn]
+    (columnName: string, currentFunction?: string): BackendFunc[] =>
+      getAvailableAggregationFunctions({
+        columnName,
+        inputMetadata,
+        currentFunction,
+      }),
+    [inputMetadata]
   );
 
   const selectedAggItems: AggItem[] = useMemo(() => {
@@ -132,20 +75,6 @@ export const GroupByAggregationEditor: React.FC<
       })) || []
     );
   }, [localInputData]);
-
-  useEffect(() => {
-    if (localInputData.dropna !== undefined && localInputData.dropna !== null) {
-      return;
-    }
-
-    setLocalInputData(prev => {
-      if (prev.dropna !== undefined && prev.dropna !== null) {
-        return prev;
-      }
-
-      return { ...prev, dropna: false };
-    });
-  }, [localInputData.dropna, setLocalInputData]);
 
   const handleAggItemsChange = useCallback(
     (
@@ -306,7 +235,7 @@ export const GroupByAggregationEditor: React.FC<
         </Box>
 
         {selectedAggItems.map((row, idx) => {
-          const availableFuncs = getAvailableFuncs(row.sourceCol);
+          const availableFuncs = getAvailableFuncs(row.sourceCol, row.aggFunc);
           return (
             <Box key={idx} sx={{ display: 'flex', gap: 1.5, mb: 1.5 }}>
               <Box sx={{ flex: 4 }}>
