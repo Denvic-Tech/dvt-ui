@@ -385,7 +385,15 @@ export const QueryEditorStep: React.FC<
       </Stack>
 
       <Box sx={{ display: 'flex', gap: 1.5, minHeight: 0, flex: 1 }}>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Box
+          sx={{
+            minWidth: 0,
+            minHeight: 320,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
           <TemplateMonacoInput
             value={rawQueryValue}
             onChange={handleQueryChange}
