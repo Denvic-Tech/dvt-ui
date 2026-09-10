@@ -20,6 +20,11 @@ export type ColumnDtypeOption = {
 type ColumnDtypeOverridesEditorProps = {
   addLabel?: string;
   columnErrors?: Partial<Record<number, string>>;
+  /**
+   * Список доступных колонок. Если задан и непустой — имя колонки
+   * выбирается из выпадающего списка вместо ручного ввода.
+   */
+  columnOptions?: ColumnDtypeOption[];
   defaultDtype: string;
   description: string;
   emptyText: string;
@@ -137,6 +142,7 @@ const EmptyState = styled('div')(({ theme }) => ({
 export const ColumnDtypeOverridesEditor = ({
   addLabel = 'Добавить тип',
   columnErrors = {},
+  columnOptions,
   defaultDtype,
   description,
   emptyText,
@@ -146,6 +152,8 @@ export const ColumnDtypeOverridesEditor = ({
   suggestedColumnName = '',
   title,
 }: ColumnDtypeOverridesEditorProps) => {
+  const resolvedColumnOptions = columnOptions ?? [];
+  const useColumnSelect = resolvedColumnOptions.length > 0;
   const addEntry = () => {
     onChange([
       ...entries,
@@ -195,17 +203,50 @@ export const ColumnDtypeOverridesEditor = ({
           return (
             <Row key={index}>
               <div>
-                <SettingsTextInput
-                  aria-label={`Имя колонки ${index + 1}`}
-                  value={entry.columnName}
-                  onChange={event =>
-                    updateEntry(index, {
-                      columnName: event.currentTarget.value,
-                    })
-                  }
-                  placeholder='имя колонки'
-                  hasError={Boolean(error)}
-                />
+                {useColumnSelect ? (
+                  <SingleOptionDropdownSelect
+                    ariaLabel={`Имя колонки ${index + 1}`}
+                    value={entry.columnName}
+                    onChange={columnName =>
+                      updateEntry(index, { columnName })
+                    }
+                    options={
+                      entry.columnName &&
+                      !resolvedColumnOptions.some(
+                        option => option.value === entry.columnName
+                      )
+                        ? [
+                            {
+                              value: entry.columnName,
+                              label: entry.columnName,
+                            },
+                            ...resolvedColumnOptions,
+                          ]
+                        : resolvedColumnOptions
+                    }
+                    searchable
+                    error={Boolean(error)}
+                    placeholder='имя колонки'
+                    popperMinWidth={0}
+                    textFieldSx={{
+                      minHeight: 42,
+                      borderRadius: '10px',
+                      backgroundColor: 'background.paper',
+                    }}
+                  />
+                ) : (
+                  <SettingsTextInput
+                    aria-label={`Имя колонки ${index + 1}`}
+                    value={entry.columnName}
+                    onChange={event =>
+                      updateEntry(index, {
+                        columnName: event.currentTarget.value,
+                      })
+                    }
+                    placeholder='имя колонки'
+                    hasError={Boolean(error)}
+                  />
+                )}
                 {error ? (
                   <SettingsFieldHint tone='error'>{error}</SettingsFieldHint>
                 ) : null}

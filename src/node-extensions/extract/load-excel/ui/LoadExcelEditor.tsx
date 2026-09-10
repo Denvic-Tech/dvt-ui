@@ -3,17 +3,31 @@ import React, {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
-import { InfoOutlined as InfoIcon } from '@mui/icons-material';
-import { Box, Chip, Divider, Stack, Tooltip, Typography } from '@mui/material';
+import {
+  InfoOutlined as InfoIcon,
+  RefreshRounded as RefreshIcon,
+} from '@mui/icons-material';
+import {
+  Box,
+  CircularProgress,
+  Divider,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 
 import { NodeModalExtensionProps } from '@/app/providers/node-extensions/lib/types';
 
 import {
   type ColumnDtypeEntry,
+  type ColumnDtypeOption,
   ColumnDtypeOverridesEditor,
 } from '@/features/node/column-dtype-overrides';
+import { useNodeMetadata } from '@/features/node/get-node-metadata';
 import {
   FileStorageConnectionFields,
   FileStorageTargetPathSection,
@@ -36,12 +50,17 @@ import {
 
 import { useConnections } from '@/entities/data/db-connection';
 
-import { type FtpMetadata, type S3Metadata } from '@/shared/gatewayClient';
+import {
+  type DataFrameMetadata,
+  type FtpMetadata,
+  type S3Metadata,
+} from '@/shared/gatewayClient';
 import {
   isExpressionValue,
   unwrapInputValues,
 } from '@/shared/lib/node-input-values';
 import {
+  MultiOptionDropdownSelect,
   SettingsFieldGroup,
   SettingsFieldHint,
   SettingsFieldLabel,
@@ -60,6 +79,7 @@ import {
   LOAD_EXCEL_DTYPE_OPTIONS,
   loadExcelDtypesToEntries,
 } from './LoadExcelEditor.helpers';
+import { loadExcelColumnsApi } from '../api';
 import { LoadExcelNumericSettings } from './LoadExcelNumericSettings';
 
 const EXCEL_UPLOAD_CONFIG = {
@@ -129,7 +149,11 @@ export const LoadExcelEditor: React.FC<
   const [isUploadModeRequested, setIsUploadModeRequested] = useState(false);
   const { getConnectionById } = useConnections();
   const { getConnectedInputMetadata } = useNodeConnections(nodeID);
-  const { uploadNodeFileInput } = useNodeFileInput(nodeID);
+  const { uploadNodeFileInput, projectID } = useNodeFileInput(nodeID);
+  const { nodeMetadata } = useNodeMetadata(nodeID);
+  const [isRefreshingColumns, setIsRefreshingColumns] = useState(false);
+  const [fetchedColumns, setFetchedColumns] = useState<string[] | null>(null);
+  const [columnsError, setColumnsError] = useState<string | null>(null);
 
   const update = useCallback(
     (patch: Partial<LoadExcelValues>) =>
@@ -177,6 +201,8 @@ export const LoadExcelEditor: React.FC<
     setUploadedFileSizeLabel(null);
     setUploadError(null);
     setIsUploading(false);
+    setFetchedColumns(null);
+    setColumnsError(null);
   }, [nodeID]);
 
   const hydratedDtypeEntries = useMemo(
@@ -248,11 +274,6 @@ export const LoadExcelEditor: React.FC<
     [update]
   );
 
-  const suggestedDtypeColumn =
-    localInputData.usecols?.find(
-      column => !dtypeDraftEntries.some(entry => entry.columnName === column)
-    ) ?? '';
-
   const liveSeparatorError = getNumericSeparatorError(
     localInputData.thousands,
     localInputData.decimal ?? decimalDefault
@@ -281,6 +302,129 @@ export const LoadExcelEditor: React.FC<
     !isUploadDisabled && (isUploadModeRequested || hasUploadedSource)
       ? 'upload'
       : 'manual';
+
+  const metadataColumns = useMemo<string[]>(() => {
+    const output = nodeMetadata?.['output'] as DataFrameMetadata | undefined;
+    if (!output || output.type !== 'DATAFRAME') {
+      return [];
+    }
+    return output.columns.map(column => column.name);
+  }, [nodeMetadata]);
+
+  // Свежепрочитанные из файла колонки имеют приоритет над метаданными ноды:
+  // они учитывают ТЕКУЩИЕ (ещё не сохранённые) значения — путь, лист и строку
+  // с названиями колонок (header_row).
+  const availableColumns = fetchedColumns ?? metadataColumns;
+  const hasColumnMetadata = availableColumns.length > 0;
+
+  const usecolsOptions = useMemo(() => {
+    const names: string[] = [];
+    const seen = new Set<string>();
+    const pushName = (name: string) => {
+      if (name && !seen.has(name)) {
+        seen.add(name);
+        names.push(name);
+      }
+    };
+    availableColumns.forEach(pushName);
+    (localInputData.usecols ?? []).forEach(pushName);
+    return names.map(name => ({ value: name, label: name, searchText: name }));
+  }, [availableColumns, localInputData.usecols]);
+
+  const dtypeColumnOptions = useMemo<ColumnDtypeOption[]>(
+    () => availableColumns.map(name => ({ value: name, label: name })),
+    [availableColumns]
+  );
+
+  const showColumnSelect = usecolsOptions.length > 0;
+
+  const suggestedDtypeColumn = useMemo(() => {
+    const used = new Set(dtypeDraftEntries.map(entry => entry.columnName));
+    const pool = hasColumnMetadata
+      ? availableColumns
+      : (localInputData.usecols ?? []);
+    return pool.find(column => !used.has(column)) ?? '';
+  }, [
+    availableColumns,
+    dtypeDraftEntries,
+    hasColumnMetadata,
+    localInputData.usecols,
+  ]);
+
+  const pathString =
+    typeof localInputData.path === 'string' ? localInputData.path : '';
+  const isGlobPath = /[*?[]/.test(pathString);
+  const hasConcreteSource =
+    sourceMode === 'upload'
+      ? hasUploadedSource
+      : Boolean(pathString) && !isGlobPath && isExcel(pathString);
+
+  // Читаем колонки по запросу из ТЕКУЩИХ значений модалки (путь/лист/строка
+  // заголовка), а не из сохранённых метаданных — иначе изменения header_row
+  // не влияли бы на список колонок.
+  const refreshColumns = useCallback(async () => {
+    if (!projectID || !pathString) {
+      return;
+    }
+    const connectionId =
+      sourceMode === 'manual'
+        ? (connectionMetadata?.connection_id ?? null)
+        : null;
+    const headerRow =
+      typeof localInputData.header_row === 'number'
+        ? localInputData.header_row
+        : 0;
+
+    setIsRefreshingColumns(true);
+    setColumnsError(null);
+    try {
+      const response = await loadExcelColumnsApi.fetch(projectID, nodeID, {
+        path: pathString,
+        sheet_name: localInputData.sheet_name ?? null,
+        header_row: headerRow,
+        connection_id: connectionId,
+      });
+      setFetchedColumns(response.columns ?? []);
+    } catch (error) {
+      setColumnsError(
+        getNodeFileInputErrorMessage(
+          error,
+          'Не удалось прочитать колонки из файла'
+        )
+      );
+    } finally {
+      setIsRefreshingColumns(false);
+    }
+  }, [
+    connectionMetadata?.connection_id,
+    localInputData.header_row,
+    localInputData.sheet_name,
+    nodeID,
+    pathString,
+    projectID,
+    sourceMode,
+  ]);
+
+  // Автоматически читаем колонки один раз при открытии, если источник задан,
+  // а колонок ещё нет (ни свежих, ни из метаданных).
+  const autoReadNodeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (autoReadNodeRef.current === nodeID) {
+      return;
+    }
+    if (fetchedColumns !== null || hasColumnMetadata || !hasConcreteSource) {
+      return;
+    }
+    autoReadNodeRef.current = nodeID;
+    void refreshColumns();
+  }, [
+    fetchedColumns,
+    hasColumnMetadata,
+    hasConcreteSource,
+    nodeID,
+    refreshColumns,
+  ]);
+
   const pathInputDefinition = nodeDefinition?.input_definitions?.['path'];
   const pickerState = useMemo(
     () =>
@@ -633,46 +777,88 @@ export const LoadExcelEditor: React.FC<
               />
               <SettingsFieldHint tone={errors.header_row ? 'error' : 'default'}>
                 {errors.header_row ||
-                  '0 — первая строка (как в pandas.read_excel)'}
+                  'Строка с названиями колонок (0 — первая). После изменения нажмите «обновить» у столбцов'}
               </SettingsFieldHint>
             </SettingsFieldGroup>
           </SettingsTwoColumns>
 
           <SettingsFieldGroup>
-            <SettingsFieldLabel>Столбцы (usecols)</SettingsFieldLabel>
-            <SettingsTextInput
-              aria-label='Столбцы'
-              placeholder='id, name, amount, created_at'
-              value={colsInputValue}
-              onChange={handleColsChange}
-              hasError={Boolean(errors.usecols)}
-            />
-            <SettingsFieldHint tone={errors.usecols ? 'error' : 'default'}>
-              {errors.usecols || 'Через запятую. Пусто — все столбцы'}
-            </SettingsFieldHint>
-
-            {!!localInputData.usecols?.length && (
-              <Stack
-                direction='row'
-                spacing={0.5}
-                flexWrap='wrap'
-                sx={{ mt: 1 }}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1,
+              }}
+            >
+              <SettingsFieldLabel>Столбцы (usecols)</SettingsFieldLabel>
+              <Tooltip
+                title={
+                  hasConcreteSource
+                    ? 'Прочитать колонки из файла'
+                    : 'Укажите конкретный файл, чтобы прочитать колонки'
+                }
               >
-                {localInputData.usecols.map(column => (
-                  <Chip
-                    key={column}
+                <span>
+                  <IconButton
+                    aria-label='Прочитать колонки из файла'
                     size='small'
-                    label={column}
-                    onDelete={() => {
-                      const next = (localInputData.usecols || []).filter(
-                        value => value !== column
-                      );
-                      update({ usecols: next.length ? next : null });
-                    }}
-                    sx={{ mb: 0.5 }}
-                  />
-                ))}
-              </Stack>
+                    onClick={refreshColumns}
+                    disabled={
+                      !projectID || !hasConcreteSource || isRefreshingColumns
+                    }
+                  >
+                    {isRefreshingColumns ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      <RefreshIcon fontSize='small' />
+                    )}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+
+            {showColumnSelect ? (
+              <>
+                <MultiOptionDropdownSelect
+                  ariaLabel='Столбцы'
+                  value={localInputData.usecols ?? []}
+                  onChange={next =>
+                    update({ usecols: next.length ? next : null })
+                  }
+                  options={usecolsOptions}
+                  loading={isRefreshingColumns}
+                  error={Boolean(errors.usecols)}
+                  placeholder='Все столбцы'
+                  popperMinWidth={0}
+                />
+                <SettingsFieldHint
+                  tone={errors.usecols || columnsError ? 'error' : 'default'}
+                >
+                  {errors.usecols ||
+                    columnsError ||
+                    'Выберите столбцы для чтения. Пусто — все столбцы'}
+                </SettingsFieldHint>
+              </>
+            ) : (
+              <>
+                <SettingsTextInput
+                  aria-label='Столбцы'
+                  placeholder='id, name, amount, created_at'
+                  value={colsInputValue}
+                  onChange={handleColsChange}
+                  hasError={Boolean(errors.usecols)}
+                />
+                <SettingsFieldHint
+                  tone={errors.usecols || columnsError ? 'error' : 'default'}
+                >
+                  {errors.usecols ||
+                    columnsError ||
+                    (hasConcreteSource
+                      ? 'Через запятую или нажмите «обновить», чтобы выбрать из списка'
+                      : 'Через запятую. Пусто — все столбцы')}
+                </SettingsFieldHint>
+              </>
             )}
           </SettingsFieldGroup>
 
@@ -714,6 +900,7 @@ export const LoadExcelEditor: React.FC<
 
         <ColumnDtypeOverridesEditor
           columnErrors={dtypeColumnErrors}
+          columnOptions={dtypeColumnOptions}
           defaultDtype={DEFAULT_LOAD_EXCEL_DTYPE}
           description='Приведение отдельных колонок при чтении. Остальные — авто.'
           emptyText='Добавьте колонку, если для неё нужен явный тип.'

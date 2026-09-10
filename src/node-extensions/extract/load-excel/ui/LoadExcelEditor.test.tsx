@@ -44,6 +44,17 @@ vi.mock('@/entities/data/db-connection', () => ({
   useConnections: () => ({ getConnectionById: () => null }),
 }));
 
+vi.mock('@/features/node/get-node-metadata', () => ({
+  useNodeMetadata: () => ({
+    nodeMetadata: null,
+    nodeMetadataActuality: true,
+  }),
+}));
+
+vi.mock('@/entities/project/project-cache', () => ({
+  useProjectCache: () => ({ clearMetadataCache: vi.fn() }),
+}));
+
 const nodeDefinition = {
   name: 'LoadExcel',
   input_definitions: {
