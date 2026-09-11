@@ -324,6 +324,9 @@ import type {
   InstallExtensionExtensionsExtensionNameInstallPostData,
   InstallExtensionExtensionsExtensionNameInstallPostError,
   InstallExtensionExtensionsExtensionNameInstallPostResponses,
+  InstallExtensionPackageExtensionsPackagesPackageIdInstallPostData,
+  InstallExtensionPackageExtensionsPackagesPackageIdInstallPostError,
+  InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses,
   InvalidateNodeMetadataCacheProjectsProjectIdCacheClearDataPostData,
   InvalidateNodeMetadataCacheProjectsProjectIdCacheClearDataPostError,
   InvalidateNodeMetadataCacheProjectsProjectIdCacheClearDataPostResponses,
@@ -379,6 +382,9 @@ import type {
   PostQueueQueuePostData,
   PostQueueQueuePostError,
   PostQueueQueuePostResponses,
+  PreviewExtensionPackageExtensionsPackagesPreviewPostData,
+  PreviewExtensionPackageExtensionsPackagesPreviewPostError,
+  PreviewExtensionPackageExtensionsPackagesPreviewPostResponses,
   ProcessGraphOpProjectsProjectIdGraphOpsPostData,
   ProcessGraphOpProjectsProjectIdGraphOpsPostError,
   ProcessGraphOpProjectsProjectIdGraphOpsPostResponses,
@@ -728,6 +734,8 @@ import {
   zGetVersionSystemVersionGetResponse,
   zInstallExtensionExtensionsExtensionNameInstallPostData,
   zInstallExtensionExtensionsExtensionNameInstallPostResponse,
+  zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostData,
+  zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponse,
   zInvalidateNodeMetadataCacheProjectsProjectIdCacheClearDataPostData,
   zInvalidateNodeMetadataCacheProjectsProjectIdCacheClearDataPostResponse,
   zJsonDataProjectsProjectIdJsonNodeIdGetData,
@@ -769,6 +777,8 @@ import {
   zPatchScheduleProjectsSchedulerScheduleProjectIdPatchResponse,
   zPostQueueQueuePostData,
   zPostQueueQueuePostResponse,
+  zPreviewExtensionPackageExtensionsPackagesPreviewPostData,
+  zPreviewExtensionPackageExtensionsPackagesPreviewPostResponse,
   zProcessGraphOpProjectsProjectIdGraphOpsPostData,
   zProcessGraphOpProjectsProjectIdGraphOpsPostResponse,
   zRecreateTableUtilsDdlRecreateTablePostData,
@@ -9624,6 +9634,134 @@ export const nestedClient = {
           method: 'POST',
           url: '/extensions/sync',
         });
+      },
+    },
+    packages: {
+      preview: {
+        /**
+         * Preview Extension Package
+         */
+        post: async (
+          params?: OperationParams<PreviewExtensionPackageExtensionsPackagesPreviewPostData>,
+          config?: OperationConfig<
+            PreviewExtensionPackageExtensionsPackagesPreviewPostData,
+            PreviewExtensionPackageExtensionsPackagesPreviewPostResponses[keyof PreviewExtensionPackageExtensionsPackagesPreviewPostResponses]
+          >
+        ): OperationResult<
+          PreviewExtensionPackageExtensionsPackagesPreviewPostResponses[keyof PreviewExtensionPackageExtensionsPackagesPreviewPostResponses],
+          PreviewExtensionPackageExtensionsPackagesPreviewPostError
+        > => {
+          const requestParams = (params ??
+            {}) as OperationParams<PreviewExtensionPackageExtensionsPackagesPreviewPostData>;
+          const { client: clientOverride, ...requestConfig } = (config ??
+            {}) as OperationConfig<
+            PreviewExtensionPackageExtensionsPackagesPreviewPostData,
+            PreviewExtensionPackageExtensionsPackagesPreviewPostResponses[keyof PreviewExtensionPackageExtensionsPackagesPreviewPostResponses]
+          >;
+          const requestClient = clientOverride ?? client;
+          const requestOptions = {
+            ...requestConfig,
+            ...requestParams,
+          } satisfies Omit<
+            OperationBaseOptions<
+              PreviewExtensionPackageExtensionsPackagesPreviewPostData,
+              PreviewExtensionPackageExtensionsPackagesPreviewPostResponses[keyof PreviewExtensionPackageExtensionsPackagesPreviewPostResponses]
+            >,
+            'path'
+          >;
+          if (requestOptions.requestValidator == null) {
+            requestOptions.requestValidator = async data => {
+              return await zPreviewExtensionPackageExtensionsPackagesPreviewPostData.parseAsync(
+                data
+              );
+            };
+          }
+          if (requestOptions.responseValidator == null) {
+            requestOptions.responseValidator = async data => {
+              return await zPreviewExtensionPackageExtensionsPackagesPreviewPostResponse.parseAsync(
+                data
+              );
+            };
+          }
+          return requestClient.request<
+            PreviewExtensionPackageExtensionsPackagesPreviewPostResponses[keyof PreviewExtensionPackageExtensionsPackagesPreviewPostResponses],
+            PreviewExtensionPackageExtensionsPackagesPreviewPostError,
+            true
+          >({
+            ...requestOptions,
+            method: 'POST',
+            url: '/extensions/packages/preview',
+          });
+        },
+      },
+      packageId: (packageId: PathParamValue) => {
+        const rootPathContext_packageId: PathContext = {
+          ...rootPathContext,
+          package_id: packageId,
+        };
+        return {
+          install: {
+            /**
+             * Install Extension Package
+             */
+            post: async (
+              params?: OperationParams<InstallExtensionPackageExtensionsPackagesPackageIdInstallPostData>,
+              config?: OperationConfig<
+                InstallExtensionPackageExtensionsPackagesPackageIdInstallPostData,
+                InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses[keyof InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses]
+              >
+            ): OperationResult<
+              InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses[keyof InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses],
+              InstallExtensionPackageExtensionsPackagesPackageIdInstallPostError
+            > => {
+              const requestParams = (params ??
+                {}) as OperationParams<InstallExtensionPackageExtensionsPackagesPackageIdInstallPostData>;
+              const { client: clientOverride, ...requestConfig } = (config ??
+                {}) as OperationConfig<
+                InstallExtensionPackageExtensionsPackagesPackageIdInstallPostData,
+                InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses[keyof InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses]
+              >;
+              const requestClient = clientOverride ?? client;
+              const requestOptions = {
+                ...requestConfig,
+                ...requestParams,
+              } satisfies Omit<
+                OperationBaseOptions<
+                  InstallExtensionPackageExtensionsPackagesPackageIdInstallPostData,
+                  InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses[keyof InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses]
+                >,
+                'path'
+              >;
+              if (requestOptions.requestValidator == null) {
+                requestOptions.requestValidator = async data => {
+                  return await zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostData.parseAsync(
+                    data
+                  );
+                };
+              }
+              if (requestOptions.responseValidator == null) {
+                requestOptions.responseValidator = async data => {
+                  return await zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponse.parseAsync(
+                    data
+                  );
+                };
+              }
+              const path = {
+                ...rootPathContext_packageId,
+              } satisfies PathContext;
+              return requestClient.request<
+                InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses[keyof InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses],
+                InstallExtensionPackageExtensionsPackagesPackageIdInstallPostError,
+                true
+              >({
+                ...requestOptions,
+                method: 'POST',
+                url: '/extensions/packages/{package_id}/install',
+                path,
+              });
+            },
+          },
+        };
       },
     },
     extensionName: (extensionName: PathParamValue) => {

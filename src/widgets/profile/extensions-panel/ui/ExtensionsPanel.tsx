@@ -6,6 +6,7 @@ import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import ExtensionRoundedIcon from '@mui/icons-material/ExtensionRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import UpdateRoundedIcon from '@mui/icons-material/UpdateRounded';
+import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import {
   Alert,
   alpha,
@@ -32,6 +33,7 @@ import { extensionsApi } from '@/features/profile/extensions';
 
 import type {
   ExtensionManifestNodeSchema,
+  ExtensionPackagePreviewSchema,
   ExtensionReadSchema,
 } from '@/shared/gatewayClient';
 import { ApiErrorPayload, isApiError } from '@/shared/lib/errors';
@@ -643,6 +645,10 @@ export const ExtensionsPanel: React.FC = () => {
   const [deleteTarget, setDeleteTarget] =
     React.useState<ExtensionReadSchema | null>(null);
   const [dropExtensionData, setDropExtensionData] = React.useState(false);
+  const [packagePreview, setPackagePreview] =
+    React.useState<ExtensionPackagePreviewSchema | null>(null);
+  const [packagePending, setPackagePending] = React.useState(false);
+  const packageInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const setPendingAction = React.useCallback(
     (extensionName: string, action: PendingAction) => {
@@ -675,7 +681,6 @@ export const ExtensionsPanel: React.FC = () => {
     setGlobalError(null);
 
     try {
-      await extensionsApi.sync();
       const items = await extensionsApi.list();
       setExtensions(items);
     } catch (error) {
@@ -795,6 +800,67 @@ export const ExtensionsPanel: React.FC = () => {
     setDropExtensionData(false);
   };
 
+  const handlePackageSelected = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+
+    setGlobalError(null);
+    setFlashMessage(null);
+    setPackagePending(true);
+    try {
+      setPackagePreview(await extensionsApi.previewPackage(file));
+    } catch (error) {
+      setGlobalError(
+        buildErrorPayload(error, 'Не удалось проверить пакет расширения.')
+      );
+    } finally {
+      setPackagePending(false);
+    }
+  };
+
+  const installPackage = async () => {
+    if (!packagePreview) {
+      return;
+    }
+    const preview = packagePreview;
+    setGlobalError(null);
+    setFlashMessage(null);
+    setPackagePending(true);
+    try {
+      const installed = await extensionsApi.installPackage(preview.package_id, {
+        allowDowngrade: preview.operation === 'downgrade',
+        allowReinstall: preview.operation === 'reinstall',
+      });
+      setExtensions(prev => {
+        const otherExtensions = prev.filter(
+          item => item.name !== installed.name
+        );
+        return [...otherExtensions, installed].sort((left, right) =>
+          (left.display_name || left.name).localeCompare(
+            right.display_name || right.name,
+            'ru'
+          )
+        );
+      });
+      setPackagePreview(null);
+      setFlashMessage({
+        severity: 'success',
+        message: `Расширение "${installed.display_name || installed.name}" установлено из файла.`,
+      });
+    } catch (error) {
+      setGlobalError(
+        buildErrorPayload(error, 'Не удалось установить пакет расширения.')
+      );
+    } finally {
+      setPackagePending(false);
+    }
+  };
+
   return (
     <Stack spacing={2.5}>
       <Paper variant='outlined' sx={cleanMinimalPaperSx}>
@@ -849,30 +915,54 @@ export const ExtensionsPanel: React.FC = () => {
               </Box>
             </Stack>
 
-            <Button
-              variant='outlined'
-              startIcon={
-                pendingByName['__sync__'] === 'sync' ? (
-                  <CircularProgress size={16} color='inherit' />
-                ) : (
-                  <RefreshRoundedIcon fontSize='small' />
-                )
-              }
-              onClick={() => void handleSync()}
-              disabled={pendingByName['__sync__'] === 'sync'}
-              sx={{
-                ...actionButtonSx,
-                borderColor: '#d1d5db',
-                color: '#374151',
-                backgroundColor: '#ffffff',
-                '&:hover': {
-                  borderColor: '#9ca3af',
-                  backgroundColor: '#f9fafb',
-                },
-              }}
-            >
-              Синхронизировать
-            </Button>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              <input
+                ref={packageInputRef}
+                type='file'
+                accept='.dvtx,.zip,application/zip'
+                hidden
+                onChange={event => void handlePackageSelected(event)}
+              />
+              <Button
+                variant='contained'
+                startIcon={
+                  packagePending && !packagePreview ? (
+                    <CircularProgress size={16} color='inherit' />
+                  ) : (
+                    <UploadFileRoundedIcon fontSize='small' />
+                  )
+                }
+                disabled={packagePending}
+                onClick={() => packageInputRef.current?.click()}
+                sx={{ ...actionButtonSx, backgroundColor: '#6366f1' }}
+              >
+                Установить из файла
+              </Button>
+              <Button
+                variant='outlined'
+                startIcon={
+                  pendingByName['__sync__'] === 'sync' ? (
+                    <CircularProgress size={16} color='inherit' />
+                  ) : (
+                    <RefreshRoundedIcon fontSize='small' />
+                  )
+                }
+                onClick={() => void handleSync()}
+                disabled={pendingByName['__sync__'] === 'sync'}
+                sx={{
+                  ...actionButtonSx,
+                  borderColor: '#d1d5db',
+                  color: '#374151',
+                  backgroundColor: '#ffffff',
+                  '&:hover': {
+                    borderColor: '#9ca3af',
+                    backgroundColor: '#f9fafb',
+                  },
+                }}
+              >
+                Синхронизировать
+              </Button>
+            </Stack>
           </Stack>
         </Box>
 
@@ -1038,6 +1128,99 @@ export const ExtensionsPanel: React.FC = () => {
           ))}
         </Stack>
       ) : null}
+
+      <Dialog
+        open={packagePreview !== null}
+        onClose={() => !packagePending && setPackagePreview(null)}
+        fullWidth
+        maxWidth='sm'
+      >
+        <DialogTitle>Установка расширения из файла</DialogTitle>
+        <DialogContent>
+          {packagePreview ? (
+            <Stack spacing={2} sx={{ pt: 0.5 }}>
+              <Box>
+                <Typography sx={{ fontSize: 16, fontWeight: 700 }}>
+                  {packagePreview.display_name}
+                </Typography>
+                <Typography sx={{ mt: 0.5, fontSize: 13, color: '#6b7280' }}>
+                  {packagePreview.filename}
+                </Typography>
+              </Box>
+              <Stack direction='row' spacing={1} flexWrap='wrap' useFlexGap>
+                <Chip label={`Версия ${packagePreview.version}`} size='small' />
+                {packagePreview.current_version ? (
+                  <Chip
+                    label={`Установлена ${packagePreview.current_version}`}
+                    size='small'
+                  />
+                ) : null}
+                <Chip
+                  label={
+                    packagePreview.operation === 'upgrade'
+                      ? 'Обновление'
+                      : packagePreview.operation === 'downgrade'
+                        ? 'Понижение версии'
+                        : packagePreview.operation === 'reinstall'
+                          ? 'Переустановка'
+                          : 'Новая установка'
+                  }
+                  size='small'
+                  sx={statusChipSx(
+                    packagePreview.operation === 'downgrade'
+                      ? 'warning'
+                      : 'default'
+                  )}
+                />
+              </Stack>
+              <Typography sx={{ fontSize: 13, color: '#4b5563' }}>
+                DVT: {packagePreview.dvt_version || 'любая версия'} ·
+                Wheelhouse:{' '}
+                {packagePreview.has_wheelhouse
+                  ? `${packagePreview.bundled_wheels_count} wheel-файлов`
+                  : 'не требуется или отсутствует'}
+              </Typography>
+              {(packagePreview.warnings ?? []).map(warning => (
+                <Alert key={warning} severity='warning'>
+                  {warning}
+                </Alert>
+              ))}
+              {!packagePreview.offline_ready ? (
+                <Alert severity='error'>
+                  Пакет нельзя установить автономно: проверьте совместимость с
+                  DVT и наличие wheelhouse для Python-зависимостей.
+                </Alert>
+              ) : null}
+            </Stack>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            disabled={packagePending}
+            onClick={() => setPackagePreview(null)}
+          >
+            Отмена
+          </Button>
+          <Button
+            variant='contained'
+            disabled={packagePending || !packagePreview?.offline_ready}
+            startIcon={
+              packagePending ? (
+                <CircularProgress size={16} color='inherit' />
+              ) : undefined
+            }
+            onClick={() => void installPackage()}
+          >
+            {packagePreview?.operation === 'downgrade'
+              ? 'Понизить версию'
+              : packagePreview?.operation === 'reinstall'
+                ? 'Переустановить'
+                : packagePreview?.operation === 'upgrade'
+                  ? 'Обновить'
+                  : 'Установить'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={deleteTarget !== null}

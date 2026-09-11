@@ -418,3 +418,13 @@
 - Исправлено повторное открытие `GroupBy + Aggregation`: editor больше не записывает пустые default-значения в draft до гидратации сохранённых `inputValues`, поэтому `group_by_columns`, `source_cols`, `agg_funcs` и `new_cols` не исчезают при открытии модалки.
 - Сохранённая функция агрегации остаётся видимой при временно неизвестной или изменившейся metadata, а SQL-редактор `Read Query DB V3` получил стабильную минимальную высоту.
 - Добавлены regression-тесты hydration race и восстановления aggregation functions.
+
+### 2026-09-10 23:13:30
+
+- Добавлена офлайн-установка расширений из `.dvtx` и legacy `.zip`: загрузка файла, предварительная проверка совместимости и wheelhouse, подтверждение downgrade/reinstall и автономная установка без обязательной синхронизации с distributor.
+- Gateway API client перегенерирован для новых endpoints preview/install пакета расширения; страница расширений теперь показывает локальный каталог даже при недоступном distributor.
+
+### 2026-09-11 14:39:00
+
+- Исправлена загрузка `.dvtx`/`.zip` из UI: multipart upload теперь отправляет `File` через `FormData` базового Gateway client и не попадает под ошибочную generated Zod-валидацию binary-поля как `string`; response validation сохранена.
+- Добавлен regression-тест multipart body для `extensionsApi.previewPackage`.

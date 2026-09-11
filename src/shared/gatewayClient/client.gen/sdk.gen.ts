@@ -328,6 +328,9 @@ import type {
   InstallExtensionExtensionsExtensionNameInstallPostData,
   InstallExtensionExtensionsExtensionNameInstallPostErrors,
   InstallExtensionExtensionsExtensionNameInstallPostResponses,
+  InstallExtensionPackageExtensionsPackagesPackageIdInstallPostData,
+  InstallExtensionPackageExtensionsPackagesPackageIdInstallPostErrors,
+  InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses,
   InvalidateNodeMetadataCacheProjectsProjectIdCacheClearDataPostData,
   InvalidateNodeMetadataCacheProjectsProjectIdCacheClearDataPostErrors,
   InvalidateNodeMetadataCacheProjectsProjectIdCacheClearDataPostResponses,
@@ -383,6 +386,9 @@ import type {
   PostQueueQueuePostData,
   PostQueueQueuePostErrors,
   PostQueueQueuePostResponses,
+  PreviewExtensionPackageExtensionsPackagesPreviewPostData,
+  PreviewExtensionPackageExtensionsPackagesPreviewPostErrors,
+  PreviewExtensionPackageExtensionsPackagesPreviewPostResponses,
   ProcessGraphOpProjectsProjectIdGraphOpsPostData,
   ProcessGraphOpProjectsProjectIdGraphOpsPostErrors,
   ProcessGraphOpProjectsProjectIdGraphOpsPostResponses,
@@ -734,6 +740,8 @@ import {
   zGetVersionSystemVersionGetResponse,
   zInstallExtensionExtensionsExtensionNameInstallPostData,
   zInstallExtensionExtensionsExtensionNameInstallPostResponse,
+  zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostData,
+  zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponse,
   zInvalidateNodeMetadataCacheProjectsProjectIdCacheClearDataPostData,
   zInvalidateNodeMetadataCacheProjectsProjectIdCacheClearDataPostResponse,
   zJsonDataProjectsProjectIdJsonNodeIdGetData,
@@ -775,6 +783,8 @@ import {
   zPatchScheduleProjectsSchedulerScheduleProjectIdPatchResponse,
   zPostQueueQueuePostData,
   zPostQueueQueuePostResponse,
+  zPreviewExtensionPackageExtensionsPackagesPreviewPostData,
+  zPreviewExtensionPackageExtensionsPackagesPreviewPostResponse,
   zProcessGraphOpProjectsProjectIdGraphOpsPostData,
   zProcessGraphOpProjectsProjectIdGraphOpsPostResponse,
   zRecreateTableUtilsDdlRecreateTablePostData,
@@ -5456,6 +5466,79 @@ export const listExtensionsExtensionsGet = <
       return await zListExtensionsExtensionsGetResponse.parseAsync(data);
     },
     url: '/extensions',
+    ...options,
+  });
+};
+
+/**
+ * Preview Extension Package
+ *
+ * Загружает и валидирует локальный .dvtx/.zip без изменения runtime.
+ */
+export const previewExtensionPackageExtensionsPackagesPreviewPost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    PreviewExtensionPackageExtensionsPackagesPreviewPostData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).post<
+    PreviewExtensionPackageExtensionsPackagesPreviewPostResponses,
+    PreviewExtensionPackageExtensionsPackagesPreviewPostErrors,
+    ThrowOnError
+  >({
+    ...formDataBodySerializer,
+    requestValidator: async data => {
+      return await zPreviewExtensionPackageExtensionsPackagesPreviewPostData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zPreviewExtensionPackageExtensionsPackagesPreviewPostResponse.parseAsync(
+        data
+      );
+    },
+    url: '/extensions/packages/preview',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Install Extension Package
+ *
+ * Устанавливает ранее загруженный package полностью из локального artifact.
+ */
+export const installExtensionPackageExtensionsPackagesPackageIdInstallPost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    InstallExtensionPackageExtensionsPackagesPackageIdInstallPostData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).post<
+    InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses,
+    InstallExtensionPackageExtensionsPackagesPackageIdInstallPostErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponse.parseAsync(
+        data
+      );
+    },
+    url: '/extensions/packages/{package_id}/install',
     ...options,
   });
 };
