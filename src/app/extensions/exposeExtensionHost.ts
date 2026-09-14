@@ -8,6 +8,8 @@ import { fileStorageHostCapabilities } from '@/app/extensions/public/fileStorage
 import { repackS3ParquetHostCapabilities } from '@/app/extensions/public/repackS3Parquet.ts';
 import { ExtensionHost } from '@/app/extensions/types.ts';
 
+import { NodeDefaultEditor } from '@/widgets/project-editor/node-data-modal/ui/NodeDefaultEditor';
+
 import { PrimitiveNodeInput } from '@/features/node/use-universal-node-data-input/ui/inputs';
 
 import { client } from '@/shared/gatewayClient';
@@ -24,6 +26,7 @@ export const host: ExtensionHost = {
       ViewColumn: ViewColumnIcon,
     },
     components: {
+      NodeDefaultEditor,
       PrimitiveNodeInput,
     },
   },

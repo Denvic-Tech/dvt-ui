@@ -143,7 +143,10 @@ export type ExtensionHost = {
   ui?: {
     mui?: typeof import('@mui/material');
     icons?: Record<string, import('react').ComponentType<any>>;
-    components?: {};
+    components?: {
+      NodeDefaultEditor?: ComponentType<any>;
+      PrimitiveNodeInput?: ComponentType<any>;
+    };
   };
   capabilities?: {
     fileStorage?: ExtensionFileStorageCapabilities;

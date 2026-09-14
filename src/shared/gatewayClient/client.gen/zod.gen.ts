@@ -722,6 +722,17 @@ export type BodyGetColumnsUtilsCsvGetColumnsPostZodType = z.infer<
 >;
 
 /**
+ * Body_preview_extension_package_extensions_packages_preview_post
+ */
+export const zBodyPreviewExtensionPackageExtensionsPackagesPreviewPost =
+  z.object({
+    file: z.string(),
+  });
+
+export type BodyPreviewExtensionPackageExtensionsPackagesPreviewPostZodType =
+  z.infer<typeof zBodyPreviewExtensionPackageExtensionsPackagesPreviewPost>;
+
+/**
  * Body_sql_code_metadata_utils_sql_code_metadata_post
  */
 export const zBodySqlCodeMetadataUtilsSqlCodeMetadataPost = z.object({
@@ -1872,6 +1883,29 @@ export const zExtensionManifestSchema = z.object({
 
 export type ExtensionManifestSchemaZodType = z.infer<
   typeof zExtensionManifestSchema
+>;
+
+/**
+ * ExtensionPackagePreviewSchema
+ */
+export const zExtensionPackagePreviewSchema = z.object({
+  package_id: z.string(),
+  filename: z.string(),
+  name: z.string(),
+  display_name: z.string(),
+  version: z.string(),
+  current_version: z.optional(z.union([z.string(), z.null()])),
+  dvt_version: z.optional(z.union([z.string(), z.null()])),
+  operation: z.string(),
+  compatible: z.boolean(),
+  offline_ready: z.boolean(),
+  has_wheelhouse: z.boolean(),
+  bundled_wheels_count: z.optional(z.int()).default(0),
+  warnings: z.optional(z.array(z.string())),
+});
+
+export type ExtensionPackagePreviewSchemaZodType = z.infer<
+  typeof zExtensionPackagePreviewSchema
 >;
 
 /**
@@ -12253,6 +12287,55 @@ export type ListExtensionsExtensionsGetResponseZodType = z.infer<
   typeof zListExtensionsExtensionsGetResponse
 >;
 
+export const zPreviewExtensionPackageExtensionsPackagesPreviewPostData =
+  z.object({
+    body: zBodyPreviewExtensionPackageExtensionsPackagesPreviewPost,
+    path: z.optional(z.never()),
+    query: z.optional(z.never()),
+  });
+
+export type PreviewExtensionPackageExtensionsPackagesPreviewPostDataZodType =
+  z.infer<typeof zPreviewExtensionPackageExtensionsPackagesPreviewPostData>;
+
+/**
+ * Successful Response
+ */
+export const zPreviewExtensionPackageExtensionsPackagesPreviewPostResponse =
+  zExtensionPackagePreviewSchema;
+
+export type PreviewExtensionPackageExtensionsPackagesPreviewPostResponseZodType =
+  z.infer<typeof zPreviewExtensionPackageExtensionsPackagesPreviewPostResponse>;
+
+export const zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostData =
+  z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+      package_id: z.string(),
+    }),
+    query: z.optional(
+      z.object({
+        allow_downgrade: z.optional(z.boolean()).default(false),
+        allow_reinstall: z.optional(z.boolean()).default(false),
+      })
+    ),
+  });
+
+export type InstallExtensionPackageExtensionsPackagesPackageIdInstallPostDataZodType =
+  z.infer<
+    typeof zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostData
+  >;
+
+/**
+ * Successful Response
+ */
+export const zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponse =
+  zExtensionReadSchema;
+
+export type InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponseZodType =
+  z.infer<
+    typeof zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponse
+  >;
+
 export const zGetExtensionFrontendExtensionsExtensionNameFrontendGetData =
   z.object({
     body: z.optional(z.never()),
@@ -12293,7 +12376,7 @@ export type GetExtensionFrontendAssetExtensionsExtensionNameFrontendAssetsAssetP
 
 export const zUninstallExtensionExtensionsExtensionNameUninstallDeleteData =
   z.object({
-    body: z.optional(zExtensionUninstallSchema),
+    body: z.optional(z.union([zExtensionUninstallSchema, z.null()])),
     path: z.object({
       extension_name: z.string(),
     }),

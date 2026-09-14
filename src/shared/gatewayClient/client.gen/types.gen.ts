@@ -763,6 +763,16 @@ export type BodyGetColumnsUtilsCsvGetColumnsPost = {
 };
 
 /**
+ * Body_preview_extension_package_extensions_packages_preview_post
+ */
+export type BodyPreviewExtensionPackageExtensionsPackagesPreviewPost = {
+  /**
+   * File
+   */
+  file: Blob | File;
+};
+
+/**
  * Body_sql_code_metadata_utils_sql_code_metadata_post
  */
 export type BodySqlCodeMetadataUtilsSqlCodeMetadataPost = {
@@ -2994,6 +3004,64 @@ export type ExtensionManifestSchema = {
    * Nodes
    */
   nodes?: Array<ExtensionManifestNodeSchema>;
+};
+
+/**
+ * ExtensionPackagePreviewSchema
+ */
+export type ExtensionPackagePreviewSchema = {
+  /**
+   * Package Id
+   */
+  package_id: string;
+  /**
+   * Filename
+   */
+  filename: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Display Name
+   */
+  display_name: string;
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Current Version
+   */
+  current_version?: string | null;
+  /**
+   * Dvt Version
+   */
+  dvt_version?: string | null;
+  /**
+   * Operation
+   */
+  operation: string;
+  /**
+   * Compatible
+   */
+  compatible: boolean;
+  /**
+   * Offline Ready
+   */
+  offline_ready: boolean;
+  /**
+   * Has Wheelhouse
+   */
+  has_wheelhouse: boolean;
+  /**
+   * Bundled Wheels Count
+   */
+  bundled_wheels_count?: number;
+  /**
+   * Warnings
+   */
+  warnings?: Array<string>;
 };
 
 /**
@@ -20892,6 +20960,77 @@ export type ListExtensionsExtensionsGetResponses = {
 export type ListExtensionsExtensionsGetResponse =
   ListExtensionsExtensionsGetResponses[keyof ListExtensionsExtensionsGetResponses];
 
+export type PreviewExtensionPackageExtensionsPackagesPreviewPostData = {
+  body: BodyPreviewExtensionPackageExtensionsPackagesPreviewPost;
+  path?: never;
+  query?: never;
+  url: '/extensions/packages/preview';
+};
+
+export type PreviewExtensionPackageExtensionsPackagesPreviewPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type PreviewExtensionPackageExtensionsPackagesPreviewPostError =
+  PreviewExtensionPackageExtensionsPackagesPreviewPostErrors[keyof PreviewExtensionPackageExtensionsPackagesPreviewPostErrors];
+
+export type PreviewExtensionPackageExtensionsPackagesPreviewPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ExtensionPackagePreviewSchema;
+};
+
+export type PreviewExtensionPackageExtensionsPackagesPreviewPostResponse =
+  PreviewExtensionPackageExtensionsPackagesPreviewPostResponses[keyof PreviewExtensionPackageExtensionsPackagesPreviewPostResponses];
+
+export type InstallExtensionPackageExtensionsPackagesPackageIdInstallPostData =
+  {
+    body?: never;
+    path: {
+      /**
+       * Package Id
+       */
+      package_id: string;
+    };
+    query?: {
+      /**
+       * Allow Downgrade
+       */
+      allow_downgrade?: boolean;
+      /**
+       * Allow Reinstall
+       */
+      allow_reinstall?: boolean;
+    };
+    url: '/extensions/packages/{package_id}/install';
+  };
+
+export type InstallExtensionPackageExtensionsPackagesPackageIdInstallPostErrors =
+  {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+  };
+
+export type InstallExtensionPackageExtensionsPackagesPackageIdInstallPostError =
+  InstallExtensionPackageExtensionsPackagesPackageIdInstallPostErrors[keyof InstallExtensionPackageExtensionsPackagesPackageIdInstallPostErrors];
+
+export type InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses =
+  {
+    /**
+     * Successful Response
+     */
+    200: ExtensionReadSchema;
+  };
+
+export type InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponse =
+  InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses[keyof InstallExtensionPackageExtensionsPackagesPackageIdInstallPostResponses];
+
 export type GetExtensionFrontendExtensionsExtensionNameFrontendGetData = {
   body?: never;
   path: {
@@ -20961,7 +21100,10 @@ export type GetExtensionFrontendAssetExtensionsExtensionNameFrontendAssetsAssetP
   };
 
 export type UninstallExtensionExtensionsExtensionNameUninstallDeleteData = {
-  body?: ExtensionUninstallSchema;
+  /**
+   * Data
+   */
+  body?: ExtensionUninstallSchema | null;
   path: {
     /**
      * Extension Name
