@@ -428,3 +428,8 @@
 
 - Исправлена загрузка `.dvtx`/`.zip` из UI: multipart upload теперь отправляет `File` через `FormData` базового Gateway client и не попадает под ошибочную generated Zod-валидацию binary-поля как `string`; response validation сохранена.
 - Добавлен regression-тест multipart body для `extensionsApi.previewPackage`.
+
+### 2026-09-11 15:43:57
+
+- В публичный frontend host расширений добавлен стандартный `NodeDefaultEditor`, чтобы внешние расширения могли безопасно дополнять обычный редактор ноды собственными панелями без копирования DVT UI-логики.
+- Тип `ExtensionHost` синхронизирован с новым компонентом и существующим `PrimitiveNodeInput`.
