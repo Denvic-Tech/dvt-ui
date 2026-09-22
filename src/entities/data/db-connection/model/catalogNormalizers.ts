@@ -155,6 +155,7 @@ export const normalizeTableDetail = (
     columns: response.item.columns
       .map(column => ({
         name: column.name,
+        comment: column.comment ?? null,
         ordinal: column.ordinal,
         dtype: column.dtype,
         nullable: column.nullable ?? null,

@@ -167,6 +167,7 @@ export interface ColumnListSelectProps {
   mode?: 'action' | 'select';
   onItemClick?: (column: Column) => void;
   columns: Column[];
+  showComments?: boolean;
   loading?: boolean;
   disabled?: boolean;
   error?: boolean;
@@ -180,6 +181,7 @@ export const ColumnListSelect = ({
   mode = 'select',
   onItemClick,
   columns,
+  showComments = false,
   loading = false,
   disabled = false,
   error = false,
@@ -331,6 +333,7 @@ export const ColumnListSelect = ({
                     >
                       <ColumnOptionRow
                         column={column}
+                        showComment={showComments}
                         checkbox={mode === 'select'}
                         selected={isSelected}
                       />
@@ -352,6 +355,7 @@ export const ColumnListSelect = ({
                   >
                     <ColumnOptionRow
                       column={column}
+                      showComment={showComments}
                       checkbox={mode === 'select'}
                       selected={isSelected}
                     />

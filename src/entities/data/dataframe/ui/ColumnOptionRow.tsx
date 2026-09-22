@@ -14,6 +14,7 @@ interface ColumnOptionRowProps {
   indeterminate?: boolean;
   checkbox?: boolean;
   label?: string;
+  showComment?: boolean;
 }
 
 export const ColumnOptionRow: React.FC<ColumnOptionRowProps> = memo(
@@ -23,7 +24,9 @@ export const ColumnOptionRow: React.FC<ColumnOptionRowProps> = memo(
     indeterminate = false,
     checkbox = false,
     label,
+    showComment = false,
   }) => {
+    const comment = showComment ? column?.comment?.trim() : undefined;
     const dtype = column?.dtype != null ? String(column.dtype) : null;
     const normalizedDtype = dtype?.replace(/^DataType\./i, '') ?? null;
     const typeLabel = normalizedDtype
@@ -46,6 +49,7 @@ export const ColumnOptionRow: React.FC<ColumnOptionRowProps> = memo(
         direction='row'
         alignItems='center'
         spacing={0.75}
+        useFlexGap
         sx={{ minWidth: 0, width: '100%' }}
       >
         {checkbox && (
@@ -112,7 +116,7 @@ export const ColumnOptionRow: React.FC<ColumnOptionRowProps> = memo(
             }
             sx={{
               p: 0,
-              mr: 0.5,
+              mr: 1,
               boxShadow: 'none',
               pointerEvents: 'none',
               '&:hover': {
@@ -123,7 +127,9 @@ export const ColumnOptionRow: React.FC<ColumnOptionRowProps> = memo(
         )}
 
         <Typography
-          title={column?.name ?? label}
+          title={
+            comment ? `${column?.name} — ${comment}` : (column?.name ?? label)
+          }
           sx={{
             flex: 1,
             minWidth: 0,
@@ -132,16 +138,30 @@ export const ColumnOptionRow: React.FC<ColumnOptionRowProps> = memo(
             whiteSpace: 'nowrap',
             textAlign: 'left',
             color: label ? 'text.secondary' : 'text.primary',
-            fontFamily: label
-              ? 'inherit'
-              : '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-            fontSize: label ? '0.6875rem' : '0.75rem',
+            fontFamily: 'inherit',
+            fontSize: label ? '0.6875rem' : '0.8125rem',
             fontWeight: label ? 700 : 500,
             letterSpacing: label ? '0.01em' : 0,
             textTransform: label ? 'uppercase' : 'none',
           }}
         >
           {column?.name ?? label}
+          {comment ? (
+            <Box
+              component='span'
+              sx={theme => ({
+                color: theme.palette.text.secondary,
+                fontFamily: theme.typography.fontFamily,
+                fontSize: 'inherit',
+                fontWeight: 400,
+              })}
+            >
+              <Box component='span' sx={{ mx: 1.5 }}>
+                —
+              </Box>
+              {comment}
+            </Box>
+          ) : null}
         </Typography>
 
         {column?.index ? (

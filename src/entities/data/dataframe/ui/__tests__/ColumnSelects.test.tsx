@@ -128,6 +128,40 @@ describe('ColumnDropdownSelect', () => {
 });
 
 describe('ColumnListSelect', () => {
+  it('shows optional comments and keeps selection based on column names', () => {
+    const handleChange = vi.fn();
+    const commentedColumns: Column[] = [
+      { name: 'amount', dtype: 'FLOAT', comment: 'Сумма заказа' },
+      { name: 'id', dtype: 'INT', comment: null },
+      { name: 'empty', dtype: 'STRING', comment: '   ' },
+      { name: 'legacy', dtype: 'STRING' },
+    ];
+    const { rerender } = render(
+      <ColumnListSelect
+        showComments
+        columns={commentedColumns}
+        value={[]}
+        onChange={handleChange}
+      />
+    );
+
+    expect(screen.getByTitle('amount — Сумма заказа')).toBeInTheDocument();
+    expect(screen.getByTitle('id')).toHaveTextContent(/^id$/);
+    expect(screen.getByTitle('empty')).toHaveTextContent(/^empty$/);
+    expect(screen.getByTitle('legacy')).toHaveTextContent(/^legacy$/);
+    fireEvent.click(screen.getByText('Сумма заказа'));
+    expect(handleChange).toHaveBeenCalledWith(['amount']);
+
+    rerender(
+      <ColumnListSelect
+        columns={commentedColumns}
+        value={[]}
+        onChange={handleChange}
+      />
+    );
+    expect(screen.queryByText('Сумма заказа')).not.toBeInTheDocument();
+  });
+
   it('filters visible columns by query', () => {
     render(
       <ColumnListSelect

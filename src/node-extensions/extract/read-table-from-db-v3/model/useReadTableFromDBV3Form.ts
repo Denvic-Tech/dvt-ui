@@ -160,6 +160,7 @@ export const useReadTableFromDBV3Form = ({
       schema_name: lazyTable.item.schemaName,
       columns: lazyTable.item.columns.map(column => ({
         name: column.name,
+        comment: column.comment ?? null,
         dtype: column.dtype as DataType,
         nullable: column.nullable,
         index: column.indexed,
