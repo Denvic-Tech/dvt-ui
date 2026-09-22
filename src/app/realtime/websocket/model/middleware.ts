@@ -35,9 +35,17 @@ export const websocketMiddleware: Middleware<
   AppThunkDispatch
 > = store => {
   let websocket: WebSocket | null = null;
+  let connectTimer: ReturnType<typeof setTimeout> | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let activeUrl: string | null = null;
   const reconnectInterval = 5000;
+
+  const clearConnectTimer = () => {
+    if (connectTimer !== null) {
+      clearTimeout(connectTimer);
+      connectTimer = null;
+    }
+  };
 
   const clearReconnectTimer = () => {
     if (reconnectTimer) {
@@ -47,6 +55,8 @@ export const websocketMiddleware: Middleware<
   };
 
   const pauseForSystemUpdate = () => {
+    clearConnectTimer();
+
     if (websocket) {
       websocket.onclose = null;
       websocket.onerror = null;
@@ -145,6 +155,24 @@ export const websocketMiddleware: Middleware<
     };
   };
 
+  const scheduleWebSocket = (url: string, projectId: string) => {
+    clearConnectTimer();
+    connectTimer = setTimeout(() => {
+      connectTimer = null;
+
+      const state = store.getState();
+      if (
+        selectIsSystemAvailabilityBlocking(state) ||
+        state.websocket.status !== 'connecting' ||
+        state.websocket.currentProjectId !== projectId
+      ) {
+        return;
+      }
+
+      setupWebSocket(url);
+    }, 0);
+  };
+
   return next => action => {
     const prevWebSocketState = store.getState().websocket;
     next(action);
@@ -168,7 +196,7 @@ export const websocketMiddleware: Middleware<
 
       if (projectId && shouldOpenSocket) {
         const url = `${config.webSocketUrl}?project_id=${projectId}`;
-        setupWebSocket(url);
+        scheduleWebSocket(url, projectId);
       } else {
         if (!projectId) {
           console.error('WebSocket connect action received without projectId');
@@ -176,6 +204,7 @@ export const websocketMiddleware: Middleware<
       }
     } else if (disconnect.match(action)) {
       const { projectId } = action.payload || {};
+      clearConnectTimer();
       if (websocket) {
         console.log(
           `Disconnecting WebSocket for project ${projectId ?? 'unknown'}...`

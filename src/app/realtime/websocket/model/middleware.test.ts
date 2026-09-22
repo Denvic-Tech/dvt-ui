@@ -10,7 +10,7 @@ import {
 } from '@/entities/system-availability';
 
 import { websocketMiddleware } from './middleware';
-import { connect, websocketReducer } from './slice';
+import { connect, disconnect, websocketReducer } from './slice';
 
 class MockWebSocket {
   static readonly CONNECTING = 0;
@@ -34,7 +34,7 @@ class MockWebSocket {
   }
 }
 
-describe('websocket middleware during a system update', () => {
+describe('websocket middleware', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     window.localStorage.clear();
@@ -73,6 +73,7 @@ describe('websocket middleware during a system update', () => {
 
     const invoke = websocketMiddleware(middlewareApi)(next);
     invoke(connect({ projectId: 'project-1' }));
+    vi.advanceTimersByTime(0);
 
     expect(MockWebSocket.instances).toHaveLength(1);
     MockWebSocket.instances[0]?.onclose?.({
@@ -85,5 +86,42 @@ describe('websocket middleware during a system update', () => {
 
     vi.advanceTimersByTime(15_000);
     expect(MockWebSocket.instances).toHaveLength(1);
+  });
+
+  it('opens only one socket after the StrictMode effect replay', () => {
+    let state = {
+      websocket: websocketReducer(undefined, { type: 'init' }),
+      systemAvailability: systemAvailabilityReducer(
+        undefined,
+        systemAvailabilityActions.resetSystemAvailability()
+      ),
+    };
+    const middlewareApi = {
+      getState: () => state as RootState,
+      dispatch: (action: UnknownAction) => invoke(action),
+    } as MiddlewareAPI;
+    const next = (action: unknown) => {
+      const typedAction = action as UnknownAction;
+      state = {
+        websocket: websocketReducer(state.websocket, typedAction),
+        systemAvailability: systemAvailabilityReducer(
+          state.systemAvailability,
+          typedAction
+        ),
+      };
+      return action;
+    };
+
+    const invoke = websocketMiddleware(middlewareApi)(next);
+    invoke(connect({ projectId: 'project-1' }));
+    invoke(disconnect({ projectId: 'project-1' }));
+    invoke(connect({ projectId: 'project-1' }));
+
+    expect(MockWebSocket.instances).toHaveLength(0);
+
+    vi.advanceTimersByTime(0);
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+    expect(MockWebSocket.instances[0]?.url).toContain('project_id=project-1');
   });
 });
