@@ -369,6 +369,7 @@ export const WriteSettingsStep: React.FC<
         name: column.name,
         dtype: column.dtype as any,
         nullable: column.nullable,
+        comment: column.comment ?? null,
         index: column.indexed,
         primary_key: column.primaryKey,
         indexes: column.indexes,
@@ -750,6 +751,10 @@ export const WriteSettingsStep: React.FC<
       schema: literalSchemaName,
       mapping: typedMapping,
       spec: normalizedTypedSpecForDialect,
+      comments: sharedState?.typedCommentOverrides,
+      sourceComments: inputDataframeMetadata?.columns.map(
+        column => column.comment
+      ),
     });
 
     if (lastTypedInputsFingerprintRef.current === nextFingerprint) {
@@ -776,6 +781,8 @@ export const WriteSettingsStep: React.FC<
     literalSchemaName,
     literalTableName,
     normalizedTypedSpecForDialect,
+    sharedState?.typedCommentOverrides,
+    sharedState?.columnCommentsSupported,
     selectedCreationMode,
     setSharedState,
     typedMapping,
@@ -841,6 +848,8 @@ export const WriteSettingsStep: React.FC<
             mode === 'typed' ? normalizedTypedSpecForDialect : null,
         },
         mode,
+        commentOverrides: sharedState?.typedCommentOverrides,
+        commentsSupported: sharedState?.columnCommentsSupported,
       });
 
       if (
@@ -874,6 +883,8 @@ export const WriteSettingsStep: React.FC<
               columns: buildDbColumnsFromColumnMapping({
                 dataframeMetadata: inputDataframeMetadata,
                 mapping: typedMapping,
+                commentOverrides: sharedState?.typedCommentOverrides,
+                commentsSupported: sharedState?.columnCommentsSupported,
               }),
               table_create_spec:
                 mode === 'typed'
@@ -924,6 +935,8 @@ export const WriteSettingsStep: React.FC<
       normalizedTypedSpecForDialect,
       setSharedState,
       sharedState?.lastCreateSqlKey,
+      sharedState?.typedCommentOverrides,
+      sharedState?.columnCommentsSupported,
       typedMapping,
       typedPreviewSql,
     ]

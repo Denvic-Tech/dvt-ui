@@ -3,6 +3,7 @@ import {
   type ComponentPropsWithoutRef,
   forwardRef,
   memo,
+  type ReactNode,
   useCallback,
   useDeferredValue,
   useEffect,
@@ -60,6 +61,11 @@ import { SingleOptionDropdownSelect } from '@/shared/ui';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
 
 import {
+  commentsForRecreatedColumns,
+  commentValue,
+  normalizeComment,
+} from '../lib/columnComments';
+import {
   buildColumnMappingNameKey,
   buildColumnSelectorOptionsFromMapping,
   buildCreateSqlCacheKey,
@@ -99,6 +105,7 @@ import {
 } from '../lib/helpers';
 
 import { MappingValidationSection } from './WriteSettingsStep/sections/MappingValidationSection';
+import { ColumnCommentEditor } from './ColumnCommentEditor';
 import {
   AdvancedPanel,
   AdvancedToggle,
@@ -549,6 +556,7 @@ const TargetNameResetIcon = () => (
 type MappingTableProps = {
   changeStateBySource: Map<string, ColumnMappingChangeState>;
   filteredMapping: ResolvedColumnMappingRow[];
+  renderComment?: ((item: ResolvedColumnMappingRow) => ReactNode) | undefined;
   flashingEffectiveSourceKeys: string[];
   initialTargetNames: ReadonlyMap<string, string>;
   onNullableChange: (sourceName: string, checked: boolean) => void;
@@ -565,6 +573,7 @@ type MappingTableProps = {
 };
 
 type MappingTableRowProps = {
+  renderComment?: ((item: ResolvedColumnMappingRow) => ReactNode) | undefined;
   item: ResolvedColumnMappingRow;
   last: boolean;
   sourceDtype: DataType | string;
@@ -611,6 +620,7 @@ MappingTableScroller.displayName = 'MappingTableScroller';
 const MappingTableRow = memo(
   ({
     item,
+    renderComment,
     last,
     sourceDtype,
     schemaRoles,
@@ -854,6 +864,7 @@ const MappingTableRow = memo(
             <SchemaRolePlaceholder>-</SchemaRolePlaceholder>
           )}
         </SchemaRoleCell>
+        {renderComment?.(item)}
       </MappingRow>
     );
   }
@@ -865,6 +876,7 @@ const MappingTable = memo(
   ({
     changeStateBySource,
     filteredMapping,
+    renderComment,
     flashingEffectiveSourceKeys,
     initialTargetNames,
     onNullableChange,
@@ -963,6 +975,7 @@ const MappingTable = memo(
           <MappingTableRow
             key={item.source_name ?? item.db_name ?? `${item.status}:${index}`}
             item={item}
+            renderComment={renderComment}
             last={index === filteredMapping.length - 1}
             sourceDtype={sourceDtype ?? 'UNKNOWN'}
             schemaRoles={schemaRoles}
@@ -995,6 +1008,7 @@ const MappingTable = memo(
         changeStateBySource,
         flashingEffectiveSourceKeys,
         filteredMapping.length,
+        renderComment,
         highlightedIndex,
         initialTargetNames,
         onNullableChange,
@@ -1046,6 +1060,7 @@ const MappingTable = memo(
           <div>Тип</div>
           <div>Null</div>
           <div>Роль в схеме</div>
+          <div>Комментарий</div>
         </MappingTableHead>
 
         <MappingTableBody>
@@ -1276,6 +1291,7 @@ export const SchemaStrategyStep = ({
       schema_name: lazySelectedTable.item.schemaName,
       columns: lazySelectedTable.item.columns.map(column => ({
         name: column.name,
+        comment: column.comment ?? null,
         dtype: column.dtype as DataType,
         nullable: column.nullable,
         index: column.indexed,
@@ -1668,10 +1684,12 @@ export const SchemaStrategyStep = ({
             resolveColumnsError: null,
             lastResolveColumnsKey: resolveWriteColumnsKey,
             resolvedColumnRows: response.data.columns ?? [],
+            columnCommentsSupported:
+              response.data.column_comments_supported ?? false,
             resolvedDiagnostics: response.data.diagnostics ?? [],
-            selectedColumnActions: getDefaultSelectedColumnActions(
-              response.data.columns
-            ),
+            selectedColumnActions: prev?.suppressDefaultColumnActions
+              ? []
+              : getDefaultSelectedColumnActions(response.data.columns),
           }));
           setResolvingEffectiveSourceKeys([]);
 
@@ -1831,6 +1849,10 @@ export const SchemaStrategyStep = ({
       schema: literalSchemaName,
       mapping: serializedEffectiveMapping,
       spec: normalizedTypedSpecForDialect,
+      comments: sharedState?.typedCommentOverrides,
+      sourceComments: inputDataframeMetadata?.columns.map(
+        column => column.comment
+      ),
     });
 
     if (lastTypedInputsFingerprintRef.current === nextFingerprint) {
@@ -1854,6 +1876,9 @@ export const SchemaStrategyStep = ({
     selectedCreationMode,
     serializedEffectiveMapping,
     setSharedState,
+    sharedState?.typedCommentOverrides,
+    sharedState?.columnCommentsSupported,
+    inputDataframeMetadata,
   ]);
 
   const handleCreationModeChange = useCallback(
@@ -2177,10 +2202,12 @@ export const SchemaStrategyStep = ({
           resolveColumnsError: null,
           lastResolveColumnsKey: buildResolveWriteColumnsTriggerKey(request),
           resolvedColumnRows: response.data.columns ?? [],
+          columnCommentsSupported:
+            response.data.column_comments_supported ?? false,
           resolvedDiagnostics: response.data.diagnostics ?? [],
-          selectedColumnActions: getDefaultSelectedColumnActions(
-            response.data.columns
-          ),
+          selectedColumnActions: prev?.suppressDefaultColumnActions
+            ? []
+            : getDefaultSelectedColumnActions(response.data.columns),
           columnResolveStates: nextStates,
         }));
         setLocalInputData(prev => ({
@@ -2382,16 +2409,24 @@ export const SchemaStrategyStep = ({
             table_name: literalTableName!,
             database_name: literalDatabaseName,
             schema_name: literalSchemaName,
-            columns: buildDbColumnsFromColumnMapping({
-              dataframeMetadata: inputDataframeMetadata!,
-              mapping: requestedMapping,
-            }),
+            columns: commentsForRecreatedColumns(
+              buildDbColumnsFromColumnMapping({
+                dataframeMetadata: inputDataframeMetadata!,
+                mapping: requestedMapping,
+                commentOverrides: sharedState?.typedCommentOverrides,
+                commentsSupported: sharedState?.columnCommentsSupported,
+              }),
+              sharedState?.resolvedColumnRows ?? [],
+              sharedState?.dbCommentOverrides,
+              sharedState?.columnCommentsSupported !== false
+            ),
             table_create_spec: null,
           },
         },
         { silent: true }
       );
 
+      sharedState?.invalidateCatalog?.();
       sharedState?.applyTableMetadataUpdate?.(response.data.table_metadata);
 
       const sourceKeys = normalizeSourceKeys(
@@ -2404,14 +2439,20 @@ export const SchemaStrategyStep = ({
         ...(prev ?? {}),
         recreateTableError: null,
         resolveColumnsError: null,
+        dbCommentOverrides: {},
+        suppressDefaultColumnActions: false,
         resolvedColumnRows: null,
         resolvedDiagnostics: null,
         selectedColumnActions: [],
         lastResolveColumnsKey: null,
       }));
     } catch (error: unknown) {
+      sharedState?.invalidateCatalog?.();
       setSharedState(prev => ({
         ...(prev ?? {}),
+        selectedColumnActions: [],
+        suppressDefaultColumnActions: true,
+        lastResolveColumnsKey: null,
         isRecreatingTable: false,
         recreateTableError: extractApiErrorMessage(
           error,
@@ -2432,9 +2473,7 @@ export const SchemaStrategyStep = ({
     selectedTable,
     selectedTargetLabel,
     setSharedState,
-    sharedState?.applyTableMetadataUpdate,
-    sharedState?.isRecreatingTable,
-    sharedState?.isResolvingColumns,
+    sharedState,
   ]);
 
   const selectedColumnActions = useMemo(
@@ -2539,18 +2578,41 @@ export const SchemaStrategyStep = ({
       actions: TableColumnActionInput[]
     ): Promise<boolean> => {
       const lines = actions
-        .map(
-          action =>
-            `• ${getColumnActionLabel(action.type)}: ${action.column_name}`
-        )
+        .map(action => {
+          const previous =
+            sharedState?.resolvedColumnRows?.find(
+              row => row.db_name === action.column_name
+            )?.db_comment ?? null;
+          const next =
+            action.type === 'set_column_comment'
+              ? action.comment
+              : action.column?.comment;
+          return (
+            `• ${getColumnActionLabel(action.type)}: ${action.column_name}` +
+            (action.type !== 'drop_column' &&
+            normalizeComment(next) !== normalizeComment(previous)
+              ? `\n  ${previous == null ? 'нет комментария' : JSON.stringify(previous)} → ${next == null ? 'удалить' : JSON.stringify(next)}`
+              : '')
+          );
+        })
         .join('\n');
 
+      const onlyComments = actions.every(
+        action => action.type === 'set_column_comment'
+      );
       return confirm({
-        title: 'Применить изменения схемы?',
-        message: `Будут применены изменения структуры таблицы "${selectedTargetLabel}" в базе данных:\n${lines}\n\nЭто действие изменит таблицу. Продолжить?`,
+        title: onlyComments
+          ? 'Применить комментарии?'
+          : 'Применить изменения схемы?',
+        message: `Будут применены изменения ${onlyComments ? 'комментариев' : 'структуры'} таблицы "${selectedTargetLabel}" в базе данных:\n${lines}\n\nЭто действие изменит таблицу. Продолжить?`,
         confirmLabel: 'Применить',
         cancelLabel: 'Отмена',
-        confirmColor: 'error',
+        confirmColor: actions.some(
+          action =>
+            action.type === 'drop_column' || action.type === 'recreate_column'
+        )
+          ? 'error'
+          : 'primary',
       });
     };
 
@@ -2558,7 +2620,12 @@ export const SchemaStrategyStep = ({
       ...(prev ?? {}),
       requestColumnActionsConfirm: confirmColumnActions,
     }));
-  }, [confirm, selectedTargetLabel, setSharedState]);
+  }, [
+    confirm,
+    selectedTargetLabel,
+    setSharedState,
+    sharedState?.resolvedColumnRows,
+  ]);
 
   useEffect(() => {
     const connectionInput = connectedInputs?.['connection'];
@@ -2663,6 +2730,8 @@ export const SchemaStrategyStep = ({
             mode === 'typed' ? normalizedTypedSpecForDialect : null,
         },
         mode,
+        commentOverrides: sharedState?.typedCommentOverrides,
+        commentsSupported: sharedState?.columnCommentsSupported,
       });
       const hasExistingSql =
         mode === 'typed'
@@ -2699,6 +2768,8 @@ export const SchemaStrategyStep = ({
               schema_name: literalSchemaName,
               columns: buildDbColumnsFromColumnMapping({
                 dataframeMetadata: inputDataframeMetadata,
+                commentOverrides: sharedState?.typedCommentOverrides,
+                commentsSupported: sharedState?.columnCommentsSupported,
                 mapping:
                   mode === 'typed'
                     ? serializedEffectiveMapping
@@ -2766,6 +2837,8 @@ export const SchemaStrategyStep = ({
       setLocalInputData,
       setSharedState,
       sharedState?.lastCreateSqlKey,
+      sharedState?.typedCommentOverrides,
+      sharedState?.columnCommentsSupported,
       typedPreviewSql,
     ]
   );
@@ -2881,10 +2954,79 @@ export const SchemaStrategyStep = ({
     [baseMapping, baseMappingBySource, requestedMapping, setMappingValue]
   );
 
+  const setCommentOverride = useCallback(
+    (name: string, value: string | null, isNew: boolean) => {
+      setSharedState(prev => ({
+        ...(prev ?? {}),
+        [isNew ? 'typedCommentOverrides' : 'dbCommentOverrides']: {
+          ...(isNew ? prev?.typedCommentOverrides : prev?.dbCommentOverrides),
+          [name]: normalizeComment(value),
+        },
+        lastCreateSqlKey: null,
+        lastCreateTableKey: null,
+        typedPreviewSql: null,
+      }));
+    },
+    [setSharedState]
+  );
+
+  const renderTypedComment = useCallback(
+    (item: ResolvedColumnMappingRow) => {
+      const sourceName = item.source_name ?? '';
+      const source =
+        inputDataframeMetadata?.columns.find(
+          column => column.name === sourceName
+        )?.comment ?? null;
+      return (
+        <ColumnCommentEditor
+          name={
+            item.effective_target_name ??
+            item.requested_target_name ??
+            sourceName
+          }
+          value={commentValue(
+            sharedState?.typedCommentOverrides,
+            sourceName,
+            source
+          )}
+          baseline={source}
+          disabled={!sharedState?.columnCommentsSupported}
+          disabledReason='Эта СУБД не поддерживает комментарии: текст DF не будет перенесён'
+          onChange={value => setCommentOverride(sourceName, value, true)}
+          onReset={() =>
+            setSharedState(prev => {
+              const next = { ...prev?.typedCommentOverrides };
+              delete next[sourceName];
+              return {
+                ...(prev ?? {}),
+                typedCommentOverrides: next,
+                lastCreateSqlKey: null,
+                lastCreateTableKey: null,
+                typedPreviewSql: null,
+              };
+            })
+          }
+        />
+      );
+    },
+    [
+      inputDataframeMetadata,
+      sharedState?.typedCommentOverrides,
+      sharedState?.columnCommentsSupported,
+      setCommentOverride,
+      setSharedState,
+    ]
+  );
+
   if (!isTableNew) {
     return (
       <MappingValidationSection
+        commentOverrides={sharedState?.dbCommentOverrides}
+        sourceCommentOverrides={sharedState?.typedCommentOverrides}
+        commentsSupported={sharedState?.columnCommentsSupported}
+        onCommentChange={setCommentOverride}
         columnDiff={existingTableColumnDiff}
+        dbColumns={selectedTable?.columns}
         diffSummary={existingTableDiffSummary!}
         hasInvalidTargetName={hasEmptyTargetName}
         isResolving={sharedState?.isResolvingColumns ?? false}
@@ -3038,6 +3180,7 @@ export const SchemaStrategyStep = ({
           </ToolbarRow>
 
           <MappingTable
+            renderComment={renderTypedComment}
             changeStateBySource={mappingChangeStateBySource}
             flashingEffectiveSourceKeys={flashingEffectiveSourceKeys}
             filteredMapping={filteredMapping}

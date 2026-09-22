@@ -17,16 +17,22 @@ import {
 import { type TableComponents, TableVirtuoso } from 'react-virtuoso';
 
 import type {
+  DbColumn,
   TableColumnActionInput,
   TableColumnActionOutput,
   WriteColumnResolutionRow,
 } from '@/shared/gatewayClient';
 
 import {
+  type CommentOverrides,
+  commentValue,
+} from '../../../lib/columnComments';
+import {
   type ColumnResolveState,
   getColumnActionLabel,
   normalizeName,
 } from '../../../lib/helpers';
+import { ColumnCommentEditor } from '../../ColumnCommentEditor';
 import {
   ColumnActionButton,
   ColumnActionCheck,
@@ -58,6 +64,8 @@ import {
 type ColumnDiffStatus = WriteColumnResolutionRow['status'];
 
 type ColumnDiffRow = {
+  sourceComment?: string | null;
+  dbComment?: string | null;
   dfName: string | null;
   dfType: string | null;
   requestedTargetName: string | null;
@@ -71,6 +79,13 @@ type ColumnDiffRow = {
 
 type MappingValidationSectionProps = {
   columnDiff: ColumnDiffRow[];
+  commentOverrides?: CommentOverrides | undefined;
+  sourceCommentOverrides?: CommentOverrides | undefined;
+  commentsSupported?: boolean | undefined;
+  onCommentChange?:
+    | ((name: string, value: string | null, isNew: boolean) => void)
+    | undefined;
+  dbColumns?: readonly Pick<DbColumn, 'name' | 'comment'>[] | undefined;
   diffSummary: {
     countDelta: number;
     dbCount: number;
@@ -149,6 +164,8 @@ const actionGlyph = (type: TableColumnActionOutput['type']) => {
       return <PlusIcon />;
     case 'drop_column':
       return <TrashIcon />;
+    case 'set_column_comment':
+      return '✎';
     case 'recreate_column':
       return '↻';
   }
@@ -167,6 +184,8 @@ const actionButtonLabel = (
       return 'Будет создана';
     case 'drop_column':
       return 'Будет удалена';
+    case 'set_column_comment':
+      return 'Комментарий будет изменён';
     case 'recreate_column':
       return 'Будет пересоздана';
   }
@@ -345,6 +364,7 @@ const ACTION_ROW_COLORS: Record<
   TableColumnActionOutput['type'],
   { accent: string; background: string }
 > = {
+  set_column_comment: { accent: '#6366f1', background: '#eef2ff' },
   add_column: { accent: '#22c55e', background: '#f0fdf4' },
   drop_column: { accent: '#ef4444', background: '#fef2f2' },
   recreate_column: { accent: '#f59e0b', background: '#fffbeb' },
@@ -363,6 +383,11 @@ export const MappingValidationSection: React.FC<
   MappingValidationSectionProps
 > = ({
   columnDiff,
+  dbColumns,
+  commentOverrides,
+  sourceCommentOverrides,
+  commentsSupported,
+  onCommentChange,
   diffSummary,
   hasInvalidTargetName,
   initialTargetNames,
@@ -386,6 +411,11 @@ export const MappingValidationSection: React.FC<
   const [showOnlyMismatches, setShowOnlyMismatches] = useState(false);
   const [actionsMenuAnchor, setActionsMenuAnchor] =
     useState<HTMLElement | null>(null);
+  const dbCommentsByName = useMemo(
+    () =>
+      new Map(dbColumns?.map(column => [column.name, column.comment ?? null])),
+    [dbColumns]
+  );
   const isBusy = isResolving || isRecreatingTable;
   const hasResolveError = Boolean(resolveError) && !isBusy;
   const hasMismatches = columnDiff.some(
@@ -414,13 +444,16 @@ export const MappingValidationSection: React.FC<
 
   const headerRow = (
     <tr>
-      <TableHeadCell style={{ width: '18%' }}>Колонка DF</TableHeadCell>
-      <TableHeadCell style={{ width: '9%' }}>Тип DF</TableHeadCell>
-      <TableHeadCell style={{ width: '22%' }}>Колонка DB</TableHeadCell>
-      <TableHeadCell style={{ width: '9%' }}>Тип DB</TableHeadCell>
-      <TableHeadCell style={{ width: '10%' }}>NULL</TableHeadCell>
-      <TableHeadCell style={{ width: '12%' }}>Статус</TableHeadCell>
-      <TableHeadCell style={{ width: '20%' }}>Действие</TableHeadCell>
+      <TableHeadCell style={{ width: '13%' }}>Колонка DF</TableHeadCell>
+      <TableHeadCell style={{ width: '7%' }}>Тип DF</TableHeadCell>
+      <TableHeadCell style={{ width: '16%' }}>Колонка DB</TableHeadCell>
+      <TableHeadCell style={{ width: '7%' }}>Тип DB</TableHeadCell>
+      <TableHeadCell style={{ width: '7%' }}>NULL</TableHeadCell>
+      <TableHeadCell style={{ width: '9%' }}>Статус</TableHeadCell>
+      <TableHeadCell style={{ width: 260, textAlign: 'left' }}>
+        Комментарий DB
+      </TableHeadCell>
+      <TableHeadCell style={{ textAlign: 'left' }}>Действие</TableHeadCell>
     </tr>
   );
 
@@ -436,6 +469,10 @@ export const MappingValidationSection: React.FC<
       initialTargetName !== undefined && targetName !== initialTargetName;
     const isReconciling =
       resolveState === 'dirty' || resolveState === 'loading';
+    const dbComment =
+      !isReconciling && !isTargetNameEmpty && row.dbName
+        ? dbCommentsByName.get(row.dbName)
+        : undefined;
     const hasInputIndicator = resolveState !== 'idle';
     const visibleAction = isReconciling ? null : row.suggestedAction;
     const actionColors = visibleAction
@@ -654,7 +691,53 @@ export const MappingValidationSection: React.FC<
             </MappingStatusBadge>
           )}
         </TableBodyCell>
-        <TableBodyCell style={rowCellStyle}>
+        <TableBodyCell
+          style={{ ...rowCellStyle, textAlign: 'left', padding: '8px' }}
+        >
+          <ColumnCommentEditor
+            name={row.dbName ?? row.requestedTargetName ?? row.dfName ?? ''}
+            baseline={
+              row.dbComment !== undefined ? row.dbComment : (dbComment ?? null)
+            }
+            sourceComment={row.sourceComment ?? null}
+            value={
+              row.status === 'missing_in_db'
+                ? commentValue(
+                    sourceCommentOverrides,
+                    row.dfName ?? '',
+                    row.sourceComment
+                  )
+                : commentValue(
+                    commentOverrides,
+                    row.dbName ?? '',
+                    row.dbComment !== undefined ? row.dbComment : dbComment
+                  )
+            }
+            disabled={
+              !commentsSupported ||
+              isBusy ||
+              isReconciling ||
+              isTargetNameEmpty ||
+              selectedActionsByColumn.get(row.dbName ?? '')?.type ===
+                'drop_column'
+            }
+            disabledReason={
+              !commentsSupported
+                ? 'Редактирование комментариев недоступно для этой СУБД'
+                : ''
+            }
+            onChange={value =>
+              onCommentChange?.(
+                row.status === 'missing_in_db'
+                  ? (row.dfName ?? '')
+                  : (row.dbName ?? ''),
+                value,
+                row.status === 'missing_in_db'
+              )
+            }
+          />
+        </TableBodyCell>
+        <TableBodyCell style={{ ...rowCellStyle, textAlign: 'left' }}>
           {isReconciling ? (
             <ResolveStateIndicator state={resolveState} />
           ) : row.suggestedAction ? (
@@ -665,7 +748,11 @@ export const MappingValidationSection: React.FC<
               return (
                 <ColumnActionButton
                   type='button'
-                  actionType={action.type}
+                  actionType={
+                    action.type === 'set_column_comment'
+                      ? 'add_column'
+                      : action.type
+                  }
                   selected={isSelected}
                   aria-pressed={isSelected}
                   title={buttonLabel}
@@ -954,7 +1041,7 @@ export const MappingValidationSection: React.FC<
                   <MappingTableHead>{headerRow}</MappingTableHead>
                   <tbody>
                     <StyledTableRow>
-                      <TableBodyCell colSpan={7}>
+                      <TableBodyCell colSpan={8}>
                         {columnSearch.trim() || isMismatchFilterActive
                           ? 'Колонки с заданными условиями не найдены'
                           : 'Нет данных для сравнения'}

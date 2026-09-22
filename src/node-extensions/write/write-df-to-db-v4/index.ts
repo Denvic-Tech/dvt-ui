@@ -6,6 +6,7 @@ import {
   confirmWriteModeOnContinue,
   createTableBeforeFinish,
   type ExtensionState,
+  getPendingColumnActions,
   isColumnActionsApplyReady,
   isSchemaStrategyStepValid,
   isTargetStepValid,
@@ -44,7 +45,7 @@ const WriteDataFrameToDBV4Extension: NodeModalStepperExtension<ExtensionState> =
         component: SchemaStrategyStep,
         condition: isSchemaStrategyStepValid,
         getContinueLabel: (_inputValues, sharedState) =>
-          (sharedState?.selectedColumnActions?.length ?? 0) > 0
+          getPendingColumnActions(sharedState).length > 0
             ? 'Применить и продолжить'
             : null,
         onContinue: prepareWriteStepOnContinue,
