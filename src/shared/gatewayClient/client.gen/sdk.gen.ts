@@ -392,6 +392,9 @@ import type {
   ProcessGraphOpProjectsProjectIdGraphOpsPostData,
   ProcessGraphOpProjectsProjectIdGraphOpsPostErrors,
   ProcessGraphOpProjectsProjectIdGraphOpsPostResponses,
+  ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData,
+  ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostErrors,
+  ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses,
   RecreateTableUtilsDdlRecreateTablePostData,
   RecreateTableUtilsDdlRecreateTablePostErrors,
   RecreateTableUtilsDdlRecreateTablePostResponses,
@@ -787,6 +790,8 @@ import {
   zPreviewExtensionPackageExtensionsPackagesPreviewPostResponse,
   zProcessGraphOpProjectsProjectIdGraphOpsPostData,
   zProcessGraphOpProjectsProjectIdGraphOpsPostResponse,
+  zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData,
+  zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponse,
   zRecreateTableUtilsDdlRecreateTablePostData,
   zRecreateTableUtilsDdlRecreateTablePostResponse,
   zRefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostData,
@@ -2670,6 +2675,41 @@ export const uploadNodeFileInputProjectsProjectIdGraphNodesNodeIdFileInputsInput
       ...options,
       headers: {
         'Content-Type': null,
+        ...options.headers,
+      },
+    });
+  };
+
+/**
+ * Read Excel Columns
+ */
+export const readExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPost =
+  <ThrowOnError extends boolean = false>(
+    options: Options<
+      ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData,
+      ThrowOnError
+    >
+  ) => {
+    return (options.client ?? client).post<
+      ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses,
+      ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostErrors,
+      ThrowOnError
+    >({
+      requestValidator: async data => {
+        return await zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData.parseAsync(
+          data
+        );
+      },
+      responseType: 'json',
+      responseValidator: async data => {
+        return await zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponse.parseAsync(
+          data
+        );
+      },
+      url: '/projects/{project_id}/graph/nodes/{node_id}/excel-columns',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
         ...options.headers,
       },
     });

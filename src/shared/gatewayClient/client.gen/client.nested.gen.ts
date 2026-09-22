@@ -388,6 +388,9 @@ import type {
   ProcessGraphOpProjectsProjectIdGraphOpsPostData,
   ProcessGraphOpProjectsProjectIdGraphOpsPostError,
   ProcessGraphOpProjectsProjectIdGraphOpsPostResponses,
+  ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData,
+  ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostError,
+  ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses,
   RecreateTableUtilsDdlRecreateTablePostData,
   RecreateTableUtilsDdlRecreateTablePostError,
   RecreateTableUtilsDdlRecreateTablePostResponses,
@@ -781,6 +784,8 @@ import {
   zPreviewExtensionPackageExtensionsPackagesPreviewPostResponse,
   zProcessGraphOpProjectsProjectIdGraphOpsPostData,
   zProcessGraphOpProjectsProjectIdGraphOpsPostResponse,
+  zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData,
+  zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponse,
   zRecreateTableUtilsDdlRecreateTablePostData,
   zRecreateTableUtilsDdlRecreateTablePostResponse,
   zRefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostData,
@@ -3703,6 +3708,67 @@ export const nestedClient = {
                         });
                       },
                     };
+                  },
+                },
+                excelColumns: {
+                  /**
+                   * Read Excel Columns
+                   */
+                  post: async (
+                    params?: OperationParams<ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData>,
+                    config?: OperationConfig<
+                      ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData,
+                      ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses[keyof ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses]
+                    >
+                  ): OperationResult<
+                    ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses[keyof ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses],
+                    ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostError
+                  > => {
+                    const requestParams = (params ??
+                      {}) as OperationParams<ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData>;
+                    const { client: clientOverride, ...requestConfig } =
+                      (config ?? {}) as OperationConfig<
+                        ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData,
+                        ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses[keyof ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses]
+                      >;
+                    const requestClient = clientOverride ?? client;
+                    const requestOptions = {
+                      ...requestConfig,
+                      ...requestParams,
+                    } satisfies Omit<
+                      OperationBaseOptions<
+                        ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData,
+                        ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses[keyof ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses]
+                      >,
+                      'path'
+                    >;
+                    if (requestOptions.requestValidator == null) {
+                      requestOptions.requestValidator = async data => {
+                        return await zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData.parseAsync(
+                          data
+                        );
+                      };
+                    }
+                    if (requestOptions.responseValidator == null) {
+                      requestOptions.responseValidator = async data => {
+                        return await zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponse.parseAsync(
+                          data
+                        );
+                      };
+                    }
+                    const path = {
+                      ...rootPathContext_projectId_nodeId,
+                    } satisfies PathContext;
+                    return requestClient.request<
+                      ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses[keyof ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponses],
+                      ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostError,
+                      true
+                    >({
+                      ...requestOptions,
+                      method: 'POST',
+                      url: '/projects/{project_id}/graph/nodes/{node_id}/excel-columns',
+                      path,
+                    });
                   },
                 },
               };

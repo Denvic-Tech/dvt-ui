@@ -434,7 +434,12 @@ export type AppSettingsUpdateSchemaZodType = z.infer<
  * AppliedTableColumnAction
  */
 export const zAppliedTableColumnAction = z.object({
-  type: z.enum(['add_column', 'drop_column', 'recreate_column']),
+  type: z.enum([
+    'add_column',
+    'drop_column',
+    'recreate_column',
+    'set_column_comment',
+  ]),
   column_name: z.string(),
   sql: z.array(z.string()),
 });
@@ -493,6 +498,7 @@ export type DTypeMetadataZodType = z.infer<typeof zDTypeMetadata>;
  */
 export const zDbColumn = z.object({
   name: z.string(),
+  comment: z.optional(z.union([z.string(), z.null()])),
   dtype: zDataType,
   dtype_metadata: z.optional(z.union([zDTypeMetadata, z.null()])),
   nullable: z.optional(z.union([z.boolean(), z.null()])),
@@ -507,9 +513,15 @@ export type DbColumnZodType = z.infer<typeof zDbColumn>;
  * TableColumnAction
  */
 export const zTableColumnActionInput = z.object({
-  type: z.enum(['add_column', 'drop_column', 'recreate_column']),
+  type: z.enum([
+    'add_column',
+    'drop_column',
+    'recreate_column',
+    'set_column_comment',
+  ]),
   column_name: z.string().min(1),
   column: z.optional(z.union([zDbColumn, z.null()])),
+  comment: z.optional(z.union([z.string(), z.null()])),
 });
 
 export type TableColumnActionInputZodType = z.infer<
@@ -568,6 +580,7 @@ export const zDbTable = z.object({
   schema_name: z.optional(z.union([z.string(), z.null()])),
   database_name: z.optional(z.union([z.string(), z.null()])),
   name: z.string(),
+  comment: z.optional(z.union([z.string(), z.null()])),
   columns: z.array(zDbColumn),
   type: zDbTableType,
 });
@@ -831,6 +844,7 @@ export const zCatalogColumnSchema = z.object({
   indexed: z.optional(z.boolean()).default(false),
   primary_key: z.optional(z.boolean()).default(false),
   indexes: z.optional(z.array(z.string())),
+  comment: z.optional(z.union([z.string(), z.null()])),
 });
 
 export type CatalogColumnSchemaZodType = z.infer<typeof zCatalogColumnSchema>;
@@ -920,6 +934,7 @@ export const zCatalogTableDetailsSchema = z.object({
   kind: z.enum(['table', 'view']),
   database_name: z.optional(z.union([z.string(), z.null()])),
   schema_name: z.optional(z.union([z.string(), z.null()])),
+  comment: z.optional(z.union([z.string(), z.null()])),
   columns: z.array(zCatalogColumnSchema),
 });
 
@@ -954,6 +969,7 @@ export const zCatalogTableSummarySchema = z.object({
   kind: z.enum(['table', 'view']),
   database_name: z.optional(z.union([z.string(), z.null()])),
   schema_name: z.optional(z.union([z.string(), z.null()])),
+  comment: z.optional(z.union([z.string(), z.null()])),
 });
 
 export type CatalogTableSummarySchemaZodType = z.infer<
@@ -1325,6 +1341,7 @@ export type ClickhouseSqlNativeDefaultDriverConnectionUpdateRequestZodType =
  */
 export const zColumn = z.object({
   name: z.string(),
+  comment: z.optional(z.union([z.string(), z.null()])),
   dtype: zDataType,
   dtype_metadata: z.optional(z.union([zDTypeMetadata, z.null()])),
   nullable: z.optional(z.union([z.boolean(), z.null()])),
@@ -1549,6 +1566,7 @@ export type DataFrameDataZodType = z.infer<typeof zDataFrameData>;
 export const zDataFrameMetadataInput = z.object({
   type: z.optional(z.literal('DATAFRAME')).default('DATAFRAME'),
   columns: z.array(zColumn),
+  comment: z.optional(z.union([z.string(), z.null()])),
   rows_num: z.optional(z.union([z.int().gte(0), z.null()])),
   size: z.optional(z.union([z.int().gte(0), z.null()])),
 });
@@ -1565,6 +1583,7 @@ export type DataFrameMetadataInputZodType = z.infer<
 export const zDataFrameMetadataOutput = z.object({
   type: z.optional(z.literal('DATAFRAME')).default('DATAFRAME'),
   columns: z.array(zColumn),
+  comment: z.optional(z.union([z.string(), z.null()])),
   rows_num: z.optional(z.union([z.int().gte(0), z.null()])),
   size: z.optional(z.union([z.int().gte(0), z.null()])),
 });
@@ -1714,6 +1733,28 @@ export const zErrorResponse = z.object({
 });
 
 export type ErrorResponseZodType = z.infer<typeof zErrorResponse>;
+
+/**
+ * ExcelColumnsRequest
+ */
+export const zExcelColumnsRequest = z.object({
+  path: z.string(),
+  sheet_name: z.optional(z.union([z.string(), z.null()])),
+  header_row: z.optional(z.int()).default(0),
+  connection_id: z.optional(z.union([z.string(), z.null()])),
+  input_name: z.optional(z.string()).default('file'),
+});
+
+export type ExcelColumnsRequestZodType = z.infer<typeof zExcelColumnsRequest>;
+
+/**
+ * ExcelColumnsResponse
+ */
+export const zExcelColumnsResponse = z.object({
+  columns: z.optional(z.array(z.string())),
+});
+
+export type ExcelColumnsResponseZodType = z.infer<typeof zExcelColumnsResponse>;
 
 /**
  * ExceptionCategory
@@ -1869,6 +1910,8 @@ export type ExtensionManifestNodeSchemaZodType = z.infer<
 export const zExtensionManifestSchema = z.object({
   name: z.optional(z.string()).default(''),
   version: z.optional(z.string()).default(''),
+  package_name: z.optional(z.union([z.string(), z.null()])),
+  legacy_names: z.optional(z.array(z.string())),
   dvt_version: z.optional(z.union([z.string(), z.null()])),
   display_name: z.optional(z.union([z.string(), z.null()])),
   description: z.optional(z.string()).default(''),
@@ -4543,9 +4586,15 @@ export type ResolveWriteColumnsRequestZodType = z.infer<
  * TableColumnAction
  */
 export const zTableColumnActionOutput = z.object({
-  type: z.enum(['add_column', 'drop_column', 'recreate_column']),
+  type: z.enum([
+    'add_column',
+    'drop_column',
+    'recreate_column',
+    'set_column_comment',
+  ]),
   column_name: z.string().min(1),
   column: z.optional(z.union([zDbColumn, z.null()])),
+  comment: z.optional(z.union([z.string(), z.null()])),
 });
 
 export type TableColumnActionOutputZodType = z.infer<
@@ -4556,6 +4605,8 @@ export type TableColumnActionOutputZodType = z.infer<
  * WriteColumnResolutionRow
  */
 export const zWriteColumnResolutionRow = z.object({
+  source_comment: z.optional(z.union([z.string(), z.null()])),
+  db_comment: z.optional(z.union([z.string(), z.null()])),
   source_name: z.optional(z.union([z.string(), z.null()])),
   requested_target_name: z.optional(z.union([z.string(), z.null()])),
   effective_target_name: z.optional(z.union([z.string(), z.null()])),
@@ -4591,6 +4642,7 @@ export type WriteColumnResolutionRowZodType = z.infer<
  * ResolveWriteColumnsResponse
  */
 export const zResolveWriteColumnsResponse = z.object({
+  column_comments_supported: z.optional(z.boolean()).default(false),
   effective_column_mapping: z.optional(z.array(zWriteColumnMapping)),
   columns: z.optional(z.array(zWriteColumnResolutionRow)),
   diagnostics: z.optional(z.array(zWriteDiagnostic)),
@@ -5709,6 +5761,7 @@ export type TaskExecutionTelemetryEventZodType = z.infer<
 export const zDataFrameMetadata = z.object({
   type: z.optional(z.literal('DATAFRAME')).default('DATAFRAME'),
   columns: z.array(zColumn),
+  comment: z.optional(z.union([z.string(), z.null()])),
   rows_num: z.optional(z.union([z.int().gte(0), z.null()])),
   size: z.optional(z.union([z.int().gte(0), z.null()])),
 });
@@ -8068,15 +8121,15 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * GraphNodeNotFoundException
+ * ConnectionNotFound
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_GRAPH_NODE_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_GRAPH_NODE_404'),
-    description: z.optional(z.string()).default('Узел графа не найден'),
-    category: z.optional(z.string()).default('CRUD_GRAPH_NODE'),
-    type: z.optional(z.string()).default('CUSTOM'),
+    name: z.optional(z.string()).default('CONNECTION_NOT_FOUND'),
+    code: z.optional(z.string()).default('CONNECTION_404'),
+    description: z.optional(z.string()).default('Connection not found'),
+    category: z.optional(z.string()).default('GATEWAY_STORAGE'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83ZodType =
@@ -8085,14 +8138,14 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * GraphEdgeNotFoundException
+ * GraphNodeNotFoundException
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_GRAPH_EDGE_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_GRAPH_EDGE_404'),
-    description: z.optional(z.string()).default('Ребро графа не найдено'),
-    category: z.optional(z.string()).default('CRUD_GRAPH_EDGE'),
+    name: z.optional(z.string()).default('CRUD_GRAPH_NODE_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_GRAPH_NODE_404'),
+    description: z.optional(z.string()).default('Узел графа не найден'),
+    category: z.optional(z.string()).default('CRUD_GRAPH_NODE'),
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
@@ -8102,14 +8155,14 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * SubgraphNotFoundException
+ * GraphEdgeNotFoundException
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_SUBGRAPH_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_SUBGRAPH_404'),
-    description: z.optional(z.string()).default('Подграф не найден'),
-    category: z.optional(z.string()).default('CRUD_SUBGRAPH'),
+    name: z.optional(z.string()).default('CRUD_GRAPH_EDGE_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_GRAPH_EDGE_404'),
+    description: z.optional(z.string()).default('Ребро графа не найдено'),
+    category: z.optional(z.string()).default('CRUD_GRAPH_EDGE'),
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
@@ -8119,14 +8172,14 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * GraphNotFoundException
+ * SubgraphNotFoundException
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_GRAPH_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_GRAPH_404'),
-    description: z.optional(z.string()).default('Граф не найден'),
-    category: z.optional(z.string()).default('CRUD_GRAPH'),
+    name: z.optional(z.string()).default('CRUD_SUBGRAPH_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_SUBGRAPH_404'),
+    description: z.optional(z.string()).default('Подграф не найден'),
+    category: z.optional(z.string()).default('CRUD_SUBGRAPH'),
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
@@ -8136,9 +8189,26 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * TaskExecutionFlowError
+ * GraphNotFoundException
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_GRAPH_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_GRAPH_404'),
+    description: z.optional(z.string()).default('Граф не найден'),
+    category: z.optional(z.string()).default('CRUD_GRAPH'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87
+  >;
+
+/**
+ * TaskExecutionFlowError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88 =
   z.object({
     name: z.optional(z.string()).default('TASK_EXECUTION_FLOW_ERROR'),
     code: z.optional(z.string()).default('TASK_EXECUTION_FLOW_001'),
@@ -8149,15 +8219,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88
   >;
 
 /**
  * InvalidReconciliationTerminationReason
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89 =
   z.object({
     name: z
       .optional(z.string())
@@ -8170,15 +8240,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89
   >;
 
 /**
  * InvalidPendingExecutionFailureReason
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90 =
   z.object({
     name: z
       .optional(z.string())
@@ -8191,36 +8261,19 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89
-  >;
-
-/**
- * QueueTopicNotFoundException
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_404'),
-    description: z.optional(z.string()).default('Топик очереди не найден'),
-    category: z.optional(z.string()).default('CRUD_QUEUE_TOPIC'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90ZodType =
   z.infer<
     typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90
   >;
 
 /**
- * QueueTopicAlreadyExistsException
+ * QueueTopicNotFoundException
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_ALREADY_EXISTS'),
-    code: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_409'),
-    description: z.optional(z.string()).default('Топик очереди уже существует'),
+    name: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_404'),
+    description: z.optional(z.string()).default('Топик очереди не найден'),
     category: z.optional(z.string()).default('CRUD_QUEUE_TOPIC'),
     type: z.optional(z.string()).default('CUSTOM'),
   });
@@ -8231,15 +8284,15 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * ConnectionNotFound
+ * QueueTopicAlreadyExistsException
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92 =
   z.object({
-    name: z.optional(z.string()).default('CONNECTION_NOT_FOUND'),
-    code: z.optional(z.string()).default('CONNECTION_404'),
-    description: z.optional(z.string()).default('Connection not found'),
-    category: z.optional(z.string()).default('GATEWAY_STORAGE'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
+    name: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_ALREADY_EXISTS'),
+    code: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_409'),
+    description: z.optional(z.string()).default('Топик очереди уже существует'),
+    category: z.optional(z.string()).default('CRUD_QUEUE_TOPIC'),
+    type: z.optional(z.string()).default('CUSTOM'),
   });
 
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92ZodType =
@@ -9879,6 +9932,32 @@ export const zUploadNodeFileInputProjectsProjectIdGraphNodesNodeIdFileInputsInpu
 export type UploadNodeFileInputProjectsProjectIdGraphNodesNodeIdFileInputsInputNamePostResponseZodType =
   z.infer<
     typeof zUploadNodeFileInputProjectsProjectIdGraphNodesNodeIdFileInputsInputNamePostResponse
+  >;
+
+export const zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData =
+  z.object({
+    body: zExcelColumnsRequest,
+    path: z.object({
+      project_id: z.string(),
+      node_id: z.string(),
+    }),
+    query: z.optional(z.never()),
+  });
+
+export type ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostDataZodType =
+  z.infer<
+    typeof zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData
+  >;
+
+/**
+ * Successful Response
+ */
+export const zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponse =
+  zExcelColumnsResponse;
+
+export type ReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponseZodType =
+  z.infer<
+    typeof zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostResponse
   >;
 
 export const zGetGraphProjectsProjectIdGraphGetData = z.object({
