@@ -21,6 +21,7 @@ import {
   type ColumnMappingItem,
   createTableBeforeFinish,
   type ExtensionState,
+  getPendingColumnActions,
   type WriteDataFrameToDBValues,
 } from '../lib/helpers';
 
@@ -294,6 +295,7 @@ const buildExistingTableSharedState = (
 
   return {
     isTableNew: false,
+    columnCommentsSupported: true,
     requestedColumnMappingDraft: requestedMapping,
     resolvedColumnRows: buildResolvedRows(requestedMapping),
     resolvedDiagnostics: [],
@@ -318,6 +320,7 @@ const setupGatewayMocks = () => {
 
       return {
         data: {
+          column_comments_supported: true,
           columns: buildResolvedRows(effectiveMapping),
           diagnostics: [],
           effective_column_mapping: effectiveMapping,
@@ -369,6 +372,7 @@ const renderStepHarness = ({
         localInputData,
         setLocalInputData,
         sharedState,
+        setSharedState,
       };
     }, [localInputData, sharedState]);
 
@@ -419,6 +423,7 @@ const renderStepHarness = ({
               SetStateAction<WriteDataFrameToDBValues>
             >;
             sharedState: ExtensionState;
+            setSharedState: Dispatch<SetStateAction<ExtensionState>>;
           };
         }
       ).__testState,
@@ -458,16 +463,10 @@ describe('write-df-to-db-v4 step placement', () => {
       )
     ).not.toBeInTheDocument();
 
-    const prioritizeButton = screen.getByRole('button', {
-      name: 'Проблемные сверху',
-    });
-    expect(prioritizeButton).toHaveAttribute('aria-pressed', 'false');
-
-    fireEvent.click(prioritizeButton);
-
+    expect(screen.getByText('Комментарий DB')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Исходный порядок' })
-    ).toHaveAttribute('aria-pressed', 'true');
+      screen.getByRole('button', { name: 'Действия с таблицей' })
+    ).toBeInTheDocument();
   });
 
   it('keeps schema strategy controls for new table flow', () => {
@@ -555,11 +554,10 @@ describe('write-df-to-db-v4 step placement', () => {
           ]),
         }),
       },
-      { silent: true }
+      expect.objectContaining({ silent: true })
     );
-    const recreateCalls = recreateTablePostMock.mock.calls;
-    const recreateRequest = recreateCalls[recreateCalls.length - 1]?.[0];
-    expect(JSON.stringify(recreateRequest)).not.toMatch(
+    const previewRequest = generateTableDdlPostMock.mock.lastCall?.[0];
+    expect(JSON.stringify(previewRequest)).not.toMatch(
       /connection_metadata|connection_string|connection_url/
     );
 
@@ -592,7 +590,7 @@ describe('write-df-to-db-v4 step placement', () => {
           ]),
         }),
       },
-      { silent: true }
+      expect.objectContaining({ silent: true })
     );
   });
 
@@ -796,7 +794,7 @@ describe('write-df-to-db-v4 step placement', () => {
     );
     expect(screen.queryByText('Учитывать в валидации')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Пересоздать таблицу' })
+      screen.getByRole('button', { name: 'Действия с таблицей' })
     ).toBeInTheDocument();
 
     harness.rerenderHarness('write');
@@ -848,7 +846,7 @@ describe('write-df-to-db-v4 step placement', () => {
           ]),
         }),
       }),
-      { silent: true }
+      expect.objectContaining({ silent: true })
     );
     expect(
       harness.getState()?.sharedState.columnResolveStates?.['clientid']
@@ -1129,7 +1127,10 @@ describe('write-df-to-db-v4 step placement', () => {
     });
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Пересоздать таблицу' })
+      screen.getByRole('button', { name: 'Действия с таблицей' })
+    );
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: /Пересоздать таблицу/ })
     );
 
     await act(async () => {
@@ -1161,7 +1162,7 @@ describe('write-df-to-db-v4 step placement', () => {
           ],
         }),
       },
-      { silent: true }
+      expect.objectContaining({ silent: true })
     );
     expect(screen.getByText('Пересоздание таблицы...')).toBeInTheDocument();
 
@@ -1186,7 +1187,10 @@ describe('write-df-to-db-v4 step placement', () => {
     });
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Пересоздать таблицу' })
+      screen.getByRole('button', { name: 'Действия с таблицей' })
+    );
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: /Пересоздать таблицу/ })
     );
     await act(async () => {
       await Promise.resolve();
@@ -1204,7 +1208,10 @@ describe('write-df-to-db-v4 step placement', () => {
     });
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Пересоздать таблицу' })
+      screen.getByRole('button', { name: 'Действия с таблицей' })
+    );
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: /Пересоздать таблицу/ })
     );
     await act(async () => {
       await Promise.resolve();
@@ -1227,7 +1234,10 @@ describe('write-df-to-db-v4 step placement', () => {
     });
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Пересоздать таблицу' })
+      screen.getByRole('button', { name: 'Действия с таблицей' })
+    );
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: /Пересоздать таблицу/ })
     );
     await act(async () => {
       await Promise.resolve();
@@ -1243,4 +1253,146 @@ describe('write-df-to-db-v4 step placement', () => {
     expect(screen.getByText('resolve failed')).toBeInTheDocument();
     expect(harness.getState()?.sharedState.isRecreatingTable).toBe(false);
   }, 10000);
+  it('keeps DB drafts across steps and resolve, and clears dirty when the database catches up', async () => {
+    const rows = buildResolvedRows().map(row => ({
+      ...row,
+      db_comment: 'DB baseline',
+      source_comment: 'DF source',
+    }));
+    const harness = renderStepHarness({
+      activeStep: 'schema',
+      initialInputData: existingTableInputData,
+      initialSharedState: buildExistingTableSharedState({
+        resolvedColumnRows: rows,
+      }),
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Комментарий колонки client_id' })
+    );
+    expect(screen.getByLabelText('Комментарий')).toHaveValue('DB baseline');
+    fireEvent.click(screen.getByRole('button', { name: 'Взять из DF' }));
+    expect(screen.getByLabelText('Комментарий')).toHaveValue('DF source');
+    fireEvent.change(screen.getByLabelText('Комментарий'), {
+      target: { value: '  draft\nsecond line  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Принять' }));
+    expect(getPendingColumnActions(harness.getState()?.sharedState)).toEqual([
+      {
+        type: 'set_column_comment',
+        column_name: 'client_id',
+        comment: '  draft\nsecond line  ',
+      },
+    ]);
+    harness.rerenderHarness('write');
+    harness.rerenderHarness('schema');
+    resolveWriteColumnsPostMock.mockResolvedValueOnce({
+      data: {
+        column_comments_supported: true,
+        columns: rows,
+        diagnostics: [],
+        effective_column_mapping: existingTableInputData.column_mapping,
+      },
+    });
+    act(() =>
+      harness
+        .getState()
+        ?.setSharedState(prev => ({ ...prev, lastResolveColumnsKey: null }))
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(
+      getPendingColumnActions(harness.getState()?.sharedState)
+    ).toHaveLength(1);
+    expect(
+      harness.getState()?.sharedState.dbCommentOverrides?.['client_id']
+    ).toBe('  draft\nsecond line  ');
+    act(() =>
+      harness.getState()?.setSharedState(prev => ({
+        ...prev,
+        resolvedColumnRows: rows.map(row =>
+          row.db_name === 'client_id'
+            ? { ...row, db_comment: '  draft\nsecond line  ' }
+            : row
+        ),
+      }))
+    );
+    expect(getPendingColumnActions(harness.getState()?.sharedState)).toEqual(
+      []
+    );
+    expect(
+      harness.getState()?.localInputData.column_mapping?.[0]
+    ).not.toHaveProperty('comment');
+  }, 15000);
+
+  it('keeps an explicit constructor deletion across modes and sends it to preview and creation', async () => {
+    const df = {
+      ...dataframeMetadata,
+      columns: dataframeMetadata.columns.map(column => ({
+        ...column,
+        comment: 'DF inherited',
+      })),
+    };
+    getConnectedInputMetadataMock.mockImplementation((input: string) =>
+      input === 'df' ? df : connectionMetadata
+    );
+    const mapping = existingTableInputData.column_mapping!;
+    const harness = renderStepHarness({
+      activeStep: 'schema',
+      initialInputData: { ...newTableInputData, column_mapping: mapping },
+      initialSharedState: {
+        isTableNew: true,
+        selectedCreationMode: 'typed',
+        columnCommentsSupported: true,
+        requestedColumnMappingDraft: mapping,
+        resolvedColumnRows: buildResolvedRows(mapping),
+        resolvedDiagnostics: [],
+      },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Комментарий колонки client_id' })
+    );
+    expect(screen.getByLabelText('Комментарий')).toHaveValue('DF inherited');
+    fireEvent.click(screen.getByRole('button', { name: 'Удалить' }));
+    expect(harness.getState()?.sharedState.typedCommentOverrides).toEqual({
+      clientId: null,
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(220);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'SQL-скрипт' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Конструктор таблицы' })
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Комментарий колонки client_id' })
+    );
+    expect(screen.getByLabelText('Комментарий')).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+    harness.rerenderHarness('write');
+    fireEvent.click(screen.getByRole('button', { name: 'Сгенерировать' }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const columns = generateTableDdlPostMock.mock.lastCall?.[0].body.columns;
+    expect(columns[0].comment).toBeNull();
+    expect(columns[1].comment).toBe('DF inherited');
+    const state = harness.getState()!;
+    const creation = createTableBeforeFinish({
+      nodeID: 'node-1',
+      inputValues: state.localInputData,
+      nodeDefinition,
+      data: {} as never,
+      variables: [],
+      sharedState: state.sharedState,
+      setSharedState: vi.fn(),
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(await creation).toBe(true);
+    expect(createTablePostMock.mock.lastCall?.[0].body.columns).toEqual(
+      columns
+    );
+  }, 15000);
 });

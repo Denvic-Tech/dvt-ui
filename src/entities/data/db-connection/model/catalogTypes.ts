@@ -39,6 +39,7 @@ export type DbCatalogTableRef = {
 
 export type DbCatalogColumn = {
   name: string;
+  comment?: string | null;
   ordinal: number;
   dtype: string;
   nullable: boolean | null;

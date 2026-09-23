@@ -144,6 +144,7 @@ const embeddedTableDetail = (table: DbTable): DbCatalogTableDetail => ({
   ...embeddedTableRef(table),
   columns: table.columns.map((column, ordinal) => ({
     name: column.name,
+    comment: column.comment ?? null,
     ordinal,
     dtype: String(column.dtype),
     nullable: column.nullable ?? null,

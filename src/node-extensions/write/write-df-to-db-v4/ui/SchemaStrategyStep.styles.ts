@@ -535,7 +535,7 @@ export const MappingChangeMore = styled('button')({
 });
 
 export const MAPPING_TABLE_COLUMNS =
-  'minmax(0,1.15fr) minmax(0,1.2fr) minmax(0,1.05fr) minmax(112px,0.8fr) 74px minmax(112px,0.8fr)';
+  'minmax(0,1.15fr) minmax(0,1.2fr) minmax(0,1.05fr) minmax(112px,0.8fr) 74px minmax(100px,0.7fr) minmax(130px,1fr)';
 
 export const MappingTableContainer = styled('div')({
   display: 'flex',

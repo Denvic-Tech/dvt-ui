@@ -38,6 +38,23 @@ import {
 import { ApiError } from '@/shared/lib/errors';
 import { isExpressionValue } from '@/shared/lib/node-input-values';
 
+import {
+  type CommentOverrides,
+  commentValue,
+  mergeCommentActions,
+} from './columnComments';
+
+export const getPendingColumnActions = (
+  state?: ExtensionState
+): TableColumnActionInput[] =>
+  mergeCommentActions(
+    state?.selectedColumnActions ?? [],
+    state?.resolvedColumnRows ?? [],
+    state?.dbCommentOverrides,
+    state?.typedCommentOverrides,
+    state?.columnCommentsSupported !== false
+  );
+
 export type CreationMode = 'typed' | 'raw';
 
 export type UpsertConfig = {
@@ -63,6 +80,8 @@ export type ResolvedColumnMappingRow = {
 };
 
 export type ExistingTableColumnDiffRow = {
+  sourceComment?: string | null;
+  dbComment?: string | null;
   dfName: string | null;
   dfType: string | null;
   requestedTargetName: string | null;
@@ -152,6 +171,12 @@ export type WriteDataFrameToDBValues = {
 };
 
 export interface ExtensionState {
+  typedCommentOverrides?: CommentOverrides;
+  dbCommentOverrides?: CommentOverrides;
+  columnCommentsSupported?: boolean;
+  commentTargetKey?: string;
+  suppressDefaultColumnActions?: boolean;
+
   inputConnectionMetadata?: DBMetadata | null;
   inputDataframeMetadata?: DataFrameMetadata | null;
   isTableNew?: boolean;
@@ -441,6 +466,8 @@ export const getColumnActionLabel = (
   type: TableColumnActionOutput['type']
 ): string => {
   switch (type) {
+    case 'set_column_comment':
+      return 'Изменить комментарий';
     case 'add_column':
       return 'Создать колонку';
     case 'drop_column':
@@ -805,6 +832,8 @@ export const buildExistingTableColumnDiff = (args: {
     const suggestedAction = rawRow?.suggested_action ?? null;
 
     return {
+      sourceComment: rawRow?.source_comment ?? sourceColumn?.comment ?? null,
+      dbComment: rawRow?.db_comment ?? null,
       dfName: row.source_name,
       dfType: sourceColumn?.dtype ?? null,
       requestedTargetName: row.requested_target_name,
@@ -1083,6 +1112,10 @@ export const buildResolveWriteColumnsTriggerKey = (
     column_mapping: JSON.parse(
       buildColumnMappingNameKey(request.column_mapping ?? null)
     ),
+    source_comments: request.dataframe_metadata?.columns.map(column => [
+      column.name,
+      column.comment ?? null,
+    ]),
   });
 };
 
@@ -1207,6 +1240,8 @@ export const buildDataFrameMetadataFromColumnMapping = (args: {
 };
 
 export const buildDbColumnsFromColumnMapping = (args: {
+  commentsSupported?: boolean | undefined;
+  commentOverrides?: CommentOverrides | undefined;
   dataframeMetadata: DataFrameMetadata;
   mapping?: ColumnMappingItem[] | null | undefined;
 }): DbColumn[] => {
@@ -1228,6 +1263,14 @@ export const buildDbColumnsFromColumnMapping = (args: {
 
     return {
       name: item.target_name,
+      comment:
+        args.commentsSupported === false
+          ? null
+          : commentValue(
+              args.commentOverrides,
+              item.source_name,
+              sourceColumn?.comment
+            ),
       dtype: (normalizeText(item.dtype) || 'UNKNOWN') as DataType,
       dtype_metadata: sourceColumn?.dtype_metadata ?? null,
       nullable: item.nullable ?? true,
@@ -1467,10 +1510,12 @@ export const shouldShowCreateTableSql = (
 };
 
 export const buildCreateSqlCacheKey = (args: {
+  commentsSupported?: boolean | undefined;
   connectionMetadata?: DBMetadata | null;
   dataframeMetadata?: DataFrameMetadata | null;
   inputValues: WriteDataFrameToDBValues;
   mode: CreationMode;
+  commentOverrides?: CommentOverrides | undefined;
 }): string => {
   const mappingFingerprint = serializeColumnMapping(
     args.inputValues.column_mapping
@@ -1496,6 +1541,11 @@ export const buildCreateSqlCacheKey = (args: {
 
   return [
     args.mode,
+    JSON.stringify(args.commentOverrides ?? {}),
+    String(args.commentsSupported ?? true),
+    JSON.stringify(
+      args.dataframeMetadata?.columns.map(column => column.comment) ?? []
+    ),
     getSelectorFingerprintValue(args.inputValues.table_name),
     getSelectorFingerprintValue(args.inputValues.database_name),
     getSelectorFingerprintValue(args.inputValues.schema_name),
@@ -1796,6 +1846,12 @@ const buildCreateTableKey = (
     connectionMetadata?.connection_id ?? '',
     connectionMetadata?.connection_revision ?? '',
     creationMode,
+    JSON.stringify(sharedState?.typedCommentOverrides ?? {}),
+    JSON.stringify(
+      sharedState?.inputDataframeMetadata?.columns.map(
+        column => column.comment
+      ) ?? []
+    ),
   ].join('::');
 };
 
@@ -1833,7 +1889,7 @@ export const prepareWriteStepOnContinue = async (
     lastCreateTableKey: null,
   }));
 
-  const actions = sharedState?.selectedColumnActions ?? [];
+  const actions = getPendingColumnActions(sharedState);
 
   if (actions.length === 0) {
     setSharedState(prev => ({
@@ -1889,6 +1945,7 @@ export const prepareWriteStepOnContinue = async (
       { silent: true }
     )
     .then(response => {
+      sharedState?.invalidateCatalog?.();
       // Обновляем метаданные таблицы глобально свежими данными из ответа.
       if (response.data.table_metadata) {
         sharedState?.applyTableMetadataUpdate?.(response.data.table_metadata);
@@ -1904,13 +1961,20 @@ export const prepareWriteStepOnContinue = async (
         // Действия применены — сбрасываем выбор, чтобы при возврате на шаг
         // повторно не предлагалось подтвердить уже применённые изменения.
         selectedColumnActions: [],
+        dbCommentOverrides: {},
+        suppressDefaultColumnActions: false,
         // Инвалидируем резолв, чтобы при возврате назад diff перечитался.
         lastResolveColumnsKey: null,
       }));
     })
     .catch((error: unknown) => {
+      sharedState?.invalidateCatalog?.();
+      // Keep comment drafts, but never replay destructive actions after a partial failure.
       setSharedState(prev => ({
         ...(prev ?? {}),
+        selectedColumnActions: [],
+        suppressDefaultColumnActions: true,
+        lastResolveColumnsKey: null,
         isApplyingColumnActions: false,
         applyColumnActionsError:
           error instanceof Error && error.message.trim()
@@ -1952,7 +2016,7 @@ export const shouldShowColumnActionsLoadingOverlay = (
   const sharedState = context.sharedState;
 
   if (
-    (sharedState?.selectedColumnActions?.length ?? 0) > 0 ||
+    getPendingColumnActions(sharedState).length > 0 ||
     sharedState?.isApplyingColumnActions ||
     sharedState?.applyColumnActionsError
   ) {
@@ -2081,6 +2145,8 @@ const createTableFromTypedSpec = async (args: {
         columns: buildDbColumnsFromColumnMapping({
           dataframeMetadata,
           mapping,
+          commentOverrides: sharedState.typedCommentOverrides,
+          commentsSupported: sharedState.columnCommentsSupported,
         }),
         table_create_spec: normalizedTypedSpec as any,
         on_exists: 'error',
@@ -2174,6 +2240,7 @@ export const createTableBeforeFinish = async (
     await waitForCreateTableSuccessTransition(successAt);
     return true;
   } catch (error: unknown) {
+    sharedState?.invalidateCatalog?.();
     const errorMessage = extractApiErrorMessage(
       error,
       'Не удалось создать таблицу.'

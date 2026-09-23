@@ -24,7 +24,10 @@ import {
   getDbMetadataFilteredTables,
   getDbMetadataSchemaOptions,
 } from '@/shared/lib/db-metadata';
+import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
 
+import { commentTargetKey } from '../../lib/columnComments';
+import { getPendingColumnActions } from '../../lib/helpers';
 import {
   buildSelectedWriteTargetLabel,
   buildWriteTargetAfterDatabaseChange,
@@ -124,6 +127,39 @@ export const TableSetupStep = ({
   const { getConnectedInputMetadata } = useNodeConnections(nodeID);
   const { createDatabase, createSchema } = useApiUtils();
   const dispatch = useAppDispatch();
+  const { confirm } = useConfirmDialog();
+  const runTargetChange = useCallback(
+    async (change: () => void) => {
+      const pending =
+        getPendingColumnActions({
+          ...sharedState,
+          selectedColumnActions: [],
+        }).some(action => action.type === 'set_column_comment') ||
+        Object.keys(sharedState?.typedCommentOverrides ?? {}).length > 0;
+      if (
+        pending &&
+        !(await confirm({
+          title: 'Сбросить изменения комментариев?',
+          message:
+            'При выборе другой таблицы несохранённые комментарии будут сброшены.',
+          confirmLabel: 'Сбросить',
+          cancelLabel: 'Отмена',
+          confirmColor: 'primary',
+        }))
+      )
+        return;
+      setSharedState(prev => ({
+        ...(prev ?? {}),
+        typedCommentOverrides: {},
+        dbCommentOverrides: {},
+        lastResolveColumnsKey: null,
+        columnCommentsSupported: false,
+        suppressDefaultColumnActions: false,
+      }));
+      change();
+    },
+    [confirm, sharedState, setSharedState]
+  );
 
   const inputConnectionMetadata = useMemo(
     () => getConnectedInputMetadata('connection') as DBMetadata | null,
@@ -227,6 +263,32 @@ export const TableSetupStep = ({
     detailEnabled: Boolean(literalTableName),
   });
   const isLazyCatalog = catalog.mode === 'lazy';
+
+  useEffect(() => {
+    const key = commentTargetKey(
+      inputConnectionMetadata?.connection_id,
+      literalDatabaseName,
+      literalSchemaName,
+      literalTableName
+    );
+    setSharedState(prev => {
+      if (prev?.commentTargetKey === key) return prev;
+      return {
+        ...(prev ?? {}),
+        commentTargetKey: key,
+        typedCommentOverrides: {},
+        dbCommentOverrides: {},
+        columnCommentsSupported: false,
+        suppressDefaultColumnActions: false,
+      };
+    });
+  }, [
+    inputConnectionMetadata?.connection_id,
+    literalDatabaseName,
+    literalSchemaName,
+    literalTableName,
+    setSharedState,
+  ]);
 
   const selectedTableLabel = useMemo(() => {
     return buildSelectedWriteTargetLabel(localInputData);
@@ -717,10 +779,10 @@ export const TableSetupStep = ({
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (event.key === 'Enter') {
         event.preventDefault();
-        handleCreateTableSave();
+        void runTargetChange(handleCreateTableSave);
       }
     },
-    [handleCreateTableSave]
+    [handleCreateTableSave, runTargetChange]
   );
 
   const handleDatabaseCreateSave = useCallback(async () => {
@@ -848,12 +910,20 @@ export const TableSetupStep = ({
             isOpen={isSectionOpen('database')}
             isSaving={creatingEntity === 'database'}
             newDatabaseName={newDatabaseName}
-            onChange={handleDatabaseValueChange}
-            onClear={() => handleDatabaseValueChange(null)}
+            onChange={value =>
+              void runTargetChange(() => handleDatabaseValueChange(value))
+            }
+            onClear={() =>
+              void runTargetChange(() => handleDatabaseValueChange(null))
+            }
             onCreateModeSelect={setSelectDatabaseMode}
-            onDatabaseSelect={handleDatabaseSelect}
+            onDatabaseSelect={value =>
+              void runTargetChange(() => handleDatabaseSelect(value))
+            }
             onNewDatabaseNameChange={setNewDatabaseName}
-            onSave={() => void handleDatabaseCreateSave()}
+            onSave={() =>
+              void runTargetChange(() => void handleDatabaseCreateSave())
+            }
             onToggle={() => toggleSection('database')}
             options={isLazyCatalog ? catalog.databaseOptions : databaseOptions}
             selectMode={selectDatabaseMode}
@@ -890,12 +960,20 @@ export const TableSetupStep = ({
             isSaving={creatingEntity === 'schema'}
             isSchemaNew={isSchemaNew}
             newSchemaName={newSchemaName}
-            onChange={handleSchemaValueChange}
-            onClear={() => handleSchemaValueChange(null)}
+            onChange={value =>
+              void runTargetChange(() => handleSchemaValueChange(value))
+            }
+            onClear={() =>
+              void runTargetChange(() => handleSchemaValueChange(null))
+            }
             onCreateModeSelect={setSelectSchemaMode}
             onNewSchemaNameChange={setNewSchemaName}
-            onSave={() => void handleSchemaCreateSave()}
-            onSchemaSelect={handleSchemaSelect}
+            onSave={() =>
+              void runTargetChange(() => void handleSchemaCreateSave())
+            }
+            onSchemaSelect={value =>
+              void runTargetChange(() => handleSchemaSelect(value))
+            }
             onToggle={() => toggleSection('schema')}
             options={isLazyCatalog ? catalog.schemaOptions : schemaOptions}
             selectMode={selectSchemaMode}
@@ -931,21 +1009,29 @@ export const TableSetupStep = ({
           isSelectTableBrowserOpen={isSelectTableBrowserOpen}
           newTableName={newTableName}
           notice={null}
-          onChange={handleTableValueChange}
+          onChange={value =>
+            void runTargetChange(() => handleTableValueChange(value))
+          }
           onCreateTableInputKeyDown={handleCreateTableInputKeyDown}
           onEditCreatedTableName={handleEditCreatedTableName}
           onEditSelectedTable={handleEditSelectedTable}
-          onResetTable={handleResetTable}
-          onSaveCreatedTableName={handleCreateTableSave}
-          onTableModeChange={handleTableModeChange}
+          onResetTable={() => void runTargetChange(handleResetTable)}
+          onSaveCreatedTableName={() =>
+            void runTargetChange(handleCreateTableSave)
+          }
+          onTableModeChange={mode =>
+            void runTargetChange(() => handleTableModeChange(mode))
+          }
           onTableNameChange={setNewTableName}
-          onTableSelect={table => {
-            if ('catalogRef' in table) {
-              handleLazyTableSelect(table.catalogRef);
-              return;
-            }
-            handleTableSelect(table);
-          }}
+          onTableSelect={table =>
+            void runTargetChange(() => {
+              if ('catalogRef' in table) {
+                handleLazyTableSelect(table.catalogRef);
+                return;
+              }
+              handleTableSelect(table);
+            })
+          }
           onToggle={() => toggleSection('table')}
           selectedTable={
             isLazyCatalog ? catalog.selectedTableItem : selectedTable

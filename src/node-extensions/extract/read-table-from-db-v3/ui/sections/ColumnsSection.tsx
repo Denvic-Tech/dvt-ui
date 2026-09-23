@@ -79,6 +79,7 @@ export const ColumnsSection: React.FC<ColumnsSectionProps> = ({
             : {})}
         >
           <ColumnListSelect
+            showComments
             columns={selectedTable.columns}
             value={selectedColumns}
             onChange={setSelectedColumns}

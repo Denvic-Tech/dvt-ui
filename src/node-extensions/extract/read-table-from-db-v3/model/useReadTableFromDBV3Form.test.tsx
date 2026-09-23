@@ -387,6 +387,7 @@ describe('useReadTableFromDBV3Form', () => {
           },
           {
             name: 'amount',
+            comment: 'Сумма заказа',
             ordinal: 1,
             dtype: 'FLOAT',
             nullable: true,
@@ -417,6 +418,9 @@ describe('useReadTableFromDBV3Form', () => {
     expect(
       result.current.form.availableColumns.map(column => column.name)
     ).toEqual(['id', 'amount']);
+    expect(
+      result.current.form.availableColumns.map(column => column.comment)
+    ).toEqual([null, 'Сумма заказа']);
   });
 
   it('keeps saved partition settings while connection metadata is stale', () => {

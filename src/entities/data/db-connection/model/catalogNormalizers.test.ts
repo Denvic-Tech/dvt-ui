@@ -98,6 +98,7 @@ describe('DB catalog normalizers', () => {
         columns: [
           {
             name: 'id',
+            comment: 'Идентификатор заказа',
             ordinal: 2,
             dtype: 'INT',
             nullable: false,
@@ -128,6 +129,10 @@ describe('DB catalog normalizers', () => {
     expect(detail.item.columns.map(column => column.name)).toEqual([
       'created_at',
       'id',
+    ]);
+    expect(detail.item.columns.map(column => column.comment)).toEqual([
+      null,
+      'Идентификатор заказа',
     ]);
   });
 
