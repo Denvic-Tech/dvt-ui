@@ -1,4 +1,5 @@
-import path from 'path';
+import { resolve } from 'node:path';
+
 import { defineConfig } from 'vitest/config';
 
 import { nodeIconsPlugin } from './plugins/node-icons';
@@ -7,7 +8,7 @@ export default defineConfig({
   plugins: [nodeIconsPlugin()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': resolve(__dirname, 'src'),
     },
   },
   test: {
