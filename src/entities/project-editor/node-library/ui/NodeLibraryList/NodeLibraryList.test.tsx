@@ -46,6 +46,7 @@ describe('NodeLibraryList', () => {
       nodeDefinitionsMap: {
         load_csv: {
           name: 'load_csv',
+          icon_key: 'load-csv',
           display_name: 'Load CSV',
           category: 'Extraction',
           tags: ['Fast'],
@@ -91,6 +92,10 @@ describe('NodeLibraryList', () => {
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(screen.getAllByText('Load CSV')).toHaveLength(2);
+    const icons = document.querySelectorAll('[data-node-icon="load-csv"]');
+    expect(icons).toHaveLength(2);
+    expect(icons[0]).toHaveAttribute('width', '16');
+    expect(document.querySelector('[data-node-icon="default"]')).not.toBeNull();
   });
 
   it('toggles category collapse from the header', () => {

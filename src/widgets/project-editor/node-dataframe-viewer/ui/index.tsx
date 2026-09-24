@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import TableChartIcon from '@mui/icons-material/TableChart';
 import TableRowsIcon from '@mui/icons-material/TableRows';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import { CircularProgress, Tooltip, Typography } from '@mui/material';
@@ -28,6 +27,7 @@ import { useCurrentProject } from '@/entities/project/projects';
 import { useTaskExecutionStatus } from '@/entities/project/task-execution-status';
 
 import type { Column as DFColumn } from '@/shared/gatewayClient';
+import { NodeIcon } from '@/shared/ui/node-icon/NodeIcon';
 
 import {
   calcHeaderWidth,
@@ -46,7 +46,7 @@ import {
   MIN_COLUMN_WIDTH,
   ModalContent,
   ModalHeader,
-  NodeIcon,
+  NodeIcon as NodeIconContainer,
   NodeId,
   NodeName,
   NullValue,
@@ -674,9 +674,9 @@ const NodeDataFrameViewerContent: React.FC<NodeDataFrameViewerContentProps> = ({
     <StyledDialog fullWidth maxWidth={false} open onClose={closeViewer}>
       <ModalHeader>
         <HeaderLeft>
-          <NodeIcon>
-            <TableChartIcon />
-          </NodeIcon>
+          <NodeIconContainer>
+            <NodeIcon iconKey={nodeDefinition?.icon_key} size={16} />
+          </NodeIconContainer>
           <HeaderInfo>
             <NodeName>{displayName}</NodeName>
             <NodeId>{shortNodeId}</NodeId>

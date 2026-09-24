@@ -33,8 +33,9 @@ import {
   getCategoryColor,
   getNodeCategoryColor,
   NodeLibraryIcon,
-  NodeLibraryIconAccent,
 } from '@/entities/project-editor/node-library';
+
+import { NodeIcon } from '@/shared/ui/node-icon/NodeIcon';
 
 import { buildActiveNodeSearchText } from './activeNodeSearch';
 
@@ -414,7 +415,7 @@ export const ActiveNodesSection = ({
                         color: categoryColor,
                       }}
                     >
-                      <NodeLibraryIconAccent />
+                      <NodeIcon iconKey={definition?.icon_key} />
                     </NodeLibraryIcon>
 
                     <Box

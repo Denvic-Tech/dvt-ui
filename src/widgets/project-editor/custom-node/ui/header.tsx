@@ -2,15 +2,16 @@ import React, { memo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 
-import { NodeIcon } from '@/entities/project-editor/node-library/ui/NodeLibraryList/styles';
+import { NodeIcon as NodeIconContainer } from '@/entities/project-editor/node-library/ui/NodeLibraryList/styles';
 
 import { EditableTypography } from '@/shared/ui';
+import { NodeIcon } from '@/shared/ui/node-icon/NodeIcon';
 
 interface CustomNodeHeaderProps {
   nodeID: string;
   displayName: string;
   onDisplayNameChange: (newName: string) => void;
-  nodeEmoji?: string | null | undefined;
+  nodeIconKey?: string | null | undefined;
   nodeDescription?: string | null | undefined;
   matchesDisplayName?: boolean;
   matchesNodeID?: boolean;
@@ -20,7 +21,7 @@ const CustomNodeHeader_: React.FC<CustomNodeHeaderProps> = ({
   nodeID,
   displayName,
   onDisplayNameChange,
-  nodeEmoji,
+  nodeIconKey,
   nodeDescription,
   matchesDisplayName = false,
   matchesNodeID = false,
@@ -48,9 +49,9 @@ const CustomNodeHeader_: React.FC<CustomNodeHeaderProps> = ({
             width: '100%',
           }}
         >
-          {nodeEmoji && (
-            <NodeIcon style={{ marginTop: -2 }}>{nodeEmoji}</NodeIcon>
-          )}
+          <NodeIconContainer style={{ marginTop: -2 }}>
+            <NodeIcon iconKey={nodeIconKey} size={16} />
+          </NodeIconContainer>
           <EditableTypography
             value={displayName}
             onChange={onDisplayNameChange}
