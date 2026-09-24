@@ -19,6 +19,7 @@ import { matchesNodeSearch } from '@/entities/project-editor/node-library/lib/no
 import { useNodeLibraryPreferences } from '@/entities/ui-preferences';
 
 import type { NodeDefinition } from '@/shared/gatewayClient';
+import { NodeIcon } from '@/shared/ui/node-icon/NodeIcon';
 
 import {
   CategoryChevron,
@@ -36,7 +37,6 @@ import {
   NodeItem,
   NodeItemRow,
   NodeLibraryIcon,
-  NodeLibraryIconAccent,
   NodeListContainer,
   NodeMain,
   NodeName,
@@ -286,7 +286,7 @@ export const NodeLibraryList: React.FC<NodeLibraryListProps> = ({
                           style={getNodeIconStyles(nodeCategoryColor)}
                           data-deprecated={deprecated ? 'true' : 'false'}
                         >
-                          <NodeLibraryIconAccent />
+                          <NodeIcon iconKey={node.icon_key} />
                         </NodeLibraryIcon>
                         <NodeMain>
                           <NodeTitleRow>

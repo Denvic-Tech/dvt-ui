@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import SearchIcon from '@mui/icons-material/Search';
-import WidgetsOutlinedIcon from '@mui/icons-material/WidgetsOutlined';
 import { Box } from '@mui/material';
 import { createPortal } from 'react-dom';
 
@@ -9,6 +8,7 @@ import { matchesNodeSearch } from '@/entities/project-editor/node-library/lib/no
 
 import { NodeDefinition } from '@/shared/gatewayClient';
 import { expandIoTypes, isIoTypeCompatible } from '@/shared/lib/node-io';
+import { NodeIcon } from '@/shared/ui/node-icon/NodeIcon';
 
 import * as S from './NodeLibraryContextMenu.styles';
 
@@ -235,7 +235,9 @@ export const NodeLibraryContextMenu: React.FC<NodeLibraryContextMenuProps> = ({
       <S.ResultList>
         {filteredNodes.map(node => (
           <S.MenuItem key={node.name} onClick={() => onSelectNode(node)}>
-            <S.IconBox>{node.emoji || <WidgetsOutlinedIcon />}</S.IconBox>
+            <S.IconBox>
+              <NodeIcon iconKey={node.icon_key} />
+            </S.IconBox>
             <Box sx={{ overflow: 'hidden' }}>
               <S.NodeLabel noWrap>{node.display_name || node.name}</S.NodeLabel>
               <S.CategoryLabel>{node.category}</S.CategoryLabel>

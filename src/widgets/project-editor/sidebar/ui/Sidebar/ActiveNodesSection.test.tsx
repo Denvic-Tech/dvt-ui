@@ -98,6 +98,7 @@ const makeState = ({ loading = false, nodes = true } = {}) => ({
         category: 'Extraction',
         category_color: '#10B981',
         emoji: '📄',
+        icon_key: 'load-csv',
         tags: ['file', 'source'],
       },
       Text: {
@@ -126,6 +127,11 @@ describe('ActiveNodesSection', () => {
 
     expect(screen.getByText('CSV source')).toBeInTheDocument();
     expect(screen.getByText('Project note')).toBeInTheDocument();
+    expect(
+      document.querySelector('[data-node-icon="load-csv"]')
+    ).toHaveAttribute('width', '16');
+    expect(document.querySelector('[data-node-icon="default"]')).not.toBeNull();
+    expect(screen.queryByText('📄')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('widgets/project-editor/sidebar/active-nodes-count')
     ).not.toBeInTheDocument();

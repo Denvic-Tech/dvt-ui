@@ -452,7 +452,7 @@ const CustomNodeView_: React.FC<CustomNodeViewProps> = ({
           displayName={nodeData.displayName}
           onDisplayNameChange={updateDisplayName}
           nodeDescription={nodeDescription}
-          nodeEmoji={nodeDefinition.emoji}
+          nodeIconKey={nodeDefinition.icon_key}
           matchesDisplayName={matchesDisplayName}
           matchesNodeID={matchesNodeID}
         />
