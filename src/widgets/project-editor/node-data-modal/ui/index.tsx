@@ -142,6 +142,12 @@ const NodeDataModalContent = memo<NodeDataModalContentProps>(
     nodeOutputMetadata,
     nodeMetadataActuality,
   }) => {
+    const [stepperFooterContainer, setStepperFooterContainer] =
+      useState<HTMLDivElement | null>(null);
+
+    const isStepperEditor =
+      !extensionName && nodeModalStepperExtensions.length > 0;
+
     const presentation: NodeModalPresentationConfig =
       nodeModalStepperExtensions.length > 0 || extensionName
         ? { type: 'fluid' }
@@ -202,9 +208,13 @@ const NodeDataModalContent = memo<NodeDataModalContentProps>(
           </AlertsContainer>
         )}
 
-        <Body presentationType={presentation.type}>
+        <Body
+          presentationType={presentation.type}
+          sx={isStepperEditor ? { overflow: 'hidden', pb: '18px' } : {}}
+        >
           <BodyContent
             presentationType={presentation.type}
+            sx={isStepperEditor ? { height: '100%', minHeight: 0 } : {}}
             {...(presentation.type === 'centered'
               ? { contentWidth: presentation.contentWidth }
               : {})}
@@ -239,6 +249,8 @@ const NodeDataModalContent = memo<NodeDataModalContentProps>(
                   key={ext.id}
                   extension={ext}
                   hasUnsavedChanges={isDirty}
+                  footerContainer={stepperFooterContainer}
+                  onCancel={onClose}
                   onFinish={handleStepperSave}
                   isOpen={uiIsOpen}
                   projectID={projectID}
@@ -298,7 +310,9 @@ const NodeDataModalContent = memo<NodeDataModalContentProps>(
           </BodyContent>
         </Body>
 
-        {nodeModalStepperExtensions.length === 0 && (
+        {nodeModalStepperExtensions.length > 0 && !extensionName ? (
+          <div ref={setStepperFooterContainer} style={{ flexShrink: 0 }} />
+        ) : (
           <Footer
             hasUnsavedChanges={isDirty}
             onCancel={onClose}
