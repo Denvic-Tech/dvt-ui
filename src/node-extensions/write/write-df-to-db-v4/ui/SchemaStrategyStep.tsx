@@ -2,6 +2,7 @@ import {
   type ChangeEvent,
   type ComponentPropsWithoutRef,
   forwardRef,
+  Fragment,
   memo,
   type ReactNode,
   useCallback,
@@ -131,17 +132,6 @@ import {
   ErrorList,
   FieldBlock,
   FieldLabel,
-  InlineInfoText,
-  MappingModalHeader,
-  MappingModalHeaderIcon,
-  MappingModalHeaderLeft,
-  MappingModalStat,
-  MappingModalStatLabel,
-  MappingModalStats,
-  MappingModalStatValue,
-  MappingModalSubtitle,
-  MappingModalTitle,
-  MappingModalTitleGroup,
   MappingRow,
   MappingTableBody,
   MappingTableContainer,
@@ -150,12 +140,16 @@ import {
   NullSwitchCell,
   OutlineButton,
   PreviewCode,
-  PreviewHeader,
-  PreviewTitle,
   SchemaCard,
+  SchemaEditorHeader,
+  SchemaEditorPanel,
+  SchemaEditorTarget,
+  SchemaHeaderActions,
+  SchemaHeaderIconButton,
   SchemaRoleBadge,
   SchemaRoleCell,
   SchemaRolePlaceholder,
+  SchemaTargetPath,
   SearchField,
   SearchIconWrap,
   SearchInput,
@@ -168,10 +162,6 @@ import {
   SourceName,
   SqlTextArea,
   TargetInput,
-  TextActionButton,
-  TextActionRow,
-  ToolbarRow,
-  ToolbarSpacer,
 } from './SchemaStrategyStep.styles';
 
 const DATA_TYPE_OPTIONS: DataType[] = [
@@ -1438,7 +1428,6 @@ export const SchemaStrategyStep = ({
       );
     });
   }, [requestedMapping, mappingChangeStateBySource]);
-  const changedMappingCount = changedMappingItems.length;
   const columnOptions = useMemo(() => {
     return buildColumnSelectorOptionsFromMapping(serializedEffectiveMapping);
   }, [serializedEffectiveMapping]);
@@ -1455,6 +1444,12 @@ export const SchemaStrategyStep = ({
       'Target table'
     );
   }, [literalTableName, localInputData]);
+  const selectedTargetParts = [
+    getLiteralStringValue(localInputData?.database_name),
+    getLiteralStringValue(localInputData?.schema_name),
+    literalTableName,
+  ].filter((part): part is string => Boolean(part));
+
   const typedSpecErrors = useMemo(() => {
     if (!isTableNew || selectedCreationMode !== 'typed') {
       return [] as string[];
@@ -2440,6 +2435,7 @@ export const SchemaStrategyStep = ({
         recreateTableError: null,
         resolveColumnsError: null,
         dbCommentOverrides: {},
+        dbNullableOverrides: {},
         suppressDefaultColumnActions: false,
         resolvedColumnRows: null,
         resolvedDiagnostics: null,
@@ -2507,11 +2503,40 @@ export const SchemaStrategyStep = ({
                 type: action.type,
                 column_name: action.column_name,
                 column: action.column ?? null,
+                ...(action.comment !== undefined
+                  ? { comment: action.comment }
+                  : {}),
+                ...(action.nullable !== undefined
+                  ? { nullable: action.nullable }
+                  : {}),
               } satisfies TableColumnActionInput,
             ];
         return {
           ...(prev ?? {}),
           selectedColumnActions: next,
+        };
+      });
+    },
+    [setSharedState]
+  );
+
+  const handleExistingColumnNullableChange = useCallback(
+    (columnName: string, nullable: boolean, baseline: boolean | null) => {
+      setSharedState(prev => {
+        const overrides = { ...prev?.dbNullableOverrides };
+        if (nullable === baseline) {
+          delete overrides[columnName];
+        } else {
+          overrides[columnName] = nullable;
+        }
+        return {
+          ...(prev ?? {}),
+          dbNullableOverrides: overrides,
+          selectedColumnActions: (prev?.selectedColumnActions ?? []).filter(
+            action =>
+              action.column_name !== columnName ||
+              action.type !== 'set_column_nullable'
+          ),
         };
       });
     },
@@ -2587,6 +2612,9 @@ export const SchemaStrategyStep = ({
             action.type === 'set_column_comment'
               ? action.comment
               : action.column?.comment;
+          if (action.type === 'set_column_nullable') {
+            return `• ${getColumnActionLabel(action.type)}: ${action.column_name} → ${action.nullable ? 'NULL' : 'NOT NULL'}`;
+          }
           return (
             `• ${getColumnActionLabel(action.type)}: ${action.column_name}` +
             (action.type !== 'drop_column' &&
@@ -2601,6 +2629,8 @@ export const SchemaStrategyStep = ({
         action => action.type === 'set_column_comment'
       );
       return confirm({
+        maxWidth: 'sm',
+        width: 480,
         title: onlyComments
           ? 'Применить комментарии?'
           : 'Применить изменения схемы?',
@@ -3038,6 +3068,8 @@ export const SchemaStrategyStep = ({
         selectedActionsByColumn={selectedActionsByColumn}
         onToggleAction={handleToggleColumnAction}
         onActionNullableChange={handleColumnActionNullableChange}
+        nullableOverrides={sharedState?.dbNullableOverrides}
+        onExistingNullableChange={handleExistingColumnNullableChange}
         onTargetNameBlur={handleTargetNameCommit}
         onTargetNameCancel={handleTargetNameCancel}
         onTargetNameChange={handleTargetNameEdit}
@@ -3081,215 +3113,222 @@ export const SchemaStrategyStep = ({
         ) : null}
       </ErrorList>
 
-      <SegmentControl>
-        <SegmentButton
-          type='button'
-          active={selectedCreationMode === 'raw'}
-          onClick={() => handleCreationModeChange('raw')}
-        >
-          <CodeIcon />
-          SQL-скрипт
-        </SegmentButton>
-        <SegmentButton
-          type='button'
-          active={selectedCreationMode === 'typed'}
-          onClick={() => handleCreationModeChange('typed')}
-        >
-          <TableIcon />
-          Конструктор таблицы
-        </SegmentButton>
-      </SegmentControl>
-
-      {selectedCreationMode === 'typed' ? (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            flex: 1,
-            gap: 1.25,
-            minHeight: 0,
-          }}
-        >
-          <MappingModalHeader>
-            <MappingModalHeaderLeft>
-              <MappingModalHeaderIcon>
+      <SchemaEditorPanel>
+        <SchemaEditorHeader>
+          <SchemaEditorTarget>
+            <TableIcon size={16} />
+            <SchemaTargetPath title={selectedTargetLabel}>
+              {(selectedTargetParts.length
+                ? selectedTargetParts
+                : [selectedTargetLabel]
+              ).map((part, index) => (
+                <Fragment key={index}>
+                  {index > 0 ? <i aria-hidden>/</i> : null}
+                  <span>{part}</span>
+                </Fragment>
+              ))}
+            </SchemaTargetPath>
+            <CountLabel>· {requestedMapping.length} колонок</CountLabel>
+          </SchemaEditorTarget>
+          <SchemaHeaderActions>
+            {selectedCreationMode === 'typed' ? (
+              <SearchField>
+                <SearchIconWrap>
+                  <SearchIcon />
+                </SearchIconWrap>
+                <SearchInput
+                  aria-label='Поиск колонки'
+                  value={mappingSearch}
+                  onChange={event => setMappingSearch(event.target.value)}
+                  placeholder='Поиск колонки'
+                />
+              </SearchField>
+            ) : null}
+            <SegmentControl aria-label='Режим настройки схемы'>
+              <SegmentButton
+                type='button'
+                active={selectedCreationMode === 'typed'}
+                aria-pressed={selectedCreationMode === 'typed'}
+                onClick={() => handleCreationModeChange('typed')}
+              >
                 <TableIcon />
-              </MappingModalHeaderIcon>
-              <MappingModalTitleGroup>
-                <MappingModalTitle>Маппинг колонок</MappingModalTitle>
-                <MappingModalSubtitle>
-                  {selectedTargetLabel}
-                </MappingModalSubtitle>
-              </MappingModalTitleGroup>
-            </MappingModalHeaderLeft>
-
-            <MappingModalStats>
-              <MappingModalStat>
-                <MappingModalStatValue>
-                  {requestedMapping.length}
-                </MappingModalStatValue>
-                <MappingModalStatLabel>Записывается</MappingModalStatLabel>
-              </MappingModalStat>
-              <MappingModalStat>
-                <MappingModalStatValue>
-                  {changedMappingCount}
-                </MappingModalStatValue>
-                <MappingModalStatLabel>Изменено</MappingModalStatLabel>
-              </MappingModalStat>
-            </MappingModalStats>
-          </MappingModalHeader>
-
-          <ToolbarRow>
-            <SearchField>
-              <SearchIconWrap>
-                <SearchIcon />
-              </SearchIconWrap>
-              <SearchInput
-                value={mappingSearch}
-                onChange={event => setMappingSearch(event.target.value)}
-                placeholder='Поиск колонки...'
-              />
-            </SearchField>
-
-            <CountLabel>{requestedMapping.length} колонок</CountLabel>
-            <ToolbarSpacer />
-
-            <OutlineButton
-              type='button'
-              onClick={handleRefreshResolvedColumns}
-              disabled={
-                !resolveWriteColumnsRequest ||
-                Boolean(sharedState?.isResolvingColumns)
+                Конструктор
+              </SegmentButton>
+              <SegmentButton
+                type='button'
+                active={selectedCreationMode === 'raw'}
+                aria-pressed={selectedCreationMode === 'raw'}
+                onClick={() => handleCreationModeChange('raw')}
+              >
+                <CodeIcon />
+                SQL
+              </SegmentButton>
+            </SegmentControl>
+            <Tooltip
+              title={
+                selectedCreationMode === 'typed'
+                  ? 'Обновить колонки'
+                  : 'Сгенерировать SQL'
               }
             >
-              <RefreshIconSvg
-                size={12}
-                spinning={Boolean(sharedState?.isResolvingColumns)}
-              />
-              Обновить
-            </OutlineButton>
+              <span>
+                <SchemaHeaderIconButton
+                  type='button'
+                  sx={{ width: 32, height: 32 }}
+                  aria-label={
+                    selectedCreationMode === 'typed'
+                      ? 'Обновить колонки'
+                      : 'Сгенерировать SQL'
+                  }
+                  onClick={() => {
+                    if (selectedCreationMode === 'typed') {
+                      handleRefreshResolvedColumns();
+                    } else {
+                      void fetchCreateTableSql('raw', true);
+                    }
+                  }}
+                  disabled={
+                    selectedCreationMode === 'typed'
+                      ? !resolveWriteColumnsRequest ||
+                        Boolean(sharedState?.isResolvingColumns)
+                      : !canFetchRawPreviewSql ||
+                        Boolean(sharedState?.isCreateSqlLoading)
+                  }
+                >
+                  <RefreshIconSvg
+                    size={16}
+                    spinning={
+                      selectedCreationMode === 'typed'
+                        ? Boolean(sharedState?.isResolvingColumns)
+                        : Boolean(sharedState?.isCreateSqlLoading)
+                    }
+                  />
+                </SchemaHeaderIconButton>
+              </span>
+            </Tooltip>
+            {selectedCreationMode === 'typed' ? (
+              <OutlineButton
+                type='button'
+                onClick={event => setBulkAnchorEl(event.currentTarget)}
+                sx={{ height: 32, fontSize: 12.5, whiteSpace: 'nowrap' }}
+              >
+                <TuneIcon sx={{ fontSize: 15 }} />
+                Массово
+              </OutlineButton>
+            ) : (
+              <Tooltip
+                title={isSqlCopied === 'raw' ? 'Скопировано' : 'Копировать SQL'}
+              >
+                <span>
+                  <SchemaHeaderIconButton
+                    type='button'
+                    aria-label='Копировать SQL'
+                    sx={{ width: 32, height: 32 }}
+                    onClick={() =>
+                      void copySql(
+                        localInputData?.create_table_sql ?? '',
+                        'raw'
+                      )
+                    }
+                    disabled={!localInputData?.create_table_sql?.trim()}
+                  >
+                    <CopyIconSvg size={16} />
+                  </SchemaHeaderIconButton>
+                </span>
+              </Tooltip>
+            )}
+          </SchemaHeaderActions>
+        </SchemaEditorHeader>
 
-            <OutlineButton
-              type='button'
-              onClick={event => setBulkAnchorEl(event.currentTarget)}
-            >
-              <TuneIcon sx={{ fontSize: 16 }} />
-              Массово
-              <ChevronIcon />
-            </OutlineButton>
-          </ToolbarRow>
-
-          <MappingTable
-            renderComment={renderTypedComment}
-            changeStateBySource={mappingChangeStateBySource}
-            flashingEffectiveSourceKeys={flashingEffectiveSourceKeys}
-            filteredMapping={filteredMapping}
-            highlightedSourceName={null}
-            initialTargetNames={initialTargetNamesRef.current}
-            onNullableChange={(sourceName, checked) =>
-              patchMapping(
-                sourceName,
-                current => ({
-                  ...current,
-                  nullable: checked,
-                }),
-                false
-              )
-            }
-            onTargetNameBlur={handleTargetNameCommit}
-            onTargetNameCancel={handleTargetNameCancel}
-            onTargetNameChange={handleTargetNameEdit}
-            onTargetNameReset={handleTargetNameReset}
-            onTypeChange={(sourceName, value) =>
-              patchMapping(
-                sourceName,
-                current => ({
-                  ...current,
-                  dtype: value,
-                }),
-                false
-              )
-            }
-            resolveStates={sharedState?.columnResolveStates ?? {}}
-            resolvingEffectiveSourceKeys={resolvingEffectiveSourceKeys}
-            schemaRolesByTarget={schemaRolesByTarget}
-            sourceDtypeBySource={sourceDtypeBySource}
-          />
-
+        {selectedCreationMode === 'typed' ? (
           <Box
             sx={{
               display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              flexWrap: 'wrap',
-              pt: 0.5,
+              flexDirection: 'column',
+              flex: 1,
+              minHeight: 0,
             }}
           >
-            {MAPPING_ROLE_LEGEND.map(role => (
-              <Box
-                key={role.key}
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <Box sx={{ display: 'flex', opacity: 0.68 }}>
-                  <SchemaRoleBadge tone={role.tone}>
-                    {role.label}
-                  </SchemaRoleBadge>
-                </Box>
-                <Typography
+            <MappingTable
+              renderComment={renderTypedComment}
+              changeStateBySource={mappingChangeStateBySource}
+              flashingEffectiveSourceKeys={flashingEffectiveSourceKeys}
+              filteredMapping={filteredMapping}
+              highlightedSourceName={null}
+              initialTargetNames={initialTargetNamesRef.current}
+              onNullableChange={(sourceName, checked) =>
+                patchMapping(
+                  sourceName,
+                  current => ({
+                    ...current,
+                    nullable: checked,
+                  }),
+                  false
+                )
+              }
+              onTargetNameBlur={handleTargetNameCommit}
+              onTargetNameCancel={handleTargetNameCancel}
+              onTargetNameChange={handleTargetNameEdit}
+              onTargetNameReset={handleTargetNameReset}
+              onTypeChange={(sourceName, value) =>
+                patchMapping(
+                  sourceName,
+                  current => ({
+                    ...current,
+                    dtype: value,
+                  }),
+                  false
+                )
+              }
+              resolveStates={sharedState?.columnResolveStates ?? {}}
+              resolvingEffectiveSourceKeys={resolvingEffectiveSourceKeys}
+              schemaRolesByTarget={schemaRolesByTarget}
+              sourceDtypeBySource={sourceDtypeBySource}
+            />
+
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                flexWrap: 'wrap',
+                p: '10px 14px',
+                flexShrink: 0,
+                borderTop: 1,
+                borderColor: 'divider',
+              }}
+            >
+              {MAPPING_ROLE_LEGEND.map(role => (
+                <Box
+                  key={role.key}
                   sx={{
-                    fontSize: 12,
-                    color:
-                      'rgba(var(--mui-palette-text-secondaryChannel) / 0.6)',
-                    whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
                   }}
                 >
-                  {role.description}
-                </Typography>
-              </Box>
-            ))}
+                  <Box sx={{ display: 'flex', opacity: 0.68 }}>
+                    <SchemaRoleBadge tone={role.tone}>
+                      {role.label}
+                    </SchemaRoleBadge>
+                  </Box>
+                  <Typography
+                    sx={{
+                      fontSize: 12,
+                      color:
+                        'rgba(var(--mui-palette-text-secondaryChannel) / 0.6)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {role.description}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
           </Box>
-        </Box>
-      ) : (
-        <>
-          <PreviewHeader>
-            <PreviewTitle>Raw DDL SQL</PreviewTitle>
-            <TextActionRow>
-              <TextActionButton
-                type='button'
-                tone='primary'
-                onClick={() => void fetchCreateTableSql('raw', true)}
-                disabled={
-                  !canFetchRawPreviewSql ||
-                  Boolean(sharedState?.isCreateSqlLoading)
-                }
-              >
-                <RefreshIconSvg
-                  spinning={Boolean(sharedState?.isCreateSqlLoading)}
-                />
-                Сгенерировать
-              </TextActionButton>
-              <TextActionButton
-                type='button'
-                onClick={() =>
-                  void copySql(localInputData?.create_table_sql ?? '', 'raw')
-                }
-                disabled={!localInputData?.create_table_sql?.trim()}
-              >
-                <CopyIconSvg />
-                {isSqlCopied === 'raw' ? 'Скопировано' : 'Копировать'}
-              </TextActionButton>
-            </TextActionRow>
-          </PreviewHeader>
-
-          <InlineInfoText sx={{ mb: 1 }}>
-            SQL должен использовать реальные имена колонок target table.
-          </InlineInfoText>
-
+        ) : (
           <SqlTextArea
+            aria-label='CREATE TABLE SQL'
             value={localInputData?.create_table_sql ?? ''}
             onChange={event =>
               setLocalInputData(prev => ({
@@ -3299,8 +3338,8 @@ export const SchemaStrategyStep = ({
             }
             placeholder='Введите или сгенерируйте CREATE TABLE SQL...'
           />
-        </>
-      )}
+        )}
+      </SchemaEditorPanel>
 
       <Popover
         open={Boolean(bulkAnchorEl)}

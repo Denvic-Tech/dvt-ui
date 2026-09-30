@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import CloseIcon from '@mui/icons-material/Close';
-import EastRoundedIcon from '@mui/icons-material/EastRounded';
+import NorthEastRoundedIcon from '@mui/icons-material/NorthEastRounded';
 import StorageIcon from '@mui/icons-material/Storage';
 import { useTheme } from '@mui/material/styles';
 
@@ -152,7 +152,7 @@ export const Header: React.FC<Props> = ({
                 aria-label={documentationLinkLabel}
               >
                 {documentationLinkLabel}
-                <EastRoundedIcon sx={{ fontSize: 14 }} />
+                <NorthEastRoundedIcon sx={{ fontSize: 14 }} />
               </SubtitleLinkButton>
             ) : null}
           </SubtitleRow>

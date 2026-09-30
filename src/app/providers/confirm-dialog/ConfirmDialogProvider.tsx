@@ -20,6 +20,7 @@ import {
 interface DialogRequest {
   actions: CustomDialogAction[];
   maxWidth: ConfirmDialogMaxWidth;
+  width: number;
   message: string;
   requestId: number;
   resolve: (actionId: ConfirmDialogActionId) => void;
@@ -47,12 +48,11 @@ const normalizeDialogRequest = (
   title: options.title ?? 'Подтвердите действие',
   message: options.message ?? '',
   maxWidth: options.maxWidth ?? 'xs',
+  width: options.width ?? 320,
   actions: options.actions,
 });
 
-export const ConfirmDialogProvider = ({
-  children,
-}: PropsWithChildren) => {
+export const ConfirmDialogProvider = ({ children }: PropsWithChildren) => {
   const queueRef = useRef<DialogRequest[]>([]);
   const activeRequestRef = useRef<DialogRequest | null>(null);
   const isResolvingRef = useRef(false);
@@ -107,7 +107,9 @@ export const ConfirmDialogProvider = ({
         return;
       }
 
-      const selectedAction = request.actions.find(action => action.id === actionId);
+      const selectedAction = request.actions.find(
+        action => action.id === actionId
+      );
 
       isResolvingRef.current = true;
       setIsResolving(true);
@@ -151,7 +153,9 @@ export const ConfirmDialogProvider = ({
   useEffect(
     () => () => {
       activeRequestRef.current?.reject(UNMOUNT_REJECT_REASON);
-      queueRef.current.forEach(request => request.reject(UNMOUNT_REJECT_REASON));
+      queueRef.current.forEach(request =>
+        request.reject(UNMOUNT_REJECT_REASON)
+      );
       queueRef.current = [];
       activeRequestRef.current = null;
       isResolvingRef.current = false;
@@ -175,6 +179,7 @@ export const ConfirmDialogProvider = ({
         message={activeRequest?.message ?? ''}
         actions={activeRequest?.actions ?? []}
         maxWidth={activeRequest?.maxWidth ?? 'xs'}
+        width={activeRequest?.width ?? 320}
         onAction={actionId => {
           void handleAction(actionId);
         }}

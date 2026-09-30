@@ -25,6 +25,8 @@ export interface ConfirmDialogOptions {
   hideCancel?: boolean;
   confirmDisabled?: boolean;
   maxWidth?: ConfirmDialogMaxWidth;
+  /** Explicit dialog width in pixels; defaults to 320. */
+  width?: number;
   onConfirm?: () => void | Promise<void>;
   onCancel?: () => void | Promise<void>;
 }
@@ -37,6 +39,8 @@ export interface CustomDialogOptions {
   title?: string;
   message?: string;
   maxWidth?: ConfirmDialogMaxWidth;
+  /** Explicit dialog width in pixels; defaults to 320. */
+  width?: number;
   actions: CustomDialogAction[];
 }
 
@@ -50,6 +54,7 @@ export interface ConfirmDialogProps {
   message: string;
   actions: ConfirmDialogActionConfig[];
   maxWidth: ConfirmDialogMaxWidth;
+  width?: number;
   onAction: (actionId: ConfirmDialogActionId) => void;
   onClose: () => void;
   onExited?: () => void;

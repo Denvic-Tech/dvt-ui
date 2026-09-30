@@ -198,7 +198,10 @@ export const MappingSection = styled(Box)(() => ({
 }));
 
 export const MappingHeader = styled(Box)(() => ({
-  padding: '12px 16px',
+  padding: '8px 16px',
+  minHeight: 50,
+  boxSizing: 'border-box',
+  flexShrink: 0,
   backgroundColor: '#ffffff',
   borderBottom: '1px solid #e5e7eb',
   display: 'flex',

@@ -61,6 +61,10 @@ const openConfirmDialogInternal = (
     dialogOptions.maxWidth = options.maxWidth;
   }
 
+  if (options.width !== undefined) {
+    dialogOptions.width = options.width;
+  }
+
   return openDialog(dialogOptions).then(actionId => actionId === 'confirm');
 };
 

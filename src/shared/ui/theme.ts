@@ -1,7 +1,22 @@
-import { alpha, createTheme, type PaletteMode } from '@mui/material/styles';
+import Fade from '@mui/material/Fade';
+import {
+  alpha,
+  createTheme,
+  keyframes,
+  type PaletteMode,
+} from '@mui/material/styles';
+import type { TooltipProps } from '@mui/material/Tooltip';
 import { ruRU } from '@mui/x-date-pickers/locales';
 
 import { getControlRadiusValue } from './primitives/components/theme-style-helpers';
+
+const tooltipEnter = keyframes({
+  from: {
+    transform:
+      'translate(var(--tooltip-enter-x, 0px), var(--tooltip-enter-y, 4px)) scale(.96)',
+  },
+  to: { transform: 'translate(0, 0) scale(1)' },
+});
 
 const uniformElevationShadow = '0 2px 8px rgba(15, 23, 42, 0.08)';
 
@@ -248,16 +263,54 @@ const buildTheme = (mode: PaletteMode) => {
           },
         },
         MuiTooltip: {
+          defaultProps: {
+            arrow: true,
+            TransitionComponent: Fade as NonNullable<
+              TooltipProps['TransitionComponent']
+            >,
+            TransitionProps: { timeout: { enter: 180, exit: 140 } },
+          },
           styleOverrides: {
+            popper: {
+              '&[data-popper-placement^="top"]': {
+                '--tooltip-enter-x': '0px',
+                '--tooltip-enter-y': '4px',
+                '--tooltip-origin': 'center bottom',
+              },
+              '&[data-popper-placement^="bottom"]': {
+                '--tooltip-enter-x': '0px',
+                '--tooltip-enter-y': '-4px',
+                '--tooltip-origin': 'center top',
+              },
+              '&[data-popper-placement^="left"]': {
+                '--tooltip-enter-x': '4px',
+                '--tooltip-enter-y': '0px',
+                '--tooltip-origin': 'right center',
+              },
+              '&[data-popper-placement^="right"]': {
+                '--tooltip-enter-x': '-4px',
+                '--tooltip-enter-y': '0px',
+                '--tooltip-origin': 'left center',
+              },
+            },
             tooltip: {
-              backgroundColor: isLight
-                ? 'rgba(15, 23, 42, 0.92)'
-                : 'rgba(248, 250, 252, 0.94)',
-              borderRadius: controlRadius,
-              color: isLight ? '#f8fafc' : '#0f172a',
+              backgroundColor: '#1f2030',
+              borderRadius: 7,
+              color: '#ffffff',
               fontSize: 12,
-              lineHeight: 1.5,
-              padding: '8px 10px',
+              fontWeight: 600,
+              lineHeight: 1.4,
+              padding: '5px 9px',
+              boxShadow: '0 6px 18px -6px rgba(20,22,34,.45)',
+              transformOrigin: 'var(--tooltip-origin, center bottom)',
+              animation: `${tooltipEnter} .18s cubic-bezier(.2,.9,.3,1.2) both`,
+              '@media (prefers-reduced-motion: reduce)': {
+                animation: 'none',
+                transition: 'none !important',
+              },
+            },
+            arrow: {
+              color: '#1f2030',
             },
           },
         },

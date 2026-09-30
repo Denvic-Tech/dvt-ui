@@ -3,11 +3,9 @@ import React, {
   useEffect,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
-import { Box, Button, Stack } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Box, Button, Portal } from '@mui/material';
 
 import {
   NodeModalStepperExtension,
@@ -18,116 +16,16 @@ import {
 } from '@/app/providers/node-extensions';
 
 import { StepLoadingOverlay } from '@/widgets/project-editor/node-data-modal/ui/LoadingStepOverlay';
-import { UnsavedChangesIndicator } from '@/widgets/project-editor/node-data-modal/ui/UnsavedChangesIndicator';
 
 import { useNodeMetadata } from '@/features/node/get-node-metadata';
 
 import type { NodeInputValue } from '@/shared/gatewayClient';
 import type { NodeInputValuesMap } from '@/shared/lib/node-input-values';
+import { getControlRadius } from '@/shared/ui/primitives/components/theme-style-helpers';
 
+import { Footer } from './Footer';
+import { FooterStepProgress, type StepVisualState } from './FooterStepProgress';
 import { AnyDict, StepperBeforeFinishHandler } from './types';
-
-type StepVisualState = 'done' | 'active' | 'future';
-
-const StepperBar = styled('div')({
-  position: 'relative',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 4,
-  padding: '1px 20px',
-  overflow: 'hidden',
-});
-
-const StepTab = styled('button', {
-  shouldForwardProp: prop =>
-    prop !== 'state' && prop !== 'clickable' && prop !== 'hasLabel',
-})<{
-  state: StepVisualState;
-  clickable: boolean;
-  hasLabel: boolean;
-}>(({ state, clickable, hasLabel }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: hasLabel ? 6 : 0,
-  flexShrink: 0,
-  padding: hasLabel ? '6px 10px' : '6px 6px',
-  borderRadius: 8,
-  border: 'none',
-  background: state === 'active' ? '#eef2ff' : 'transparent',
-  color:
-    state === 'active' ? '#6366f1' : state === 'done' ? '#1e293b' : '#94a3b8',
-  cursor: clickable ? 'pointer' : 'default',
-  fontFamily: 'inherit',
-  fontSize: 12.5,
-  fontWeight: 600,
-  lineHeight: 1.2,
-  whiteSpace: 'nowrap',
-  transition: 'all 150ms ease',
-  outline: 'none',
-  '&:hover': clickable
-    ? {
-        background: '#eef2ff',
-      }
-    : {},
-  '&:focus-visible': clickable
-    ? {
-        boxShadow: '0 0 0 2px rgba(99, 102, 241, 0.25)',
-      }
-    : {},
-}));
-
-const StepDot = styled('span', {
-  shouldForwardProp: prop => prop !== 'state',
-})<{ state: StepVisualState }>(({ state }) => ({
-  width: 16,
-  height: 16,
-  borderRadius: '50%',
-  flexShrink: 0,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: 10,
-  fontWeight: 700,
-  background:
-    state === 'done' ? '#10b981' : state === 'active' ? '#6366f1' : '#e2e8f0',
-  color: state === 'future' ? '#64748b' : '#ffffff',
-}));
-
-const StepSeparator = styled('span')({
-  flexShrink: 0,
-  fontSize: 13,
-  color: '#e2e8f0',
-  lineHeight: 1,
-});
-
-const HiddenMeasureLayer = styled('div')({
-  position: 'absolute',
-  visibility: 'hidden',
-  pointerEvents: 'none',
-  left: -9999,
-  top: -9999,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 4,
-});
-
-const CheckIcon = ({
-  size = 10,
-  color = '#ffffff',
-}: {
-  size?: number;
-  color?: string;
-}) => (
-  <svg width={size} height={size} viewBox='0 0 16 16' fill='none'>
-    <path
-      d='M3 8.5l3.5 3.5L13 4'
-      stroke={color}
-      strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </svg>
-);
 
 type ModalStepperRendererProps = Omit<
   NodeModalStepperExtensionProps<AnyDict, any>,
@@ -135,6 +33,8 @@ type ModalStepperRendererProps = Omit<
 > & {
   extension: NodeModalStepperExtension<any>;
   hasUnsavedChanges?: boolean;
+  footerContainer?: HTMLDivElement | null;
+  onCancel?: () => void;
   onFinish: (
     beforeFinish?: StepperBeforeFinishHandler<AnyDict>
   ) => void | Promise<void>;
@@ -143,6 +43,8 @@ type ModalStepperRendererProps = Omit<
 export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
   extension,
   hasUnsavedChanges = false,
+  footerContainer,
+  onCancel,
   onFinish,
   ...props
 }) => {
@@ -152,10 +54,7 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
   const [canProceedState, setCanProceedState] = useState(false);
   // Track when we just transitioned to force fresh loading check
   const [justTransitioned, setJustTransitioned] = useState(false);
-  const [isStepperCollapsed, setIsStepperCollapsed] = useState(false);
   const [isFinishingStep, setIsFinishingStep] = useState(false);
-  const stepperBarRef = useRef<HTMLDivElement | null>(null);
-  const measureRef = useRef<HTMLDivElement | null>(null);
 
   // Shared local state available across all stepper steps
   const [sharedState, setSharedState] = useState<any>(undefined);
@@ -195,38 +94,6 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
       setSharedState(undefined);
     }
   }, [extension.id, props.id, props.isOpen]);
-
-  useLayoutEffect(() => {
-    const fallbackCollapsed = steps.length > 4;
-
-    const recompute = () => {
-      if (!stepperBarRef.current || !measureRef.current) {
-        setIsStepperCollapsed(fallbackCollapsed);
-        return;
-      }
-
-      const availableWidth = stepperBarRef.current.clientWidth;
-      const fullWidth = measureRef.current.scrollWidth;
-
-      setIsStepperCollapsed(fullWidth > availableWidth);
-    };
-
-    recompute();
-
-    if (typeof ResizeObserver === 'undefined') {
-      setIsStepperCollapsed(fallbackCollapsed);
-      return;
-    }
-
-    const resizeObserver = new ResizeObserver(recompute);
-    if (stepperBarRef.current) {
-      resizeObserver.observe(stepperBarRef.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [steps]);
 
   // Check condition for initial state when modal opens
   useEffect(() => {
@@ -566,61 +433,6 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
     [activeStep, hasCreateTableError, steps]
   );
 
-  const shouldShowStepLabel = useCallback(
-    (stepIndex: number) =>
-      !isStepperCollapsed ||
-      stepIndex === activeStep ||
-      stepIndex === activeStep - 1,
-    [activeStep, isStepperCollapsed]
-  );
-
-  const renderStepTab = useCallback(
-    (
-      step: (typeof steps)[number],
-      index: number,
-      withLabel: boolean,
-      key: string,
-      isMeasurement = false
-    ) => {
-      const state = getStepState(index);
-      const clickable =
-        index < activeStep && !isFinishingStep && !isFinishOverlayVisible;
-      const label = step.label ?? `Шаг ${index + 1}`;
-
-      return (
-        <React.Fragment key={key}>
-          {index > 0 && <StepSeparator>›</StepSeparator>}
-          <StepTab
-            type='button'
-            state={state}
-            clickable={clickable}
-            hasLabel={withLabel}
-            title={withLabel ? undefined : label}
-            onClick={
-              !isMeasurement && clickable
-                ? () => handleStepClick(index)
-                : undefined
-            }
-            aria-current={state === 'active' ? 'step' : undefined}
-            tabIndex={isMeasurement ? -1 : undefined}
-          >
-            <StepDot state={state}>
-              {state === 'done' ? <CheckIcon size={10} /> : index + 1}
-            </StepDot>
-            {withLabel ? label : null}
-          </StepTab>
-        </React.Fragment>
-      );
-    },
-    [
-      activeStep,
-      getStepState,
-      handleStepClick,
-      isFinishOverlayVisible,
-      isFinishingStep,
-    ]
-  );
-
   if (steps.length === 0) {
     return null;
   }
@@ -631,37 +443,18 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
+        minHeight: 0,
       }}
     >
-      <StepperBar ref={stepperBarRef}>
-        {steps.map((step, index) =>
-          renderStepTab(
-            step,
-            index,
-            shouldShowStepLabel(index),
-            step.id ?? `step-${index}`
-          )
-        )}
-
-        <HiddenMeasureLayer ref={measureRef} aria-hidden>
-          {steps.map((step, index) =>
-            renderStepTab(
-              step,
-              index,
-              true,
-              `measure-${step.id ?? index}`,
-              true
-            )
-          )}
-        </HiddenMeasureLayer>
-      </StepperBar>
-
       {/* Step content */}
       <Box
         sx={{
           flex: 1,
+          minHeight: 0,
           overflow: 'auto',
-          p: 2,
+          pt: activeStep <= 3 ? 0 : 2,
+          px: activeStep <= 3 ? 0 : 2,
+          pb: activeStep <= 3 ? 0 : 2,
         }}
       >
         {isFinishOverlayVisible && ActiveFinishOverlay ? (
@@ -690,60 +483,57 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
         )}
       </Box>
 
-      {/* Navigation footer */}
-      <Box
-        sx={theme => ({
-          height: 66,
-          px: 3,
-          py: 0,
-          boxSizing: 'border-box',
-          display: 'flex',
-          alignItems: 'center',
-          borderTop: `1px solid ${theme.palette.divider}`,
-          backgroundColor: theme.palette.background.paper,
-          '& > *': {
-            width: '100%',
-          },
-        })}
+      <Portal
+        container={footerContainer ?? null}
+        disablePortal={!footerContainer}
       >
-        <Stack direction='row' spacing={2} justifyContent='space-between'>
-          <Stack direction='row' spacing={2} alignItems='center'>
-            {hasUnsavedChanges ? <UnsavedChangesIndicator /> : null}
-            <Button
-              data-testid='widgets/project-editor/node-data-modal/back-button'
-              variant='text'
-              onClick={handleBack}
-              disabled={
-                activeStep === 0 ||
-                isStepLoading ||
-                isFinishingStep ||
-                isFinishOverlayVisible
-              }
-            >
-              ← Назад
-            </Button>
-          </Stack>
-          <Stack direction='row' spacing={1.5} alignItems='center'>
-            <Button
-              data-testid={
-                isLastStep
-                  ? 'widgets/project-editor/node-data-modal/save-button'
-                  : 'widgets/project-editor/node-data-modal/continue-button'
-              }
-              variant='contained'
-              onClick={handleNext}
-              disabled={
-                isStepLoading ||
-                isFinishingStep ||
-                isFinishOverlayVisible ||
-                !canProceedState
-              }
-            >
-              {continueButtonLabel}
-            </Button>
-          </Stack>
-        </Stack>
-      </Box>
+        <Footer
+          hasUnsavedChanges={hasUnsavedChanges}
+          {...(onCancel ? { onCancel } : {})}
+          onSave={handleNext}
+          saveLabel={continueButtonLabel}
+          saveDisabled={
+            isStepLoading ||
+            isFinishingStep ||
+            isFinishOverlayVisible ||
+            !canProceedState
+          }
+          saveTestId={
+            isLastStep
+              ? 'widgets/project-editor/node-data-modal/save-button'
+              : 'widgets/project-editor/node-data-modal/continue-button'
+          }
+          showSaveShortcut={false}
+          progress={
+            <FooterStepProgress
+              steps={steps}
+              activeStep={activeStep}
+              navigationDisabled={isFinishingStep || isFinishOverlayVisible}
+              getStepState={getStepState}
+              onStepClick={handleStepClick}
+            />
+          }
+        >
+          <Button
+            data-testid='widgets/project-editor/node-data-modal/back-button'
+            variant='outlined'
+            color='inherit'
+            onClick={handleBack}
+            disabled={
+              activeStep === 0 ||
+              isStepLoading ||
+              isFinishingStep ||
+              isFinishOverlayVisible
+            }
+            sx={{
+              borderRadius: theme => getControlRadius(theme, 'sm'),
+              color: 'text.secondary',
+            }}
+          >
+            ← Назад
+          </Button>
+        </Footer>
+      </Portal>
     </Box>
   );
 };

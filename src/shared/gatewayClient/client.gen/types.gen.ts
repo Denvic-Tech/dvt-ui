@@ -569,7 +569,12 @@ export type AppliedTableColumnAction = {
   /**
    * Type
    */
-  type: 'add_column' | 'drop_column' | 'recreate_column' | 'set_column_comment';
+  type:
+    | 'add_column'
+    | 'drop_column'
+    | 'recreate_column'
+    | 'set_column_comment'
+    | 'set_column_nullable';
   /**
    * Column Name
    */
@@ -602,10 +607,14 @@ export type ApplyTableColumnActionsRequest = {
   schema_name?: string | null;
   /**
    * Actions
+   *
+   * Ordered column actions. One set_column_nullable and one set_column_comment may target the same existing column; other combinations on one column are rejected.
    */
   actions: Array<TableColumnActionInput>;
   /**
    * Dry Run
+   *
+   * Generate SQL without applying it or scanning data. Applying nullable=false checks for existing NULL values before executing any action.
    */
   dry_run?: boolean;
 };
@@ -10301,7 +10310,12 @@ export type TableColumnActionInput = {
   /**
    * Type
    */
-  type: 'add_column' | 'drop_column' | 'recreate_column' | 'set_column_comment';
+  type:
+    | 'add_column'
+    | 'drop_column'
+    | 'recreate_column'
+    | 'set_column_comment'
+    | 'set_column_nullable';
   /**
    * Column Name
    */
@@ -10311,6 +10325,12 @@ export type TableColumnActionInput = {
    * Comment
    */
   comment?: string | null;
+  /**
+   * Nullable
+   *
+   * Required boolean for set_column_nullable. Changes nullability without replacing the column. ClickHouse writes must be paused when setting nullable=false. dry_run validates the schema only; existing NULL values are checked on apply.
+   */
+  nullable?: boolean | null;
 };
 
 /**
@@ -10320,7 +10340,12 @@ export type TableColumnActionOutput = {
   /**
    * Type
    */
-  type: 'add_column' | 'drop_column' | 'recreate_column' | 'set_column_comment';
+  type:
+    | 'add_column'
+    | 'drop_column'
+    | 'recreate_column'
+    | 'set_column_comment'
+    | 'set_column_nullable';
   /**
    * Column Name
    */
@@ -10330,6 +10355,12 @@ export type TableColumnActionOutput = {
    * Comment
    */
   comment?: string | null;
+  /**
+   * Nullable
+   *
+   * Required boolean for set_column_nullable. Changes nullability without replacing the column. ClickHouse writes must be paused when setting nullable=false. dry_run validates the schema only; existing NULL values are checked on apply.
+   */
+  nullable?: boolean | null;
 };
 
 /**

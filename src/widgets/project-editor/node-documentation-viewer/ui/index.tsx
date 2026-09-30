@@ -2,6 +2,7 @@ import React from 'react';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -140,6 +141,17 @@ export const NodeDocumentationViewer = () => {
           pb: 4,
         }}
       >
+        {hasContent ? (
+          <Alert
+            severity='warning'
+            sx={{ mb: 2, borderRadius: '8px', fontSize: 13 }}
+          >
+            Документация ещё дорабатывается. Сейчас в ней могут встречаться
+            технические сведения для разработчиков, не предназначенные для
+            пользователей.
+          </Alert>
+        ) : null}
+
         {error ? (
           <Box
             sx={theme => ({

@@ -46,14 +46,43 @@ import {
 
 export const getPendingColumnActions = (
   state?: ExtensionState
-): TableColumnActionInput[] =>
-  mergeCommentActions(
+): TableColumnActionInput[] => {
+  const actions = mergeCommentActions(
     state?.selectedColumnActions ?? [],
     state?.resolvedColumnRows ?? [],
     state?.dbCommentOverrides,
     state?.typedCommentOverrides,
     state?.columnCommentsSupported !== false
   );
+  const rowsByName = new Map(
+    (state?.resolvedColumnRows ?? [])
+      .filter(row => row.db_name)
+      .map(row => [row.db_name!, row])
+  );
+  for (const [name, nullable] of Object.entries(
+    state?.dbNullableOverrides ?? {}
+  )) {
+    const row = rowsByName.get(name);
+    const baseline = row?.db_nullable ?? row?.nullable;
+    if (
+      !row ||
+      row.status === 'internal_column_ignored' ||
+      nullable === baseline ||
+      actions.some(
+        action =>
+          action.column_name === name && action.type !== 'set_column_comment'
+      )
+    ) {
+      continue;
+    }
+    actions.push({
+      type: 'set_column_nullable',
+      column_name: name,
+      nullable,
+    });
+  }
+  return actions;
+};
 
 export type CreationMode = 'typed' | 'raw';
 
@@ -173,6 +202,7 @@ export type WriteDataFrameToDBValues = {
 export interface ExtensionState {
   typedCommentOverrides?: CommentOverrides;
   dbCommentOverrides?: CommentOverrides;
+  dbNullableOverrides?: Record<string, boolean>;
   columnCommentsSupported?: boolean;
   commentTargetKey?: string;
   suppressDefaultColumnActions?: boolean;
@@ -197,6 +227,7 @@ export interface ExtensionState {
   resolveColumnsError?: string | null;
   lastResolveColumnsKey?: string | null;
   createdDatabases?: string[];
+  recentlyCreatedDatabases?: string[];
   createdSchemas?: Array<{
     databaseName: string | null;
     schemaName: string;
@@ -236,7 +267,7 @@ export const waitForCreateTableSuccessTransition = async (
   });
 };
 
-const DEFAULT_CREATION_MODE: CreationMode = 'raw';
+const DEFAULT_CREATION_MODE: CreationMode = 'typed';
 export const DEFAULT_ON_EXTRA_DF_COLUMNS: ExtraColumnsMode = 'ignore';
 export const DEFAULT_ON_MISSING_DF_COLUMNS: MissingColumnsMode =
   'ignore_if_default';
@@ -468,6 +499,8 @@ export const getColumnActionLabel = (
   switch (type) {
     case 'set_column_comment':
       return 'Изменить комментарий';
+    case 'set_column_nullable':
+      return 'Изменить NULL';
     case 'add_column':
       return 'Создать колонку';
     case 'drop_column':
@@ -1735,29 +1768,24 @@ export const extractApiErrorMessage = (
   error: unknown,
   fallback: string
 ): string => {
-  if (error instanceof ApiError) {
-    const detail = (error.payload.meta as any)?.exc_data?.detail;
+  const asRecord = (value: unknown): Record<string, unknown> =>
+    value !== null && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : {};
+  const payload = asRecord(error instanceof ApiError ? error.payload : error);
+  const meta = asRecord(payload['meta']);
+  const details = [
+    asRecord(payload['exc_data'])['detail'],
+    asRecord(meta['exc_data'])['detail'],
+    payload['detail'],
+    payload['message'],
+    payload['description'],
+  ];
+
+  for (const detail of details) {
     if (typeof detail === 'string' && detail.trim()) {
       return detail;
     }
-
-    if (
-      typeof error.payload.detail === 'string' &&
-      error.payload.detail.trim()
-    ) {
-      return error.payload.detail;
-    }
-
-    if (
-      typeof error.payload.message === 'string' &&
-      error.payload.message.trim()
-    ) {
-      return error.payload.message;
-    }
-  }
-
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
   }
 
   return fallback;
@@ -1786,6 +1814,11 @@ export const registerCreatedDatabase = (
     ...(previousState ?? {}),
     createdDatabases: pushUniqueString(
       previousState?.createdDatabases,
+      databaseName
+    ),
+    // Unlike catalog entries, this excludes existing parents of new schemas.
+    recentlyCreatedDatabases: pushUniqueString(
+      previousState?.recentlyCreatedDatabases,
       databaseName
     ),
   };
@@ -1962,6 +1995,7 @@ export const prepareWriteStepOnContinue = async (
         // повторно не предлагалось подтвердить уже применённые изменения.
         selectedColumnActions: [],
         dbCommentOverrides: {},
+        dbNullableOverrides: {},
         suppressDefaultColumnActions: false,
         // Инвалидируем резолв, чтобы при возврате назад diff перечитался.
         lastResolveColumnsKey: null,
@@ -1973,6 +2007,7 @@ export const prepareWriteStepOnContinue = async (
       setSharedState(prev => ({
         ...(prev ?? {}),
         selectedColumnActions: [],
+        dbNullableOverrides: {},
         suppressDefaultColumnActions: true,
         lastResolveColumnsKey: null,
         isApplyingColumnActions: false,

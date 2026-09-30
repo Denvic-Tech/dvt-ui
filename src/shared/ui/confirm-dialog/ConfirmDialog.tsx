@@ -23,14 +23,18 @@ interface VisualAction {
 interface RenderedDialogState {
   actions: ConfirmDialogActionConfig[];
   maxWidth: ConfirmDialogProps['maxWidth'];
+  width: number;
   message: string;
   title: string;
 }
 
-const StyledDialog = styled(Dialog)(({ theme }) => ({
+const StyledDialog = styled(Dialog, {
+  shouldForwardProp: prop => prop !== 'dialogWidth',
+})<{ dialogWidth: number }>(({ theme, dialogWidth }) => ({
   zIndex: theme.zIndex.tooltip + 1,
   '& .MuiDialog-paper': {
-    width: 320,
+    width: dialogWidth,
+    margin: 16,
     maxWidth: 'calc(100vw - 32px)',
     borderRadius: 16,
     boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
@@ -79,6 +83,7 @@ const DialogTitle = styled(Typography)(() => ({
   color: '#111827',
   marginBottom: 4,
   lineHeight: 1.4,
+  overflowWrap: 'anywhere',
 }));
 
 const DialogDescription = styled(Typography)(() => ({
@@ -88,6 +93,7 @@ const DialogDescription = styled(Typography)(() => ({
   marginBottom: 12,
   lineHeight: 1.5,
   whiteSpace: 'pre-line',
+  overflowWrap: 'anywhere',
   '& .count': {
     fontWeight: 600,
     color: '#374151',
@@ -395,6 +401,7 @@ export const ConfirmDialog = ({
   message,
   actions,
   maxWidth,
+  width = 320,
   onAction,
   onClose,
   onExited,
@@ -404,6 +411,7 @@ export const ConfirmDialog = ({
   const [renderedState, setRenderedState] = useState<RenderedDialogState>({
     actions,
     maxWidth,
+    width,
     message,
     title,
   });
@@ -416,10 +424,11 @@ export const ConfirmDialog = ({
     setRenderedState({
       actions,
       maxWidth,
+      width,
       message,
       title,
     });
-  }, [actions, maxWidth, message, open, title]);
+  }, [actions, maxWidth, width, message, open, title]);
 
   const renderedActions = renderedState.actions;
   const renderedMessage = renderedState.message;
@@ -507,6 +516,7 @@ export const ConfirmDialog = ({
         },
       }}
       maxWidth={renderedMaxWidth}
+      dialogWidth={renderedState.width}
     >
       <DialogContent>
         <IconContainer variant={dialogVariant}>
