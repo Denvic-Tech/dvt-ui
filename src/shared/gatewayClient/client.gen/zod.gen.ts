@@ -439,6 +439,7 @@ export const zAppliedTableColumnAction = z.object({
     'drop_column',
     'recreate_column',
     'set_column_comment',
+    'set_column_nullable',
   ]),
   column_name: z.string(),
   sql: z.array(z.string()),
@@ -518,10 +519,12 @@ export const zTableColumnActionInput = z.object({
     'drop_column',
     'recreate_column',
     'set_column_comment',
+    'set_column_nullable',
   ]),
   column_name: z.string().min(1),
   column: z.optional(z.union([zDbColumn, z.null()])),
   comment: z.optional(z.union([z.string(), z.null()])),
+  nullable: z.optional(z.union([z.boolean(), z.null()])),
 });
 
 export type TableColumnActionInputZodType = z.infer<
@@ -4593,10 +4596,12 @@ export const zTableColumnActionOutput = z.object({
     'drop_column',
     'recreate_column',
     'set_column_comment',
+    'set_column_nullable',
   ]),
   column_name: z.string().min(1),
   column: z.optional(z.union([zDbColumn, z.null()])),
   comment: z.optional(z.union([z.string(), z.null()])),
+  nullable: z.optional(z.union([z.boolean(), z.null()])),
 });
 
 export type TableColumnActionOutputZodType = z.infer<
