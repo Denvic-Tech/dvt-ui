@@ -5,8 +5,16 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import TuneIcon from '@mui/icons-material/Tune';
-import { Alert, Box, Stack, Typography } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  IconButton,
+  Skeleton,
+  Stack,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 
 import { NodeModalStepperExtensionProps } from '@/app/providers/node-extensions';
 
@@ -23,7 +31,6 @@ import { requireDbConnectionId } from '@/entities/data/db-connection';
 import { useDbCatalogTable } from '@/entities/data/db-connection/model/hooks/useDbCatalog';
 
 import type {
-  Column,
   DataFrameMetadata,
   DbMetadata as DBMetadata,
   DbTable as DBTable,
@@ -31,6 +38,7 @@ import type {
 } from '@/shared/gatewayClient';
 import { client } from '@/shared/gatewayClient';
 import { SingleOptionDropdownSelect } from '@/shared/ui';
+import { CodeEditor, type CodeEditorOptions } from '@/shared/ui/code-editor';
 
 import {
   buildColumnMappingNameKey,
@@ -56,62 +64,35 @@ import {
   normalizeTableCreateSpecForDialect,
   resolveCreationMode,
   serializeColumnMapping,
-  summarizeExistingTableColumnDiff,
   supportsSchemas,
   type WriteDataFrameToDBValues,
 } from '../../lib/helpers';
-import {
-  AdvancedPanel,
-  AdvancedToggle,
-  DDLPreviewBox,
-  FieldBlock,
-  FieldLabel,
-  PreviewCode,
-  PreviewHeader,
-  PreviewTitle,
-  TextActionButton,
-  TextActionRow,
-} from '../SchemaStrategyStep.styles';
+import { FieldBlock, FieldLabel } from '../SchemaStrategyStep.styles';
 
 import { BatchSettingsSection } from './sections/BatchSettingsSection';
 import { StatusAlertsSection } from './sections/StatusAlertsSection';
 import {
-  HeaderBadge,
-  HeaderBadges,
-  HeaderIcon,
-  HeaderLeft,
-  HeaderTitle,
-  SettingsContent,
-  SettingsHeader,
-  StepCard,
-} from './index.styles';
+  DdlHeader,
+  DdlPanel,
+  SectionTitle,
+  SettingsLayout,
+  SettingsSection,
+  SettingsSidebar,
+} from './layout.styles';
+
+const ignorePreviewChange = () => {};
+const DDL_EDITOR_OPTIONS: CodeEditorOptions = {
+  readOnly: true,
+  domReadOnly: true,
+  wordWrap: 'off',
+  fontSize: 13,
+  lineHeight: 23,
+  padding: { top: 12, bottom: 12 },
+  renderLineHighlight: 'none',
+};
 
 const SCHEMA_STRATEGY_FONT_FAMILY =
   'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-
-const ChevronIcon = ({ size = 11, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox='0 0 16 16' fill='none'>
-    <path
-      d='M4 6l4 4 4-4'
-      stroke={color}
-      strokeWidth='1.6'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </svg>
-);
-
-const InfoIcon = ({ size = 12, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox='0 0 16 16' fill='none'>
-    <circle cx='8' cy='8' r='6' stroke={color} strokeWidth='1.2' />
-    <path
-      d='M8 7v3.2M8 5.2h.01'
-      stroke={color}
-      strokeWidth='1.4'
-      strokeLinecap='round'
-    />
-  </svg>
-);
 
 const RefreshIconSvg = ({
   spinning,
@@ -199,7 +180,11 @@ export const WriteSettingsStep: React.FC<
 }) => {
   const { getConnectedInputMetadata } = useNodeConnections(nodeID);
   const [isSqlCopied, setIsSqlCopied] = useState<'typed' | null>(null);
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [specDraftErrors, setSpecDraftErrors] = useState<string[]>([]);
+  const [previewSql, setPreviewSql] = useState('');
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const initialPreviewRequested = useRef(false);
   const lastTypedInputsFingerprintRef = useRef<string | null>(null);
   const createSqlAbortControllerRef = useRef<AbortController | null>(null);
 
@@ -209,12 +194,6 @@ export const WriteSettingsStep: React.FC<
     return getConnectedInputMetadata('connection') as DBMetadata | null;
   }, [getConnectedInputMetadata]);
 
-  const dataframeColumns = useMemo(() => {
-    const metadata = getConnectedInputMetadata('df') as {
-      columns?: Column[];
-    } | null;
-    return metadata?.columns ?? [];
-  }, [getConnectedInputMetadata]);
   const inputDataframeMetadata = useMemo(() => {
     const metadata = getConnectedInputMetadata(
       'df'
@@ -465,10 +444,6 @@ export const WriteSettingsStep: React.FC<
     });
   }, [minBatchRowsBounds.max, minBatchRowsBounds.min, setLocalInputData]);
 
-  const selectedTableColumns = useMemo(() => {
-    return selectedTable?.columns ?? [];
-  }, [selectedTable]);
-
   const requestedMapping = useMemo(() => {
     return buildRequestedColumnMappingDraft({
       dataframeMetadata: inputDataframeMetadata,
@@ -651,14 +626,6 @@ export const WriteSettingsStep: React.FC<
     sharedState?.resolvedDiagnostics,
   ]);
 
-  const diffSummary = useMemo(() => {
-    return summarizeExistingTableColumnDiff({
-      columnDiff,
-      dataframeColumnCount: dataframeColumns.length,
-      dbColumnCount: selectedTableColumns.length,
-    });
-  }, [columnDiff, dataframeColumns.length, selectedTableColumns.length]);
-
   const typedMapping = useMemo(() => {
     return (
       serializeColumnMapping(localInputData?.column_mapping) ?? requestedMapping
@@ -727,15 +694,15 @@ export const WriteSettingsStep: React.FC<
     sharedState?.resolvedDiagnostics,
   ]);
   const typedPreviewSql = sharedState?.typedPreviewSql ?? '';
-  const sqlErrorMessage = (sharedState?.createSqlError ?? '').trim();
   const canFetchTypedPreviewSql = Boolean(
-    selectedCreationMode === 'typed' &&
     isTableNew &&
+    selectedCreationMode === 'typed' &&
     literalTableName &&
     inputConnectionMetadata &&
     inputDataframeMetadata &&
     typedSpecErrors.length === 0 &&
     typedResolutionErrors.length === 0 &&
+    specDraftErrors.length === 0 &&
     !sharedState?.isResolvingColumns
   );
 
@@ -831,6 +798,7 @@ export const WriteSettingsStep: React.FC<
   const fetchCreateTableSql = useCallback(
     async (mode: CreationMode, forceRefresh = false) => {
       if (
+        !isTableNew ||
         !literalTableName ||
         !inputConnectionMetadata ||
         !inputDataframeMetadata
@@ -860,6 +828,7 @@ export const WriteSettingsStep: React.FC<
         return;
       }
 
+      setPreviewError(null);
       setSharedState(prev => ({
         ...(prev ?? {}),
         isCreateSqlLoading: true,
@@ -887,7 +856,7 @@ export const WriteSettingsStep: React.FC<
                 commentsSupported: sharedState?.columnCommentsSupported,
               }),
               table_create_spec:
-                mode === 'typed'
+                isTableNew && mode === 'typed'
                   ? (normalizedTypedSpecForDialect as any)
                   : null,
             },
@@ -899,6 +868,8 @@ export const WriteSettingsStep: React.FC<
           return;
         }
 
+        setPreviewSql(response.data.sql);
+        setPreviewError(null);
         setSharedState(prev => ({
           ...(prev ?? {}),
           typedPreviewSql: response.data.sql,
@@ -910,6 +881,9 @@ export const WriteSettingsStep: React.FC<
         if (abortController.signal.aborted) {
           return;
         }
+        setPreviewError(
+          error instanceof Error ? error.message : 'Не удалось получить DDL.'
+        );
         setSharedState(prev => ({
           ...(prev ?? {}),
           isCreateSqlLoading: false,
@@ -939,8 +913,40 @@ export const WriteSettingsStep: React.FC<
       sharedState?.columnCommentsSupported,
       typedMapping,
       typedPreviewSql,
+      isTableNew,
     ]
   );
+
+  const refreshPreview = useCallback(() => {
+    if (!isTableNew) return;
+    if (selectedCreationMode === 'raw') {
+      setPreviewSql(localInputData?.create_table_sql ?? '');
+      return;
+    }
+    void fetchCreateTableSql('typed', true);
+  }, [
+    fetchCreateTableSql,
+    isTableNew,
+    selectedCreationMode,
+    localInputData?.create_table_sql,
+  ]);
+  const refreshPreviewRef = useRef(refreshPreview);
+  refreshPreviewRef.current = refreshPreview;
+  const canRefreshPreview =
+    isTableNew && selectedCreationMode === 'raw'
+      ? Boolean(localInputData?.create_table_sql?.trim())
+      : canFetchTypedPreviewSql;
+
+  useEffect(() => {
+    if (!isOpen || !canRefreshPreview || initialPreviewRequested.current)
+      return;
+    // Delay until effects have settled; StrictMode cleanup cancels this timer.
+    const timer = window.setTimeout(() => {
+      initialPreviewRequested.current = true;
+      refreshPreviewRef.current();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, canRefreshPreview]);
 
   const runValidation = useCallback(async (): Promise<boolean> => {
     const errors: Record<string, string[]> = {};
@@ -1049,13 +1055,15 @@ export const WriteSettingsStep: React.FC<
       errors['create_table'] = ['Создание таблицы еще выполняется.'];
     }
 
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors?.(errors);
-      return false;
+    if (specDraftErrors.length > 0) {
+      errors['table_create_spec'] = [
+        ...(errors['table_create_spec'] ?? []),
+        ...specDraftErrors,
+      ];
     }
-
+    setFieldErrors(errors);
     setValidationErrors?.({});
-    return true;
+    return Object.keys(errors).length === 0;
   }, [
     chunkSizeBounds.max,
     chunkSizeBounds.min,
@@ -1080,6 +1088,7 @@ export const WriteSettingsStep: React.FC<
     sharedState?.resolvedDiagnostics,
     typedResolutionErrors,
     typedSpecErrors,
+    specDraftErrors,
   ]);
 
   const validationCallbackRef = useRef(runValidation);
@@ -1097,67 +1106,14 @@ export const WriteSettingsStep: React.FC<
   }, [isOpen, setValidationCallback, setValidationErrors]);
 
   useEffect(() => {
-    if (!setValidationErrors) return;
-
-    const nextTypedSpecErrors = isOpen ? typedSpecErrors : [];
-    setValidationErrors(previousErrors => {
-      const currentTypedSpecErrors = previousErrors['table_create_spec'] ?? [];
-      const errorsAreEqual =
-        currentTypedSpecErrors.length === nextTypedSpecErrors.length &&
-        currentTypedSpecErrors.every(
-          (error, index) => error === nextTypedSpecErrors[index]
-        );
-
-      if (errorsAreEqual) {
-        return previousErrors;
-      }
-
-      if (nextTypedSpecErrors.length > 0) {
-        return {
-          ...previousErrors,
-          table_create_spec: nextTypedSpecErrors,
-        };
-      }
-
-      const { table_create_spec: _typedSpecErrors, ...remainingErrors } =
-        previousErrors;
-      return remainingErrors;
-    });
-  }, [isOpen, setValidationErrors, typedSpecErrors]);
+    if (isOpen) void runValidation();
+  }, [isOpen, runValidation]);
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-        width: '100%',
-        height: '100%',
-        minHeight: 0,
-      }}
-    >
-      <StepCard>
-        <SettingsHeader>
-          <HeaderLeft>
-            <HeaderIcon>
-              <TuneIcon />
-            </HeaderIcon>
-            <HeaderTitle>Настройки записи</HeaderTitle>
-          </HeaderLeft>
-          <HeaderBadges>
-            {selectedTargetLabel ? (
-              <HeaderBadge>Таблица: {selectedTargetLabel}</HeaderBadge>
-            ) : null}
-          </HeaderBadges>
-        </SettingsHeader>
-
-        <SettingsContent>
-          <StatusAlertsSection
-            createTableError={sharedState?.createTableError}
-            isCreateTableLoading={Boolean(sharedState?.isCreateTableLoading)}
-            isTableNew={isTableNew}
-          />
-
+    <SettingsLayout>
+      <SettingsSidebar>
+        <SettingsSection>
+          <SectionTitle>Пакетная запись</SectionTitle>
           <BatchSettingsSection
             chunkSize={localInputData?.chunksize}
             chunkSizeBounds={chunkSizeBounds}
@@ -1165,242 +1121,352 @@ export const WriteSettingsStep: React.FC<
             minBatchRowsBounds={minBatchRowsBounds}
             onChunkSizeChange={handleChunkSizeChange}
             onMinBatchRowsChange={handleMinBatchRowsChange}
+            errors={fieldErrors}
           />
+        </SettingsSection>
 
-          {isTableNew && selectedCreationMode === 'raw' ? (
-            <Alert severity='info' variant='outlined'>
-              CREATE TABLE SQL задается на шаге «Настройка схемы». Здесь можно
-              проверить batch-параметры и сохранить ноду.
-            </Alert>
-          ) : null}
-
-          {isTableNew && selectedCreationMode === 'typed' ? (
-            <Stack spacing={2.25}>
-              {typedResolutionErrors.length > 0 ? (
-                <Alert severity='error' variant='outlined'>
-                  <Stack spacing={0.25}>
-                    {typedResolutionErrors.map(error => (
-                      <Typography key={error} variant='body2'>
-                        {error}
-                      </Typography>
-                    ))}
-                  </Stack>
-                </Alert>
-              ) : null}
-
-              {sqlErrorMessage ? (
-                <Alert severity='error' variant='outlined'>
-                  {sqlErrorMessage}
-                </Alert>
-              ) : null}
-
-              {isClickHouse ? (
-                <FieldBlock>
-                  <FieldLabel>Engine</FieldLabel>
-                  <SingleOptionDropdownSelect
-                    value={tableCreateSpecDraft.clickhouse.engineName}
-                    onChange={(value: string) =>
-                      patchTableCreateSpec(current => ({
-                        ...current,
-                        clickhouse: {
-                          ...current.clickhouse,
-                          engineName:
-                            value as (typeof CLICKHOUSE_ENGINE_OPTIONS)[number],
-                        },
-                      }))
-                    }
-                    options={clickhouseEngineOptions}
-                    searchable
-                    textFieldSx={{
-                      fontFamily: SCHEMA_STRATEGY_FONT_FAMILY,
-                      '& .MuiTypography-root': {
+        {isTableNew && selectedCreationMode === 'typed' ? (
+          <>
+            <SettingsSection>
+              <Stack spacing={1.5}>
+                {isClickHouse ? (
+                  <FieldBlock>
+                    <FieldLabel>Engine</FieldLabel>
+                    <SingleOptionDropdownSelect
+                      value={tableCreateSpecDraft.clickhouse.engineName}
+                      onChange={(value: string) =>
+                        patchTableCreateSpec(current => ({
+                          ...current,
+                          clickhouse: {
+                            ...current.clickhouse,
+                            engineName:
+                              value as (typeof CLICKHOUSE_ENGINE_OPTIONS)[number],
+                          },
+                        }))
+                      }
+                      options={clickhouseEngineOptions}
+                      searchable
+                      textFieldSx={{
                         fontFamily: SCHEMA_STRATEGY_FONT_FAMILY,
-                      },
-                    }}
-                    optionTextSx={{
-                      fontFamily: SCHEMA_STRATEGY_FONT_FAMILY,
-                    }}
-                  />
-                </FieldBlock>
-              ) : null}
-
-              {isClickHouse ? (
-                <>
-                  <Box>
-                    <FieldLabel>Order by</FieldLabel>
-                    <ColumnDropdownSelect
-                      multiple
-                      allowNew
-                      columns={typedColumnOptions}
-                      value={tableCreateSpecDraft.clickhouse.orderBy}
-                      onChange={(value: string[]) =>
-                        patchTableCreateSpec(current => ({
-                          ...current,
-                          clickhouse: {
-                            ...current.clickhouse,
-                            orderBy: value,
-                          },
-                        }))
-                      }
-                      placeholder='Добавьте колонку в order_by...'
+                        '& .MuiTypography-root': {
+                          fontFamily: SCHEMA_STRATEGY_FONT_FAMILY,
+                        },
+                      }}
+                      optionTextSx={{
+                        fontFamily: SCHEMA_STRATEGY_FONT_FAMILY,
+                      }}
                     />
-                  </Box>
+                  </FieldBlock>
+                ) : null}
 
+                {isClickHouse ? (
+                  <>
+                    <Box>
+                      <FieldLabel>Order by</FieldLabel>
+                      <ColumnDropdownSelect
+                        multiple
+                        allowNew
+                        columns={typedColumnOptions}
+                        error={typedSpecErrors.some(error =>
+                          error.includes('Order by')
+                        )}
+                        value={tableCreateSpecDraft.clickhouse.orderBy}
+                        onChange={(value: string[]) =>
+                          patchTableCreateSpec(current => ({
+                            ...current,
+                            clickhouse: {
+                              ...current.clickhouse,
+                              orderBy: value,
+                            },
+                          }))
+                        }
+                        placeholder='Добавьте колонку в order_by...'
+                      />
+                    </Box>
+
+                    <Box>
+                      <FieldLabel>Partition by</FieldLabel>
+                      <ColumnDropdownSelect
+                        multiple
+                        allowNew
+                        columns={typedColumnOptions}
+                        value={tableCreateSpecDraft.clickhouse.partitionBy}
+                        onChange={(value: string[]) =>
+                          patchTableCreateSpec(current => ({
+                            ...current,
+                            clickhouse: {
+                              ...current.clickhouse,
+                              partitionBy: value,
+                            },
+                          }))
+                        }
+                        placeholder='Добавьте колонку в partition_by...'
+                      />
+                    </Box>
+
+                    <Box>
+                      <FieldLabel>Первичный ключ</FieldLabel>
+                      <ColumnDropdownSelect
+                        multiple
+                        allowNew
+                        columns={typedColumnOptions}
+                        error={typedSpecErrors.some(error =>
+                          error.includes('Primary key')
+                        )}
+                        value={tableCreateSpecDraft.clickhouse.primaryKey}
+                        onChange={(value: string[]) =>
+                          patchTableCreateSpec(current => ({
+                            ...current,
+                            clickhouse: {
+                              ...current.clickhouse,
+                              primaryKey: value,
+                            },
+                          }))
+                        }
+                        placeholder='Добавьте колонку в primary_key...'
+                      />
+                    </Box>
+                  </>
+                ) : (
                   <Box>
-                    <FieldLabel>Partition by</FieldLabel>
+                    <FieldLabel>Первичный ключ</FieldLabel>
                     <ColumnDropdownSelect
                       multiple
                       allowNew
                       columns={typedColumnOptions}
-                      value={tableCreateSpecDraft.clickhouse.partitionBy}
+                      value={tableCreateSpecDraft.primaryKeyColumns}
                       onChange={(value: string[]) =>
                         patchTableCreateSpec(current => ({
                           ...current,
-                          clickhouse: {
-                            ...current.clickhouse,
-                            partitionBy: value,
-                          },
-                        }))
-                      }
-                      placeholder='Добавьте колонку в partition_by...'
-                    />
-                  </Box>
-
-                  <Box>
-                    <FieldLabel>Primary key</FieldLabel>
-                    <ColumnDropdownSelect
-                      multiple
-                      allowNew
-                      columns={typedColumnOptions}
-                      value={tableCreateSpecDraft.clickhouse.primaryKey}
-                      onChange={(value: string[]) =>
-                        patchTableCreateSpec(current => ({
-                          ...current,
-                          clickhouse: {
-                            ...current.clickhouse,
-                            primaryKey: value,
-                          },
+                          primaryKeyColumns: value,
                         }))
                       }
                       placeholder='Добавьте колонку в primary_key...'
                     />
                   </Box>
-                </>
-              ) : (
-                <Box>
-                  <FieldLabel>Primary key</FieldLabel>
-                  <ColumnDropdownSelect
-                    multiple
-                    allowNew
-                    columns={typedColumnOptions}
-                    value={tableCreateSpecDraft.primaryKeyColumns}
-                    onChange={(value: string[]) =>
-                      patchTableCreateSpec(current => ({
-                        ...current,
-                        primaryKeyColumns: value,
-                      }))
-                    }
-                    placeholder='Добавьте колонку в primary_key...'
-                  />
-                </Box>
-              )}
-
-              <PreviewHeader>
-                <PreviewTitle>DDL preview</PreviewTitle>
-                <TextActionRow>
-                  <TextActionButton
-                    type='button'
-                    tone='primary'
-                    onClick={() => void fetchCreateTableSql('typed', true)}
+                )}
+              </Stack>
+              {typedSpecErrors.map(error => (
+                <Typography
+                  key={error}
+                  color='error'
+                  sx={{ mt: 0.75, fontSize: 12 }}
+                >
+                  {error}
+                </Typography>
+              ))}
+            </SettingsSection>
+            <TableCreateSpecEditor
+              compact
+              showErrors={false}
+              columns={typedColumnOptions}
+              isClickHouse={isClickHouse}
+              showPrimaryKeySection={false}
+              showClickHouseCoreSection={false}
+              value={localInputData?.table_create_spec ?? null}
+              onValidationChange={setSpecDraftErrors}
+              onChange={value => {
+                setLocalInputData(prev => ({
+                  ...(prev ?? {}),
+                  table_create_spec: value,
+                }));
+                setSharedState(prev => ({
+                  ...(prev ?? {}),
+                  createTableError: null,
+                  createTableSuccess: null,
+                  createTableSuccessAt: null,
+                  isCreateTableLoading: false,
+                  lastCreateTableKey: null,
+                }));
+              }}
+            />
+          </>
+        ) : (
+          <SettingsSection>
+            {!isTableNew ? (
+              <>
+                <SectionTitle>Первичный ключ</SectionTitle>
+                <ColumnDropdownSelect
+                  multiple
+                  disabled
+                  columns={typedColumnOptions}
+                  value={(selectedTable?.columns ?? [])
+                    .filter(column => column.primary_key)
+                    .map(column => column.name)}
+                  onChange={ignorePreviewChange}
+                  placeholder='Первичный ключ не задан'
+                />
+              </>
+            ) : null}
+            <Typography
+              sx={{
+                mt: isTableNew ? 0 : 1,
+                fontSize: 12,
+                color: '#9b9ba6',
+                lineHeight: 1.6,
+              }}
+            >
+              {isTableNew
+                ? 'Ключи и индексы заданы в SQL на шаге «Настройка схемы».'
+                : 'Параметры структуры существующей таблицы доступны на шаге «Настройка схемы».'}
+            </Typography>
+          </SettingsSection>
+        )}
+        {Object.entries(fieldErrors)
+          .filter(
+            ([key]) =>
+              !['chunksize', 'min_batch_rows', 'table_create_spec'].includes(
+                key
+              )
+          )
+          .map(([key, errors]) => (
+            <Alert key={key} severity='error' sx={{ m: 2, fontSize: 12 }}>
+              {errors.join(' ')}
+            </Alert>
+          ))}
+        {sharedState?.createTableError ? (
+          <Box sx={{ p: 2 }}>
+            <StatusAlertsSection
+              createTableError={sharedState.createTableError}
+              isCreateTableLoading={Boolean(sharedState?.isCreateTableLoading)}
+              isTableNew={isTableNew}
+            />
+          </Box>
+        ) : null}
+      </SettingsSidebar>
+      <DdlPanel>
+        <DdlHeader>
+          <Typography sx={{ minWidth: 0, fontSize: 12, color: '#9b9ba6' }}>
+            <Box
+              component='span'
+              sx={{ fontFamily: 'Consolas, monospace', mr: 1 }}
+            >
+              DDL
+            </Box>
+            {isTableNew
+              ? selectedTargetLabel
+              : 'Предпросмотр структуры таблицы'}
+          </Typography>
+          {isTableNew ? (
+            <Stack
+              direction='row'
+              spacing={1}
+              alignItems='center'
+              sx={{ flexShrink: 0 }}
+            >
+              <Tooltip title='Обновить DDL' arrow>
+                <span>
+                  <IconButton
+                    aria-label='Обновить DDL'
+                    disableRipple
+                    onClick={refreshPreview}
                     disabled={
-                      !canFetchTypedPreviewSql ||
+                      !canRefreshPreview ||
                       Boolean(sharedState?.isCreateSqlLoading)
                     }
-                  >
-                    <RefreshIconSvg
-                      spinning={Boolean(sharedState?.isCreateSqlLoading)}
-                    />
-                    Сгенерировать
-                  </TextActionButton>
-                  <TextActionButton
-                    type='button'
-                    onClick={() => void copySql(typedPreviewSql)}
-                    disabled={!typedPreviewSql.trim()}
-                  >
-                    <CopyIconSvg />
-                    {isSqlCopied === 'typed' ? 'Скопировано' : 'Копировать'}
-                  </TextActionButton>
-                </TextActionRow>
-              </PreviewHeader>
-
-              <DDLPreviewBox>
-                <InfoIcon color='#4f46e5' />
-                {typedPreviewSql.trim() ? (
-                  <PreviewCode>{typedPreviewSql}</PreviewCode>
-                ) : (
-                  <span>
-                    Нажмите «Сгенерировать», чтобы получить preview DDL.
-                  </span>
-                )}
-              </DDLPreviewBox>
-
-              <AdvancedPanel>
-                <AdvancedToggle
-                  type='button'
-                  onClick={() => setShowAdvancedOptions(current => !current)}
-                  sx={{
-                    color: showAdvancedOptions
-                      ? 'primary.main'
-                      : 'text.secondary',
-                  }}
-                >
-                  Дополнительные параметры
-                  <Box
-                    component='span'
                     sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      color: 'inherit',
-                      transform: showAdvancedOptions
-                        ? 'rotate(180deg)'
-                        : 'rotate(0deg)',
-                      transition: 'transform 150ms ease',
+                      width: 30,
+                      height: 30,
+                      color: '#c0c0c8',
+                      '&:hover': {
+                        color: '#6b6b76',
+                        background: 'transparent',
+                      },
                     }}
                   >
-                    <ChevronIcon />
-                  </Box>
-                </AdvancedToggle>
-
-                {showAdvancedOptions ? (
-                  <Box sx={{ mt: 1.5 }}>
-                    <TableCreateSpecEditor
-                      columns={typedColumnOptions}
-                      isClickHouse={isClickHouse}
-                      showPrimaryKeySection={false}
-                      showClickHouseCoreSection={false}
-                      value={localInputData?.table_create_spec ?? null}
-                      onChange={value => {
-                        setLocalInputData(prev => ({
-                          ...(prev ?? {}),
-                          table_create_spec: value,
-                        }));
-                        setSharedState(prev => ({
-                          ...(prev ?? {}),
-                          createTableError: null,
-                          createTableSuccess: null,
-                          createTableSuccessAt: null,
-                          isCreateTableLoading: false,
-                          lastCreateTableKey: null,
-                        }));
-                      }}
+                    <RefreshIconSvg
+                      size={17}
+                      spinning={Boolean(sharedState?.isCreateSqlLoading)}
                     />
-                  </Box>
-                ) : null}
-              </AdvancedPanel>
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Button
+                variant='outlined'
+                size='small'
+                disableRipple
+                onClick={() => void copySql(previewSql)}
+                disabled={!previewSql.trim()}
+                startIcon={<CopyIconSvg size={15} />}
+                sx={{
+                  height: 30,
+                  borderRadius: '7px',
+                  fontSize: 12.5,
+                  color: '#6b6b76',
+                  borderColor: 'divider',
+                  background: '#fff',
+                }}
+              >
+                {isSqlCopied === 'typed' ? 'Скопировано' : 'Копировать'}
+              </Button>
             </Stack>
           ) : null}
-        </SettingsContent>
-      </StepCard>
-    </Box>
+        </DdlHeader>
+        {isTableNew && previewError ? (
+          <Alert severity='error' sx={{ m: 1.5, flexShrink: 0 }}>
+            {previewError}
+          </Alert>
+        ) : null}
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            position: 'relative',
+            '& .ddl-editor': {
+              height: '100%',
+              border: 0,
+              borderRadius: 0,
+              background: 'transparent',
+            },
+          }}
+        >
+          {!isTableNew ? (
+            <Box
+              sx={{
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 3,
+                boxSizing: 'border-box',
+              }}
+            >
+              <Typography
+                sx={{ fontSize: 13, color: '#9b9ba6', textAlign: 'center' }}
+              >
+                Предпросмотр DDL доступен только для создаваемой таблицы.
+              </Typography>
+            </Box>
+          ) : previewSql ? (
+            <CodeEditor
+              className='ddl-editor'
+              language='sql'
+              value={previewSql}
+              onChange={ignorePreviewChange}
+              height='100%'
+              options={DDL_EDITOR_OPTIONS}
+            />
+          ) : sharedState?.isCreateSqlLoading ? (
+            <Stack spacing={1.5} sx={{ p: 2.5 }} aria-label='Генерация DDL'>
+              {[75, 60, 85, 70, 55, 65].map((width, index) => (
+                <Skeleton
+                  key={index}
+                  variant='rounded'
+                  animation='wave'
+                  height={14}
+                  width={width + '%'}
+                />
+              ))}
+            </Stack>
+          ) : (
+            <Typography sx={{ p: 2.5, fontSize: 13, color: '#9b9ba6' }}>
+              {canRefreshPreview
+                ? 'Нажмите «Обновить DDL», чтобы получить SQL.'
+                : 'Заполните обязательные поля для генерации DDL.'}
+            </Typography>
+          )}
+        </Box>
+      </DdlPanel>
+    </SettingsLayout>
   );
 };

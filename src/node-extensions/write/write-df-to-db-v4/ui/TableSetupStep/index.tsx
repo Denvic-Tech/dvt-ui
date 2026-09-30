@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Box } from '@mui/material';
+import { Box } from '@mui/material';
 
 import { NodeModalStepperExtensionProps } from '@/app/providers/node-extensions';
 import { useAppDispatch } from '@/app/providers/store';
@@ -29,14 +29,11 @@ import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { commentTargetKey } from '../../lib/columnComments';
 import { getPendingColumnActions } from '../../lib/helpers';
 import {
-  buildSelectedWriteTargetLabel,
   buildWriteTargetAfterDatabaseChange,
-  buildWriteTargetAfterTableModeChange,
   type ExtensionState,
   extractApiErrorMessage,
   findWriteTargetTable,
   getLiteralStringValue,
-  getSelectorCollapsedValue,
   getSelectorFingerprintValue,
   hasConfiguredSelectorValue,
   normalizeName,
@@ -47,8 +44,8 @@ import {
   supportsSchemas,
   type WriteDataFrameToDBValues,
 } from '../../lib/helpers';
-import { AccordionContainer } from '../styles';
 
+import { CatalogColumns } from './sections/CatalogColumn.styles';
 import { DatabaseSection } from './sections/DatabaseSection';
 import { SchemaSection } from './sections/SchemaSection';
 import { TableSection } from './sections/TableSection';
@@ -56,16 +53,14 @@ import { TableSection } from './sections/TableSection';
 type UITableSelectMode = 'select' | 'create';
 type UIDatabaseSelectMode = 'select' | 'create';
 type UISchemaSelectMode = 'select' | 'create';
-type SectionId = 'database' | 'schema' | 'table';
 
 type Notice = {
-  severity: 'success' | 'error' | 'warning' | 'info';
+  severity: 'success' | 'error';
   message: string;
 } | null;
 
 const EMPTY_TARGET_FINGERPRINT = ['', '', ''].join('::');
-const DATABASE_SELECTION_REQUIRED_MESSAGE =
-  'Сначала выберите базу данных в секции выше.';
+const DATABASE_SELECTION_REQUIRED_MESSAGE = 'Выберите базу данных';
 
 const resetTargetWriteConfig = (
   current: WriteDataFrameToDBValues
@@ -78,38 +73,6 @@ const resetTargetWriteConfig = (
   use_clickhouse_connect_driver: null,
   column_mapping: null,
 });
-
-const buildInitialOpenSections = (
-  connectionMetadata: DBMetadata | null,
-  inputData?: WriteDataFrameToDBValues | null
-): SectionId[] => {
-  const sections: SectionId[] = [];
-
-  if (
-    supportsDatabaseSelection(connectionMetadata) &&
-    !hasConfiguredSelectorValue(inputData?.database_name)
-  ) {
-    sections.push('database', 'table');
-    if (supportsSchemas(connectionMetadata)) {
-      sections.splice(1, 0, 'schema');
-    }
-    return sections;
-  }
-
-  if (
-    supportsSchemas(connectionMetadata) &&
-    !hasConfiguredSelectorValue(inputData?.schema_name)
-  ) {
-    sections.push('schema', 'table');
-    return sections;
-  }
-
-  if (!hasConfiguredSelectorValue(inputData?.table_name)) {
-    sections.push('table');
-  }
-
-  return sections;
-};
 
 export const TableSetupStep = ({
   id: nodeID,
@@ -129,19 +92,22 @@ export const TableSetupStep = ({
   const dispatch = useAppDispatch();
   const { confirm } = useConfirmDialog();
   const runTargetChange = useCallback(
-    async (change: () => void) => {
+    async (change: () => void | Promise<void>) => {
       const pending =
         getPendingColumnActions({
           ...sharedState,
           selectedColumnActions: [],
-        }).some(action => action.type === 'set_column_comment') ||
-        Object.keys(sharedState?.typedCommentOverrides ?? {}).length > 0;
+        }).some(
+          action =>
+            action.type === 'set_column_comment' ||
+            action.type === 'set_column_nullable'
+        ) || Object.keys(sharedState?.typedCommentOverrides ?? {}).length > 0;
       if (
         pending &&
         !(await confirm({
-          title: 'Сбросить изменения комментариев?',
+          title: 'Сбросить изменения колонок?',
           message:
-            'При выборе другой таблицы несохранённые комментарии будут сброшены.',
+            'При выборе другой таблицы несохранённые изменения NULL и комментариев будут сброшены.',
           confirmLabel: 'Сбросить',
           cancelLabel: 'Отмена',
           confirmColor: 'primary',
@@ -152,11 +118,12 @@ export const TableSetupStep = ({
         ...(prev ?? {}),
         typedCommentOverrides: {},
         dbCommentOverrides: {},
+        dbNullableOverrides: {},
         lastResolveColumnsKey: null,
         columnCommentsSupported: false,
         suppressDefaultColumnActions: false,
       }));
-      change();
+      await change();
     },
     [confirm, sharedState, setSharedState]
   );
@@ -198,26 +165,12 @@ export const TableSetupStep = ({
   const [newDatabaseName, setNewDatabaseName] = useState('');
   const [newSchemaName, setNewSchemaName] = useState('');
   const [newTableName, setNewTableName] = useState('');
-  const [isDatabaseNew, setIsDatabaseNew] = useState(false);
-  const [isSchemaNew, setIsSchemaNew] = useState(false);
   const [isCreateTableNameEditorOpen, setIsCreateTableNameEditorOpen] =
-    useState(() => {
-      return !(
-        sharedState?.isTableNew &&
-        getLiteralStringValue(localInputData?.table_name)
-      );
-    });
-  const [isSelectTableBrowserOpen, setIsSelectTableBrowserOpen] = useState(
-    !hasConfiguredSelectorValue(localInputData?.table_name)
-  );
+    useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [creatingEntity, setCreatingEntity] = useState<
     'database' | 'schema' | null
   >(null);
-  const [openSections, setOpenSections] = useState<SectionId[]>(() => {
-    return buildInitialOpenSections(inputConnectionMetadata, localInputData);
-  });
-
   const targetFingerprintRef = useRef<string | null>(null);
 
   const getInputDefinition = useCallback(
@@ -257,9 +210,16 @@ export const TableSetupStep = ({
     databaseName: literalDatabaseName,
     schemaName: literalSchemaName,
     tableName: literalTableName,
-    databasesEnabled: openSections.includes('database'),
-    schemasEnabled: openSections.includes('schema'),
-    tablesEnabled: openSections.includes('table') && isSelectTableBrowserOpen,
+    databasesEnabled: isOpen,
+    schemasEnabled:
+      isOpen &&
+      (!supportsDatabaseSelection(inputConnectionMetadata) ||
+        Boolean(literalDatabaseName)),
+    tablesEnabled:
+      isOpen &&
+      (!supportsDatabaseSelection(inputConnectionMetadata) ||
+        Boolean(literalDatabaseName)) &&
+      (!supportsSchemas(inputConnectionMetadata) || Boolean(literalSchemaName)),
     detailEnabled: Boolean(literalTableName),
   });
   const isLazyCatalog = catalog.mode === 'lazy';
@@ -278,6 +238,7 @@ export const TableSetupStep = ({
         commentTargetKey: key,
         typedCommentOverrides: {},
         dbCommentOverrides: {},
+        dbNullableOverrides: {},
         columnCommentsSupported: false,
         suppressDefaultColumnActions: false,
       };
@@ -289,10 +250,6 @@ export const TableSetupStep = ({
     literalTableName,
     setSharedState,
   ]);
-
-  const selectedTableLabel = useMemo(() => {
-    return buildSelectedWriteTargetLabel(localInputData);
-  }, [localInputData]);
 
   const isSchemaRequired = useMemo(() => {
     return supportsSchemas(inputConnectionMetadata);
@@ -333,19 +290,6 @@ export const TableSetupStep = ({
     localInputData?.schema_name,
     localInputData?.table_name,
   ]);
-
-  const databaseSectionCollapsedValue = useMemo(() => {
-    return getSelectorCollapsedValue(
-      localInputData?.database_name,
-      'База не выбрана'
-    );
-  }, [localInputData?.database_name]);
-  const schemaSectionCollapsedValue = useMemo(() => {
-    return getSelectorCollapsedValue(
-      localInputData?.schema_name,
-      'Схема не выбрана'
-    );
-  }, [localInputData?.schema_name]);
 
   const databaseStats = useMemo((): Array<[string, number]> => {
     const grouped = new Map<string, number>(
@@ -413,23 +357,20 @@ export const TableSetupStep = ({
     }));
   }, [schemaStats]);
 
+  const createdSchemaNames = useMemo(
+    () =>
+      (sharedState?.createdSchemas ?? [])
+        .filter(schema => schema.databaseName === literalDatabaseName)
+        .map(schema => schema.schemaName),
+    [literalDatabaseName, sharedState?.createdSchemas]
+  );
+
   const filteredTables = useMemo(() => {
     return getDbMetadataFilteredTables(inputConnectionMetadata, {
       databaseName: literalDatabaseName,
       schemaName: literalSchemaName,
     });
   }, [inputConnectionMetadata, literalDatabaseName, literalSchemaName]);
-
-  const shouldShowCreateDatabaseSelector =
-    selectTableMode === 'create' && Boolean(literalTableName);
-  const shouldShowCreateSchemaSelector =
-    isSchemaRequired &&
-    selectTableMode === 'create' &&
-    Boolean(literalTableName);
-
-  const selectedCreationMode = useMemo(() => {
-    return resolveCreationMode(sharedState, localInputData);
-  }, [localInputData, sharedState]);
 
   const resetAsyncState = useCallback(() => {
     setSharedState(prev => ({
@@ -522,7 +463,7 @@ export const TableSetupStep = ({
 
     setSharedState(prev => ({
       ...(prev ?? {}),
-      selectedCreationMode: 'raw',
+      selectedCreationMode: 'typed',
       createSqlError: null,
       createTableError: null,
       createTableSuccess: null,
@@ -551,24 +492,6 @@ export const TableSetupStep = ({
   ]);
 
   useEffect(() => {
-    setOpenSections(current =>
-      current.length > 0
-        ? current
-        : buildInitialOpenSections(inputConnectionMetadata, localInputData)
-    );
-  }, [inputConnectionMetadata, localInputData]);
-
-  useEffect(() => {
-    if (selectTableMode !== 'select') {
-      return;
-    }
-
-    setIsSelectTableBrowserOpen(
-      !hasConfiguredSelectorValue(localInputData?.table_name)
-    );
-  }, [localInputData?.table_name, selectTableMode]);
-
-  useEffect(() => {
     if (!isOpen || isSchemaRequired || !localInputData?.schema_name) {
       return;
     }
@@ -583,19 +506,6 @@ export const TableSetupStep = ({
     localInputData?.schema_name,
     setLocalInputData,
   ]);
-
-  const toggleSection = useCallback((sectionId: SectionId) => {
-    setOpenSections(current =>
-      current.includes(sectionId)
-        ? current.filter(section => section !== sectionId)
-        : [...current, sectionId]
-    );
-  }, []);
-
-  const isSectionOpen = useCallback(
-    (sectionId: SectionId) => openSections.includes(sectionId),
-    [openSections]
-  );
 
   const handleDatabaseValueChange = useCallback(
     (nextValue: unknown) => {
@@ -649,7 +559,6 @@ export const TableSetupStep = ({
     (databaseName: string) => {
       handleDatabaseValueChange(databaseName);
       setSelectDatabaseMode('select');
-      setIsDatabaseNew(false);
     },
     [handleDatabaseValueChange]
   );
@@ -658,7 +567,6 @@ export const TableSetupStep = ({
     (schemaName: string) => {
       handleSchemaValueChange(schemaName);
       setSelectSchemaMode('select');
-      setIsSchemaNew(false);
     },
     [handleSchemaValueChange]
   );
@@ -674,8 +582,7 @@ export const TableSetupStep = ({
         })
       );
       setSelectTableMode('select');
-      setIsSelectTableBrowserOpen(false);
-      setIsCreateTableNameEditorOpen(true);
+      setIsCreateTableNameEditorOpen(false);
       setNewTableName('');
       setNotice(null);
       resetAsyncState();
@@ -698,40 +605,12 @@ export const TableSetupStep = ({
         })
       );
       setSelectTableMode('select');
-      setIsSelectTableBrowserOpen(false);
-      setIsCreateTableNameEditorOpen(true);
+      setIsCreateTableNameEditorOpen(false);
       setNewTableName('');
       setNotice(null);
       resetAsyncState();
     },
     [resetAsyncState, setLocalInputData]
-  );
-
-  const handleTableModeChange = useCallback(
-    (mode: UITableSelectMode) => {
-      setSelectTableMode(mode);
-      setNotice(null);
-
-      if (mode === 'create') {
-        setIsSelectTableBrowserOpen(false);
-        setIsCreateTableNameEditorOpen(true);
-        setNewTableName(literalTableName ?? '');
-      } else {
-        setIsSelectTableBrowserOpen(!literalTableName);
-        setIsCreateTableNameEditorOpen(true);
-        setNewTableName('');
-      }
-
-      setLocalInputData(prev =>
-        resetTargetWriteConfig(
-          buildWriteTargetAfterTableModeChange(
-            (prev ?? {}) as WriteDataFrameToDBValues
-          )
-        )
-      );
-      resetAsyncState();
-    },
-    [literalTableName, resetAsyncState, setLocalInputData]
   );
 
   const handleCreateTableSave = useCallback(() => {
@@ -746,6 +625,7 @@ export const TableSetupStep = ({
         table_name: nextName,
       })
     );
+    setSelectTableMode('create');
     setIsCreateTableNameEditorOpen(false);
     setNewTableName(nextName);
     setNotice(null);
@@ -754,36 +634,10 @@ export const TableSetupStep = ({
 
   const handleEditCreatedTableName = useCallback(() => {
     setIsCreateTableNameEditorOpen(true);
-    setNewTableName(literalTableName ?? '');
-  }, [literalTableName]);
-
-  const handleEditSelectedTable = useCallback(() => {
-    setIsSelectTableBrowserOpen(true);
-  }, []);
-
-  const handleResetTable = useCallback(() => {
-    setLocalInputData(prev =>
-      resetTargetWriteConfig({
-        ...((prev ?? {}) as WriteDataFrameToDBValues),
-        table_name: null,
-      })
+    setNewTableName(
+      selectTableMode === 'create' ? (literalTableName ?? '') : ''
     );
-    setIsSelectTableBrowserOpen(true);
-    setIsCreateTableNameEditorOpen(true);
-    setNewTableName('');
-    setNotice(null);
-    resetAsyncState();
-  }, [resetAsyncState, setLocalInputData]);
-
-  const handleCreateTableInputKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        void runTargetChange(handleCreateTableSave);
-      }
-    },
-    [handleCreateTableSave, runTargetChange]
-  );
+  }, [literalTableName, selectTableMode]);
 
   const handleDatabaseCreateSave = useCallback(async () => {
     const name = newDatabaseName.trim();
@@ -809,9 +663,6 @@ export const TableSetupStep = ({
           table_name: null,
         })
       );
-      setSelectDatabaseMode('select');
-      setIsDatabaseNew(true);
-      setNewDatabaseName('');
       setNotice({
         severity: 'success',
         message: `База данных "${name}" создана.`,
@@ -864,9 +715,6 @@ export const TableSetupStep = ({
           table_name: null,
         })
       );
-      setSelectSchemaMode('select');
-      setIsSchemaNew(true);
-      setNewSchemaName('');
       setNotice({
         severity: 'success',
         message: `Схема "${name}" создана.`,
@@ -895,36 +743,40 @@ export const TableSetupStep = ({
   ]);
 
   return (
-    <Box sx={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
-      <AccordionContainer>
-        {notice ? (
-          <Alert severity={notice.severity}>{notice.message}</Alert>
-        ) : null}
-
+    <Box
+      sx={{
+        height: '100%',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1,
+      }}
+    >
+      <CatalogColumns>
         {isDatabaseSelectionRequired ? (
           <DatabaseSection
-            collapsedValue={databaseSectionCollapsedValue}
             inputDefinition={databaseInputDef}
-            isCreateMode={shouldShowCreateDatabaseSelector}
-            isDatabaseNew={isDatabaseNew}
-            isOpen={isSectionOpen('database')}
             isSaving={creatingEntity === 'database'}
+            creationResult={notice}
             newDatabaseName={newDatabaseName}
+            createdNames={sharedState?.recentlyCreatedDatabases}
             onChange={value =>
               void runTargetChange(() => handleDatabaseValueChange(value))
             }
-            onClear={() =>
-              void runTargetChange(() => handleDatabaseValueChange(null))
-            }
-            onCreateModeSelect={setSelectDatabaseMode}
+            onCreateModeSelect={mode => {
+              setNotice(null);
+              setNewDatabaseName('');
+              setSelectDatabaseMode(mode);
+            }}
             onDatabaseSelect={value =>
+              value !== literalDatabaseName &&
               void runTargetChange(() => handleDatabaseSelect(value))
             }
-            onNewDatabaseNameChange={setNewDatabaseName}
-            onSave={() =>
-              void runTargetChange(() => void handleDatabaseCreateSave())
-            }
-            onToggle={() => toggleSection('database')}
+            onNewDatabaseNameChange={value => {
+              setNotice(null);
+              setNewDatabaseName(value);
+            }}
+            onSave={() => runTargetChange(handleDatabaseCreateSave)}
             options={isLazyCatalog ? catalog.databaseOptions : databaseOptions}
             selectMode={selectDatabaseMode}
             selectedValue={literalDatabaseName}
@@ -950,31 +802,36 @@ export const TableSetupStep = ({
 
         {isSchemaRequired ? (
           <SchemaSection
+            key={`schema:${literalDatabaseName ?? ''}`}
             blockedMessage={
-              hasSelectedDatabase ? null : DATABASE_SELECTION_REQUIRED_MESSAGE
+              !hasSelectedDatabase
+                ? DATABASE_SELECTION_REQUIRED_MESSAGE
+                : !literalDatabaseName && isDatabaseSelectionRequired
+                  ? 'База задана выражением. Введите схему выражением.'
+                  : null
             }
-            collapsedValue={schemaSectionCollapsedValue}
             inputDefinition={schemaInputDef}
-            isCreateMode={shouldShowCreateSchemaSelector}
-            isOpen={isSectionOpen('schema')}
             isSaving={creatingEntity === 'schema'}
-            isSchemaNew={isSchemaNew}
+            creationResult={notice}
             newSchemaName={newSchemaName}
+            createdNames={createdSchemaNames}
             onChange={value =>
               void runTargetChange(() => handleSchemaValueChange(value))
             }
-            onClear={() =>
-              void runTargetChange(() => handleSchemaValueChange(null))
-            }
-            onCreateModeSelect={setSelectSchemaMode}
-            onNewSchemaNameChange={setNewSchemaName}
-            onSave={() =>
-              void runTargetChange(() => void handleSchemaCreateSave())
-            }
+            onCreateModeSelect={mode => {
+              setNotice(null);
+              setNewSchemaName('');
+              setSelectSchemaMode(mode);
+            }}
+            onNewSchemaNameChange={value => {
+              setNotice(null);
+              setNewSchemaName(value);
+            }}
+            onSave={() => runTargetChange(handleSchemaCreateSave)}
             onSchemaSelect={value =>
+              value !== literalSchemaName &&
               void runTargetChange(() => handleSchemaSelect(value))
             }
-            onToggle={() => toggleSection('schema')}
             options={isLazyCatalog ? catalog.schemaOptions : schemaOptions}
             selectMode={selectSchemaMode}
             selectedValue={literalSchemaName}
@@ -999,31 +856,34 @@ export const TableSetupStep = ({
         ) : null}
 
         <TableSection
+          key={`table:${literalDatabaseName ?? ''}:${literalSchemaName ?? ''}`}
           blockedMessage={
-            hasSelectedDatabase ? null : DATABASE_SELECTION_REQUIRED_MESSAGE
+            !inputConnectionMetadata
+              ? 'Подключите вход connection'
+              : !hasSelectedDatabase
+                ? isSchemaRequired
+                  ? 'Выберите схему'
+                  : DATABASE_SELECTION_REQUIRED_MESSAGE
+                : isSchemaRequired &&
+                    !hasConfiguredSelectorValue(localInputData?.schema_name)
+                  ? 'Выберите схему'
+                  : (isDatabaseSelectionRequired && !literalDatabaseName) ||
+                      (isSchemaRequired && !literalSchemaName)
+                    ? 'Родитель задан выражением. Введите таблицу выражением.'
+                    : null
           }
-          inputConnectionMetadata={inputConnectionMetadata}
           inputDefinition={tableInputDef}
           isCreateTableNameEditorOpen={isCreateTableNameEditorOpen}
-          isOpen={isSectionOpen('table')}
-          isSelectTableBrowserOpen={isSelectTableBrowserOpen}
           newTableName={newTableName}
-          notice={null}
           onChange={value =>
             void runTargetChange(() => handleTableValueChange(value))
           }
-          onCreateTableInputKeyDown={handleCreateTableInputKeyDown}
           onEditCreatedTableName={handleEditCreatedTableName}
-          onEditSelectedTable={handleEditSelectedTable}
-          onResetTable={() => void runTargetChange(handleResetTable)}
-          onSaveCreatedTableName={() =>
-            void runTargetChange(handleCreateTableSave)
-          }
-          onTableModeChange={mode =>
-            void runTargetChange(() => handleTableModeChange(mode))
-          }
+          onSaveCreatedTableName={() => runTargetChange(handleCreateTableSave)}
+          onCloseTableNameEditor={() => setIsCreateTableNameEditorOpen(false)}
           onTableNameChange={setNewTableName}
           onTableSelect={table =>
+            (selectTableMode !== 'select' || table.name !== literalTableName) &&
             void runTargetChange(() => {
               if ('catalogRef' in table) {
                 handleLazyTableSelect(table.catalogRef);
@@ -1032,11 +892,7 @@ export const TableSetupStep = ({
               handleTableSelect(table);
             })
           }
-          onToggle={() => toggleSection('table')}
-          selectedTable={
-            isLazyCatalog ? catalog.selectedTableItem : selectedTable
-          }
-          selectedTableLabel={selectedTableLabel}
+          selectedValue={literalTableName}
           selectTableMode={selectTableMode}
           tables={isLazyCatalog ? catalog.tableItems : filteredTables}
           value={localInputData?.table_name}
@@ -1057,7 +913,7 @@ export const TableSetupStep = ({
               }
             : {})}
         />
-      </AccordionContainer>
+      </CatalogColumns>
     </Box>
   );
 };

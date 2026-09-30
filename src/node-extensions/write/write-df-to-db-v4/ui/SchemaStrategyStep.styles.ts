@@ -71,18 +71,93 @@ export const SchemaHeaderHint = styled(Typography)({
   color: paletteVars.textSecondary,
 });
 
+export const SchemaEditorPanel = styled('div')({
+  display: 'flex',
+  flexDirection: 'column',
+  flex: 1,
+  minHeight: 260,
+  border: `1px solid ${paletteVars.divider}`,
+  borderRadius: 10,
+  background: paletteVars.backgroundPaper,
+  overflow: 'hidden',
+});
+
+export const SchemaEditorHeader = styled('div')({
+  display: 'flex',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  flexShrink: 0,
+  gap: 10,
+  minHeight: 50,
+  boxSizing: 'border-box',
+  padding: '8px 12px',
+  borderBottom: `1px solid ${paletteVars.divider}`,
+});
+
+export const SchemaEditorTarget = styled('div')({
+  display: 'flex',
+  alignItems: 'center',
+  flex: '1 1 180px',
+  minWidth: 0,
+  gap: 9,
+  '& > svg': { flexShrink: 0, color: '#9b9ba6' },
+});
+
+export const SchemaTargetPath = styled('div')({
+  display: 'flex',
+  alignItems: 'center',
+  minWidth: 0,
+  gap: 7,
+  fontFamily: 'ui-monospace, Consolas, monospace',
+  fontSize: 14,
+  fontWeight: 600,
+  color: '#6b6b76',
+  '& > span': {
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  '& > span:last-child': { color: '#1a1a1f' },
+  '& > i': { fontStyle: 'normal', color: '#c0c0c8' },
+});
+
+export const SchemaHeaderActions = styled('div')({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+  flexWrap: 'wrap',
+  gap: 10,
+  marginLeft: 'auto',
+  minWidth: 0,
+});
+
+export const SchemaHeaderIconButton = styled('button')({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 24,
+  height: 24,
+  flexShrink: 0,
+  padding: 0,
+  border: 0,
+  borderRadius: 4,
+  background: 'transparent',
+  color: '#c0c0c8',
+  cursor: 'pointer',
+  '&:hover': { color: '#6b6b76' },
+  '&:disabled': { opacity: 0.5, cursor: 'default' },
+  '&:focus-visible': { outline: '2px solid #6366f1', outlineOffset: 2 },
+});
+
 export const SegmentControl = styled('div')({
   display: 'inline-flex',
-  alignSelf: 'flex-start',
-  flex: '0 0 auto',
-  width: 'fit-content',
-  maxWidth: '100%',
+  alignItems: 'center',
+  flexShrink: 0,
   gap: 2,
-  padding: 3,
-  borderRadius: 9,
-  background: paletteVars.surfaceInset,
-  border: `1px solid ${paletteVars.divider}`,
-  marginBottom: 16,
+  padding: 2,
+  borderRadius: 8,
+  background: '#f2f2f4',
 });
 
 export const SegmentButton = styled('button', {
@@ -90,17 +165,23 @@ export const SegmentButton = styled('button', {
 })<{ active: boolean }>(({ active }) => ({
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'center',
   gap: 6,
-  padding: '6px 14px',
-  borderRadius: 7,
+  height: 28,
+  padding: '0 10px',
+  borderRadius: 6,
   border: 'none',
-  fontSize: 12,
+  fontFamily: 'inherit',
+  fontSize: 12.5,
   fontWeight: 600,
   cursor: 'pointer',
+  whiteSpace: 'nowrap',
   background: active ? paletteVars.backgroundPaper : 'transparent',
-  color: active ? '#4f46e5' : paletteVars.textSecondary,
-  boxShadow: active ? `0 1px 3px ${paletteVars.textPrimaryShadowSoft}` : 'none',
-  transition: 'all 150ms ease',
+  color: active ? '#1a1a1f' : '#9b9ba6',
+  '& svg': { color: active ? '#6c63ff' : 'inherit' },
+  boxShadow: active ? '0 1px 3px rgba(20,22,34,.12)' : 'none',
+  transition: 'background-color 150ms ease, color 150ms ease',
+  '&:focus-visible': { outline: '2px solid #6366f1', outlineOffset: 1 },
 }));
 
 export const FieldBlock = styled('div')({
@@ -189,8 +270,9 @@ export const ToolbarRow = styled('div')({
 
 export const SearchField = styled('div')({
   position: 'relative',
-  flex: '0 1 200px',
-  minWidth: 180,
+  flex: '0 1 210px',
+  width: 210,
+  minWidth: 150,
 });
 
 export const SearchIconWrap = styled('div')({
@@ -208,12 +290,14 @@ export const SearchIconWrap = styled('div')({
 export const SearchInput = styled('input')({
   width: '100%',
   boxSizing: 'border-box',
-  padding: '5px 9px 5px 30px',
+  height: 32,
+  padding: '0 9px 0 30px',
   borderRadius: 8,
-  background: paletteVars.surfaceInset,
+  background: '#f7f7f8',
   border: `1px solid ${paletteVars.divider}`,
   outline: 'none',
-  fontSize: 12,
+  fontFamily: 'inherit',
+  fontSize: 12.5,
   color: paletteVars.textPrimary,
   transition: 'all 150ms ease',
   '&::placeholder': {
@@ -226,9 +310,10 @@ export const SearchInput = styled('input')({
 });
 
 export const CountLabel = styled(Typography)({
-  fontSize: 11.5,
-  fontWeight: 600,
-  color: paletteVars.textSecondaryMuted,
+  flexShrink: 0,
+  whiteSpace: 'nowrap',
+  fontSize: 13,
+  color: '#9b9ba6',
 });
 
 export const ToolbarSpacer = styled('div')({
@@ -543,8 +628,6 @@ export const MappingTableContainer = styled('div')({
   flex: 1,
   minHeight: 0,
   width: '100%',
-  border: `1px solid ${paletteVars.divider}`,
-  borderRadius: 10,
   overflow: 'hidden',
 });
 
@@ -906,6 +989,10 @@ export const ErrorList = styled('div')({
   flexDirection: 'column',
   gap: 8,
   marginBottom: 14,
+  '&:empty': {
+    display: 'none',
+    marginBottom: 0,
+  },
 });
 
 export const MultiFieldBlock = styled('div')({
@@ -994,22 +1081,22 @@ export const PreviewCode = styled('pre')({
 });
 
 export const SqlTextArea = styled('textarea')({
+  flex: 1,
   width: '100%',
-  minHeight: 360,
+  minHeight: 180,
   boxSizing: 'border-box',
-  padding: '12px 14px',
-  borderRadius: 10,
-  background: paletteVars.surfaceInset,
-  border: `1px solid ${paletteVars.divider}`,
+  padding: '16px 18px',
+  border: 0,
+  borderRadius: 0,
+  background: paletteVars.backgroundPaper,
   outline: 'none',
-  resize: 'vertical',
-  fontFamily: monoFont,
-  fontSize: 12.5,
-  color: paletteVars.textPrimary,
-  lineHeight: 1.6,
-  '&:focus': {
-    borderColor: '#c7d2fe',
-    boxShadow: '0 0 0 3px rgba(99,102,241,0.08)',
+  resize: 'none',
+  fontFamily: 'ui-monospace, Consolas, monospace',
+  fontSize: 13,
+  color: paletteVars.textPrimarySoft,
+  lineHeight: 1.7,
+  '&:focus-visible': {
+    boxShadow: 'inset 0 0 0 2px rgba(99,102,241,0.2)',
   },
 });
 

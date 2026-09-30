@@ -38,6 +38,7 @@ import {
 
 type TableCreateSpecEditorProps = {
   columns: Column[];
+  compact?: boolean;
   isClickHouse: boolean;
   onChange: (value: TableCreateSpec | null) => void;
   onValidationChange?: (errors: string[]) => void;
@@ -149,6 +150,7 @@ const IndexUniqueSwitch = styled(Switch)({
 export const TableCreateSpecEditor = ({
   columns,
   isClickHouse,
+  compact = false,
   onChange,
   onValidationChange,
   showClickHouseCoreSection = true,
@@ -179,10 +181,20 @@ export const TableCreateSpecEditor = ({
     }
 
     lastHydratedFingerprintRef.current = externalFingerprint;
-    setDraft(hydrateTableCreateSpecDraft(normalizedValue));
-    setErrors([]);
-    onValidationChange?.([]);
-  }, [externalFingerprint, normalizedValue, onValidationChange]);
+    const nextDraft = hydrateTableCreateSpecDraft(normalizedValue);
+    setDraft(nextDraft);
+    const nextErrors = compact
+      ? validateTableCreateSpecDraft(nextDraft, columns).errors
+      : [];
+    setErrors(nextErrors);
+    onValidationChange?.(nextErrors);
+  }, [
+    columns,
+    compact,
+    externalFingerprint,
+    normalizedValue,
+    onValidationChange,
+  ]);
 
   const runDraftValidation = useCallback(
     (nextDraft: TableCreateSpecDraft) => {
@@ -273,7 +285,37 @@ export const TableCreateSpecEditor = ({
   );
 
   return (
-    <Stack spacing={1.5}>
+    <Stack
+      spacing={compact ? 0 : 1.5}
+      sx={
+        compact
+          ? {
+              '& > .spec-section': {
+                p: '18px 20px',
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+              },
+              '& .spec-heading': {
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 11,
+                fontWeight: 600,
+                color: '#9b9ba6',
+                textTransform: 'uppercase',
+              },
+              '& .spec-count': { display: 'none' },
+              '& .spec-empty': {
+                p: 0,
+                border: 0,
+                background: 'none',
+                color: '#b2b2bd',
+                fontSize: 13,
+              },
+              '& .spec-add': { border: 0, p: 0, minHeight: 24, fontSize: 12.5 },
+              '& .MuiPaper-root': { borderRadius: '8px' },
+            }
+          : {}
+      }
+    >
       {showErrors && errors.length > 0 ? (
         <Alert severity='error'>
           <Stack spacing={0.25}>
@@ -316,7 +358,7 @@ export const TableCreateSpecEditor = ({
         </Paper>
       ) : null}
 
-      <Stack spacing={1}>
+      <Stack className='spec-section' spacing={1}>
         <Stack
           direction='row'
           alignItems='center'
@@ -325,11 +367,13 @@ export const TableCreateSpecEditor = ({
         >
           <Stack direction='row' alignItems='center' spacing={0.75}>
             <Typography
+              className='spec-heading'
               sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary' }}
             >
-              Indexes
+              {compact ? 'Индексы' : 'Indexes'}
             </Typography>
             <Chip
+              className='spec-count'
               label={draft.indexes.length}
               size='small'
               sx={theme => ({
@@ -349,6 +393,8 @@ export const TableCreateSpecEditor = ({
             size='small'
             variant='outlined'
             startIcon={<AddRoundedIcon fontSize='small' />}
+            className='spec-add'
+            disableRipple
             sx={addEntityButtonSx}
             onClick={() =>
               updateDraft(current => ({
@@ -357,7 +403,7 @@ export const TableCreateSpecEditor = ({
               }))
             }
           >
-            Добавить индекс
+            {compact ? 'Индекс' : 'Добавить индекс'}
           </Button>
         </Stack>
 
@@ -460,6 +506,7 @@ export const TableCreateSpecEditor = ({
                         multiple
                         allowNew
                         columns={columns}
+                        error={compact && index.columns.length === 0}
                         value={index.columns}
                         onChange={value =>
                           patchIndex(index.id, { columns: value })
@@ -491,11 +538,13 @@ export const TableCreateSpecEditor = ({
             ))}
           </Box>
         ) : (
-          <Box sx={emptyStateSx}>Индексы не заданы.</Box>
+          <Box className='spec-empty' sx={emptyStateSx}>
+            Нет индексов
+          </Box>
         )}
       </Stack>
 
-      <Stack spacing={1}>
+      <Stack className='spec-section' spacing={1}>
         <Stack
           direction='row'
           alignItems='center'
@@ -504,11 +553,13 @@ export const TableCreateSpecEditor = ({
         >
           <Stack direction='row' alignItems='center' spacing={0.75}>
             <Typography
+              className='spec-heading'
               sx={{ fontSize: 13, fontWeight: 600, color: 'text.secondary' }}
             >
-              Foreign keys
+              {compact ? 'Внешние ключи' : 'Foreign keys'}
             </Typography>
             <Chip
+              className='spec-count'
               label={draft.foreignKeys.length}
               size='small'
               sx={theme => ({
@@ -528,6 +579,8 @@ export const TableCreateSpecEditor = ({
             size='small'
             variant='outlined'
             startIcon={<AddRoundedIcon fontSize='small' />}
+            className='spec-add'
+            disableRipple
             sx={addEntityButtonSx}
             onClick={() =>
               updateDraft(current => ({
@@ -539,7 +592,7 @@ export const TableCreateSpecEditor = ({
               }))
             }
           >
-            Add foreign key
+            {compact ? 'Внешний ключ' : 'Add foreign key'}
           </Button>
         </Stack>
 
@@ -645,6 +698,12 @@ export const TableCreateSpecEditor = ({
                         multiple
                         allowNew
                         columns={columns}
+                        error={
+                          compact &&
+                          (foreignKey.columns.length === 0 ||
+                            foreignKey.columns.length !==
+                              foreignKey.refColumns.length)
+                        }
                         value={foreignKey.columns}
                         onChange={value =>
                           patchForeignKey(foreignKey.id, { columns: value })
@@ -680,6 +739,7 @@ export const TableCreateSpecEditor = ({
                       <TextField
                         size='small'
                         fullWidth
+                        error={compact && !foreignKey.refTable.trim()}
                         value={foreignKey.refTable}
                         onChange={event =>
                           patchForeignKey(foreignKey.id, {
@@ -696,6 +756,12 @@ export const TableCreateSpecEditor = ({
                     <TextField
                       size='small'
                       fullWidth
+                      error={
+                        compact &&
+                        (foreignKey.refColumns.length === 0 ||
+                          foreignKey.columns.length !==
+                            foreignKey.refColumns.length)
+                      }
                       value={stringifyStringList(foreignKey.refColumns)}
                       onChange={event =>
                         patchForeignKey(foreignKey.id, {
@@ -705,7 +771,13 @@ export const TableCreateSpecEditor = ({
                         })
                       }
                       placeholder='Ref columns'
-                      helperText='Через запятую'
+                      helperText={
+                        compact &&
+                        foreignKey.columns.length !==
+                          foreignKey.refColumns.length
+                          ? 'Количество колонок должно совпадать'
+                          : 'Через запятую'
+                      }
                       sx={indexTextFieldSx}
                     />
                   </Stack>
@@ -714,12 +786,15 @@ export const TableCreateSpecEditor = ({
             ))}
           </Box>
         ) : (
-          <Box sx={emptyStateSx}>Внешние ключи не заданы.</Box>
+          <Box className='spec-empty' sx={emptyStateSx}>
+            Нет внешних ключей
+          </Box>
         )}
       </Stack>
 
       {isClickHouse ? (
         <Box
+          className='spec-section'
           sx={
             showClickHouseCoreSection
               ? theme => ({
@@ -864,6 +939,10 @@ export const TableCreateSpecEditor = ({
                 <TextField
                   size='small'
                   fullWidth
+                  error={
+                    compact &&
+                    errors.some(error => error.includes('table path'))
+                  }
                   value={draft.clickhouse.tablePath}
                   onChange={event =>
                     updateDraft(current => ({
@@ -883,6 +962,9 @@ export const TableCreateSpecEditor = ({
                 <TextField
                   size='small'
                   fullWidth
+                  error={
+                    compact && errors.some(error => error.includes('replica'))
+                  }
                   value={draft.clickhouse.replicaName}
                   onChange={event =>
                     updateDraft(current => ({
@@ -905,6 +987,10 @@ export const TableCreateSpecEditor = ({
                 <ColumnDropdownSelect
                   allowNew
                   columns={columns}
+                  error={
+                    compact &&
+                    errors.some(error => error.includes('version column'))
+                  }
                   value={draft.clickhouse.versionColumn}
                   onChange={value =>
                     updateDraft(current => ({
@@ -923,6 +1009,10 @@ export const TableCreateSpecEditor = ({
                 <ColumnDropdownSelect
                   allowNew
                   columns={columns}
+                  error={
+                    compact &&
+                    errors.some(error => error.includes('sign column'))
+                  }
                   value={draft.clickhouse.signColumn}
                   onChange={value =>
                     updateDraft(current => ({
@@ -944,6 +1034,10 @@ export const TableCreateSpecEditor = ({
                 multiple
                 allowNew
                 columns={columns}
+                error={
+                  compact &&
+                  errors.some(error => error.includes('summing columns'))
+                }
                 value={draft.clickhouse.summingColumns}
                 onChange={value =>
                   updateDraft(current => ({

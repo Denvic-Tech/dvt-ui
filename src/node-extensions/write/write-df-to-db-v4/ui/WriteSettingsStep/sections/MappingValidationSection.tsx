@@ -34,6 +34,11 @@ import {
 } from '../../../lib/helpers';
 import { ColumnCommentEditor } from '../../ColumnCommentEditor';
 import {
+  ChangedNullableSwitch,
+  NullableSwitch,
+  NullSwitchCell,
+} from '../../SchemaStrategyStep.styles';
+import {
   ColumnActionButton,
   ColumnActionCheck,
   ColumnActionDismiss,
@@ -48,11 +53,6 @@ import {
   MappingTableContainer,
   MappingTableHead,
   MappingTitle,
-  NullableCheckboxInput,
-  NullableCheckboxMark,
-  NullableControl,
-  NullableControlLabel,
-  NullableReadOnlyChip,
   StatBadge,
   StatsBadgesRow,
   StyledTableRow,
@@ -81,6 +81,12 @@ type MappingValidationSectionProps = {
   columnDiff: ColumnDiffRow[];
   commentOverrides?: CommentOverrides | undefined;
   sourceCommentOverrides?: CommentOverrides | undefined;
+  nullableOverrides?: Readonly<Record<string, boolean>> | undefined;
+  onExistingNullableChange: (
+    columnName: string,
+    nullable: boolean,
+    baseline: boolean | null
+  ) => void;
   commentsSupported?: boolean | undefined;
   onCommentChange?:
     | ((name: string, value: string | null, isNew: boolean) => void)
@@ -166,6 +172,8 @@ const actionGlyph = (type: TableColumnActionOutput['type']) => {
       return <TrashIcon />;
     case 'set_column_comment':
       return '✎';
+    case 'set_column_nullable':
+      return '±';
     case 'recreate_column':
       return '↻';
   }
@@ -186,6 +194,8 @@ const actionButtonLabel = (
       return 'Будет удалена';
     case 'set_column_comment':
       return 'Комментарий будет изменён';
+    case 'set_column_nullable':
+      return 'NULL будет изменён';
     case 'recreate_column':
       return 'Будет пересоздана';
   }
@@ -365,6 +375,7 @@ const ACTION_ROW_COLORS: Record<
   { accent: string; background: string }
 > = {
   set_column_comment: { accent: '#6366f1', background: '#eef2ff' },
+  set_column_nullable: { accent: '#f59e0b', background: '#fffbeb' },
   add_column: { accent: '#22c55e', background: '#f0fdf4' },
   drop_column: { accent: '#ef4444', background: '#fef2f2' },
   recreate_column: { accent: '#f59e0b', background: '#fffbeb' },
@@ -386,6 +397,8 @@ export const MappingValidationSection: React.FC<
   dbColumns,
   commentOverrides,
   sourceCommentOverrides,
+  nullableOverrides,
+  onExistingNullableChange,
   commentsSupported,
   onCommentChange,
   diffSummary,
@@ -419,14 +432,26 @@ export const MappingValidationSection: React.FC<
   const isBusy = isResolving || isRecreatingTable;
   const hasResolveError = Boolean(resolveError) && !isBusy;
   const hasMismatches = columnDiff.some(
-    row => !RESOLVED_COLUMN_STATUSES.has(row.status)
+    row =>
+      !RESOLVED_COLUMN_STATUSES.has(row.status) ||
+      (row.dbName != null &&
+        nullableOverrides?.[row.dbName] !== undefined &&
+        nullableOverrides[row.dbName] !== row.dbNullable)
   );
   const isMismatchFilterActive = showOnlyMismatches && hasMismatches;
   const displayedColumnDiff = useMemo(() => {
     const normalizedSearch = columnSearch.trim().toLowerCase();
 
     return columnDiff.filter(row => {
-      if (isMismatchFilterActive && RESOLVED_COLUMN_STATUSES.has(row.status)) {
+      const hasNullableChange =
+        row.dbName != null &&
+        nullableOverrides?.[row.dbName] !== undefined &&
+        nullableOverrides[row.dbName] !== row.dbNullable;
+      if (
+        isMismatchFilterActive &&
+        RESOLVED_COLUMN_STATUSES.has(row.status) &&
+        !hasNullableChange
+      ) {
         return false;
       }
 
@@ -438,7 +463,7 @@ export const MappingValidationSection: React.FC<
         value?.toLowerCase().includes(normalizedSearch)
       );
     });
-  }, [columnDiff, columnSearch, isMismatchFilterActive]);
+  }, [columnDiff, columnSearch, isMismatchFilterActive, nullableOverrides]);
   const shouldVirtualize =
     displayedColumnDiff.length >= MAPPING_DIFF_VIRTUALIZATION_THRESHOLD;
 
@@ -484,14 +509,38 @@ export const MappingValidationSection: React.FC<
     const selectedAction = visibleAction
       ? selectedActionsByColumn.get(visibleAction.column_name)
       : undefined;
-    const canEditNullable = Boolean(
+    const canEditNewNullable = Boolean(
       visibleAction?.type === 'add_column' && isActionSelected
     );
-    const nullable =
-      typeof selectedAction?.column?.nullable === 'boolean'
-        ? selectedAction.column.nullable
+    const structuralAction = selectedActionsByColumn.get(row.dbName ?? '');
+    const canEditExistingNullable = Boolean(
+      row.dbName &&
+      !isTargetNameEmpty &&
+      !isReconciling &&
+      ![
+        'missing_in_db',
+        'invalid',
+        'duplicate_effective_target',
+        'internal_column_ignored',
+      ].includes(row.status) &&
+      (!structuralAction ||
+        structuralAction.type === 'set_column_comment' ||
+        structuralAction.type === 'set_column_nullable')
+    );
+    const existingNullable = row.dbName
+      ? nullableOverrides?.[row.dbName]
+      : undefined;
+    const nullable = canEditNewNullable
+      ? (selectedAction?.column?.nullable ?? row.dbNullable)
+      : canEditExistingNullable
+        ? (existingNullable ?? structuralAction?.nullable ?? row.dbNullable)
         : row.dbNullable;
-    const nullableLabel = nullable ? 'NULL' : 'NOT NULL';
+    const nullableChanged = canEditNewNullable
+      ? nullable !== row.dbNullable
+      : canEditExistingNullable && nullable !== row.dbNullable;
+    const NullSwitchComponent = nullableChanged
+      ? ChangedNullableSwitch
+      : NullableSwitch;
     const rowCellStyle: React.CSSProperties | undefined =
       actionColors && isActionSelected
         ? { backgroundColor: actionColors.background }
@@ -653,30 +702,36 @@ export const MappingValidationSection: React.FC<
           )}
         </TableBodyCell>
         <TableBodyCell style={rowCellStyle}>
-          {canEditNullable && visibleAction ? (
-            <NullableControl>
-              <NullableCheckboxInput
-                type='checkbox'
-                checked={Boolean(nullable)}
-                onChange={event =>
-                  onActionNullableChange(visibleAction, event.target.checked)
-                }
-                aria-label={`Nullable for ${visibleAction.column_name}`}
-              />
-              <NullableCheckboxMark checked={Boolean(nullable)} />
-              <NullableControlLabel checked={Boolean(nullable)}>
-                NULL
-              </NullableControlLabel>
-            </NullableControl>
-          ) : nullable === null ? (
+          {nullable === null &&
+          !canEditNewNullable &&
+          !canEditExistingNullable ? (
             <EmptyCell>—</EmptyCell>
           ) : (
-            <NullableReadOnlyChip
-              nullable={nullable}
-              aria-label={`Nullable for ${targetName || row.dbName}: ${nullableLabel}`}
+            <NullSwitchCell
+              sx={{ justifyContent: 'flex-start', transform: 'none' }}
             >
-              {nullableLabel}
-            </NullableReadOnlyChip>
+              <NullSwitchComponent
+                disableRipple
+                checked={Boolean(nullable)}
+                disabled={
+                  isBusy || (!canEditNewNullable && !canEditExistingNullable)
+                }
+                onChange={event => {
+                  if (canEditNewNullable && visibleAction) {
+                    onActionNullableChange(visibleAction, event.target.checked);
+                  } else if (canEditExistingNullable && row.dbName) {
+                    onExistingNullableChange(
+                      row.dbName,
+                      event.target.checked,
+                      row.dbNullable
+                    );
+                  }
+                }}
+                inputProps={{
+                  'aria-label': `Nullable for ${row.dbName ?? targetName}`,
+                }}
+              />
+            </NullSwitchCell>
           )}
         </TableBodyCell>
         <TableBodyCell style={rowCellStyle}>
@@ -749,7 +804,8 @@ export const MappingValidationSection: React.FC<
                 <ColumnActionButton
                   type='button'
                   actionType={
-                    action.type === 'set_column_comment'
+                    action.type === 'set_column_comment' ||
+                    action.type === 'set_column_nullable'
                       ? 'add_column'
                       : action.type
                   }
@@ -774,6 +830,10 @@ export const MappingValidationSection: React.FC<
                 </ColumnActionButton>
               );
             })()
+          ) : nullableChanged && canEditExistingNullable ? (
+            <Typography sx={{ fontSize: 12, color: '#b7791f' }}>
+              {nullable ? 'Будет разрешён NULL' : 'Будет установлен NOT NULL'}
+            </Typography>
           ) : (
             <EmptyCell>—</EmptyCell>
           )}
@@ -828,187 +888,187 @@ export const MappingValidationSection: React.FC<
             </StatsBadgesRow>
           </MappingHeaderLeft>
 
-          <Box>
-            <IconButton
-              aria-label='Действия с таблицей'
-              aria-haspopup='menu'
-              aria-expanded={actionsMenuAnchor ? 'true' : undefined}
-              onClick={event => setActionsMenuAnchor(event.currentTarget)}
-              disabled={isBusy}
-              size='small'
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '9px',
-                backgroundColor: 'transparent',
-                color: '#6b7280',
-                '&:hover': {
-                  backgroundColor: '#e5e7eb',
-                },
-                '& .MuiSvgIcon-root': { fontSize: 18 },
-              }}
-            >
-              <MoreVertRoundedIcon />
-            </IconButton>
-
-            <Menu
-              anchorEl={actionsMenuAnchor}
-              open={Boolean(actionsMenuAnchor)}
-              onClose={() => setActionsMenuAnchor(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              MenuListProps={{ sx: { py: 0.5 } }}
-              slotProps={{
-                paper: {
-                  sx: {
-                    mt: 0.75,
-                    minWidth: 250,
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '10px',
-                    boxShadow: '0 10px 30px rgba(15, 23, 42, 0.14)',
-                    overflow: 'hidden',
-                  },
-                },
-              }}
-            >
-              <MenuItem
-                disableRipple
-                onClick={() => {
-                  setActionsMenuAnchor(null);
-                  onRecreateTable();
-                }}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              flexWrap: 'wrap',
+              gap: 1.25,
+              ml: 'auto',
+              minWidth: 0,
+            }}
+          >
+            <Box sx={{ position: 'relative', width: 240 }}>
+              <SearchRoundedIcon
                 sx={{
-                  alignItems: 'flex-start',
-                  gap: 1.25,
-                  width: 'auto',
-                  mx: 0.5,
-                  px: 2,
-                  py: 1.25,
-                  borderRadius: '7px',
-                  '&:hover': { backgroundColor: '#fef2f2' },
+                  position: 'absolute',
+                  left: 10,
+                  top: '50%',
+                  color: '#9ca3af',
+                  fontSize: 16,
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <Box
+                component='input'
+                value={columnSearch}
+                onChange={event => setColumnSearch(event.target.value)}
+                placeholder='Поиск колонки…'
+                aria-label='Поиск по названию колонки'
+                disabled={isBusy}
+                sx={{
+                  width: '100%',
+                  height: 30,
+                  boxSizing: 'border-box',
+                  pl: 4,
+                  pr: 1.25,
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  backgroundColor: '#f9fafb',
+                  color: '#374151',
+                  fontFamily: 'inherit',
+                  fontSize: 12,
+                  outline: 'none',
+                  '&:focus': {
+                    borderColor: '#c7d2fe',
+                    boxShadow: '0 0 0 3px rgba(99,102,241,0.08)',
+                  },
+                  '&::placeholder': { color: '#9ca3af', opacity: 1 },
+                }}
+              />
+            </Box>
+
+            {hasMismatches ? (
+              <Button
+                variant='outlined'
+                size='small'
+                disableRipple
+                startIcon={<FilterAltOutlinedIcon />}
+                aria-pressed={isMismatchFilterActive}
+                onClick={() => setShowOnlyMismatches(current => !current)}
+                disabled={isBusy}
+                sx={{
+                  height: 30,
+                  minHeight: 30,
+                  maxHeight: 30,
+                  boxSizing: 'border-box',
+                  py: 0,
+                  borderColor: isMismatchFilterActive ? '#a5b4fc' : '#d1d5db',
+                  borderRadius: '8px',
+                  backgroundColor: isMismatchFilterActive ? '#eef2ff' : '#fff',
+                  color: isMismatchFilterActive ? '#4338ca' : '#374151',
+                  fontSize: 12,
+                  lineHeight: 1,
+                  textTransform: 'none',
+                  whiteSpace: 'nowrap',
+                  '&:hover': {
+                    borderColor: isMismatchFilterActive ? '#818cf8' : '#9ca3af',
+                    backgroundColor: isMismatchFilterActive
+                      ? '#e0e7ff'
+                      : '#f9fafb',
+                  },
+                  '& .MuiButton-startIcon': { mr: 0.75 },
+                  '& .MuiSvgIcon-root': { fontSize: 15 },
                 }}
               >
-                <ReplayRoundedIcon
-                  sx={{
-                    mt: 0.15,
-                    color: '#dc2626',
-                    fontSize: 16,
-                    transform: 'scaleX(-1)',
+                Только расхождения
+              </Button>
+            ) : null}
+
+            <Box>
+              <IconButton
+                aria-label='Действия с таблицей'
+                aria-haspopup='menu'
+                aria-expanded={actionsMenuAnchor ? 'true' : undefined}
+                onClick={event => setActionsMenuAnchor(event.currentTarget)}
+                disabled={isBusy}
+                size='small'
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '9px',
+                  backgroundColor: 'transparent',
+                  color: '#6b7280',
+                  '&:hover': {
+                    backgroundColor: '#e5e7eb',
+                  },
+                  '& .MuiSvgIcon-root': { fontSize: 18 },
+                }}
+              >
+                <MoreVertRoundedIcon />
+              </IconButton>
+
+              <Menu
+                anchorEl={actionsMenuAnchor}
+                open={Boolean(actionsMenuAnchor)}
+                onClose={() => setActionsMenuAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                MenuListProps={{ sx: { py: 0.5 } }}
+                slotProps={{
+                  paper: {
+                    sx: {
+                      mt: 0.75,
+                      minWidth: 250,
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '10px',
+                      boxShadow: '0 10px 30px rgba(15, 23, 42, 0.14)',
+                      overflow: 'hidden',
+                    },
+                  },
+                }}
+              >
+                <MenuItem
+                  disableRipple
+                  onClick={() => {
+                    setActionsMenuAnchor(null);
+                    onRecreateTable();
                   }}
-                />
-                <Box>
-                  <Typography
-                    sx={{ color: '#dc2626', fontSize: 12, fontWeight: 600 }}
-                  >
-                    Пересоздать таблицу
-                  </Typography>
-                  <Typography
+                  sx={{
+                    alignItems: 'flex-start',
+                    gap: 1.25,
+                    width: 'auto',
+                    mx: 0.5,
+                    px: 2,
+                    py: 1.25,
+                    borderRadius: '7px',
+                    '&:hover': { backgroundColor: '#fef2f2' },
+                  }}
+                >
+                  <ReplayRoundedIcon
                     sx={{
-                      mt: 0.25,
-                      maxWidth: 190,
-                      color: '#9ca3af',
-                      fontSize: 11,
-                      lineHeight: 1.3,
-                      whiteSpace: 'normal',
+                      mt: 0.15,
+                      color: '#dc2626',
+                      fontSize: 16,
+                      transform: 'scaleX(-1)',
                     }}
-                  >
-                    Удалить и создать заново по схеме DataFrame
-                  </Typography>
-                </Box>
-              </MenuItem>
-            </Menu>
+                  />
+                  <Box>
+                    <Typography
+                      sx={{ color: '#dc2626', fontSize: 12, fontWeight: 600 }}
+                    >
+                      Пересоздать таблицу
+                    </Typography>
+                    <Typography
+                      sx={{
+                        mt: 0.25,
+                        maxWidth: 190,
+                        color: '#9ca3af',
+                        fontSize: 11,
+                        lineHeight: 1.3,
+                        whiteSpace: 'normal',
+                      }}
+                    >
+                      Удалить и создать заново по схеме DataFrame
+                    </Typography>
+                  </Box>
+                </MenuItem>
+              </Menu>
+            </Box>
           </Box>
         </MappingHeader>
-
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.25,
-            px: 2,
-            py: 1.5,
-            backgroundColor: '#fff',
-            borderBottom: '1px solid #e5e7eb',
-          }}
-        >
-          <Box sx={{ position: 'relative', width: 240 }}>
-            <SearchRoundedIcon
-              sx={{
-                position: 'absolute',
-                left: 10,
-                top: '50%',
-                color: '#9ca3af',
-                fontSize: 16,
-                transform: 'translateY(-50%)',
-                pointerEvents: 'none',
-              }}
-            />
-            <Box
-              component='input'
-              value={columnSearch}
-              onChange={event => setColumnSearch(event.target.value)}
-              placeholder='Поиск колонки…'
-              aria-label='Поиск по названию колонки'
-              disabled={isBusy}
-              sx={{
-                width: '100%',
-                height: 30,
-                boxSizing: 'border-box',
-                pl: 4,
-                pr: 1.25,
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                backgroundColor: '#f9fafb',
-                color: '#374151',
-                fontFamily: 'inherit',
-                fontSize: 12,
-                outline: 'none',
-                '&:focus': {
-                  borderColor: '#c7d2fe',
-                  boxShadow: '0 0 0 3px rgba(99,102,241,0.08)',
-                },
-                '&::placeholder': { color: '#9ca3af', opacity: 1 },
-              }}
-            />
-          </Box>
-
-          {hasMismatches ? (
-            <Button
-              variant='outlined'
-              size='small'
-              disableRipple
-              startIcon={<FilterAltOutlinedIcon />}
-              aria-pressed={isMismatchFilterActive}
-              onClick={() => setShowOnlyMismatches(current => !current)}
-              disabled={isBusy}
-              sx={{
-                height: 30,
-                minHeight: 30,
-                maxHeight: 30,
-                boxSizing: 'border-box',
-                py: 0,
-                borderColor: isMismatchFilterActive ? '#a5b4fc' : '#d1d5db',
-                borderRadius: '8px',
-                backgroundColor: isMismatchFilterActive ? '#eef2ff' : '#fff',
-                color: isMismatchFilterActive ? '#4338ca' : '#374151',
-                fontSize: 12,
-                lineHeight: 1,
-                textTransform: 'none',
-                whiteSpace: 'nowrap',
-                '&:hover': {
-                  borderColor: isMismatchFilterActive ? '#818cf8' : '#9ca3af',
-                  backgroundColor: isMismatchFilterActive
-                    ? '#e0e7ff'
-                    : '#f9fafb',
-                },
-                '& .MuiButton-startIcon': { mr: 0.75 },
-                '& .MuiSvgIcon-root': { fontSize: 15 },
-              }}
-            >
-              Только расхождения
-            </Button>
-          ) : null}
-        </Box>
 
         {recreateTableError ? (
           <Alert severity='error' sx={{ mx: 2, mt: 1.5 }}>

@@ -72,7 +72,11 @@ export function mergeCommentActions(
             );
       return { ...action, column: { ...action.column, comment } };
     });
-  const structuralNames = new Set(result.map(action => action.column_name));
+  const structuralNames = new Set(
+    result
+      .filter(action => action.type !== 'set_column_nullable')
+      .map(action => action.column_name)
+  );
   for (const [name, draft] of Object.entries(overrides)) {
     const row = byTarget.get(name);
     if (
