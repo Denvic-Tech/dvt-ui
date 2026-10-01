@@ -1,5 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { NodeDataInput } from '@/features/node/use-universal-node-data-input';
 
 const {
   isPrimitiveTypeMock,
@@ -28,26 +30,33 @@ vi.mock('@/entities/node/node-io', () => ({
   isPrimitiveIOType: isPrimitiveTypeMock,
 }));
 
-vi.mock('@/features/node/use-universal-node-data-input/ui/inputs/ColumnNameNodeInput.tsx', () => ({
-  default: (props: any) => {
-    columnNameInputPropsMock(props);
-    return <div data-testid='column-name-input'>ColumnName</div>;
-  },
-}));
+vi.mock(
+  '@/features/node/use-universal-node-data-input/ui/inputs/ColumnNameNodeInput.tsx',
+  () => ({
+    default: (props: any) => {
+      columnNameInputPropsMock(props);
+      return <div data-testid='column-name-input'>ColumnName</div>;
+    },
+  })
+);
 
-vi.mock('@/features/node/use-universal-node-data-input/ui/inputs/ListNodeInput.tsx', () => ({
-  default: () => <div data-testid='list-input'>List</div>,
-}));
+vi.mock(
+  '@/features/node/use-universal-node-data-input/ui/inputs/ListNodeInput.tsx',
+  () => ({
+    default: () => <div data-testid='list-input'>List</div>,
+  })
+);
 
-vi.mock('@/features/node/use-universal-node-data-input/ui/inputs/LiteralNodeInput.tsx', () => ({
-  default: () => <div data-testid='literal-input'>Literal</div>,
-}));
+vi.mock(
+  '@/features/node/use-universal-node-data-input/ui/inputs/LiteralNodeInput.tsx',
+  () => ({
+    default: () => <div data-testid='literal-input'>Literal</div>,
+  })
+);
 
 vi.mock('@/shared/ui/node-input/PrimitiveNodeInput', () => ({
   default: () => <div data-testid='primitive-input'>Primitive</div>,
 }));
-
-import { NodeDataInput } from '@/features/node/use-universal-node-data-input';
 
 describe('features/use-universal-node-data-input', () => {
   beforeEach(() => {
@@ -113,6 +122,61 @@ describe('features/use-universal-node-data-input', () => {
       ]?.[0];
     expect(lastCallArgs.columns).toEqual([{ name: 'amount' }]);
     expect(lastCallArgs.hasMetadata).toBe(true);
+  });
+
+  it('shows saved Kafka JSON binding and can switch it to a constant', () => {
+    const onValueChange = vi.fn();
+    render(
+      <NodeDataInput
+        nodeID='commit'
+        inputDefinition={
+          { type: 'JSON', attr_name: 'offsets', allow_expressions: true } as any
+        }
+        currentValue={{
+          __dvt_type: 'expr',
+          expression_kind: 'single',
+          value: 'kafka_offsets',
+        }}
+        onValueChange={onValueChange}
+      />
+    );
+    expect(
+      screen.getByRole('button', { name: /^kafka_offsets$/ })
+    ).toBeInTheDocument();
+    expect(onValueChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /^Константа$/ }));
+    expect(onValueChange).toHaveBeenCalledWith('{}');
+  });
+
+  it('keeps the JSON editor in node settings and hides it on the canvas', () => {
+    const onValueChange = vi.fn();
+    const props = {
+      nodeID: 'read-kafka',
+      inputDefinition: {
+        type: 'JSON',
+        attr_name: 'start_offsets',
+        allow_expressions: true,
+      } as any,
+      currentValue: {
+        __dvt_type: 'expr',
+        expression_kind: 'single',
+        value: 'kafka_offsets',
+      },
+      onValueChange,
+    };
+    const { container, rerender } = render(
+      <NodeDataInput {...props} renderMode='canvas' />
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    expect(onValueChange).not.toHaveBeenCalled();
+
+    rerender(<NodeDataInput {...props} renderMode='editor' />);
+
+    expect(
+      screen.getByRole('button', { name: /^kafka_offsets$/ })
+    ).toBeInTheDocument();
+    expect(onValueChange).not.toHaveBeenCalled();
   });
 
   it('renders primitive input for primitive IO type', () => {

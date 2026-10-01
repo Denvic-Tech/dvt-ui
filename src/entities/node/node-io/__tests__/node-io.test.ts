@@ -2,17 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import {
   CONNECTION_REQUIRED_TYPES,
-  HAS_WIDGET_TYPES,
-  PRIMITIVE_TYPES,
   getClearedValueByType,
   getCompatibleVariableTypes,
   getDefaultValueForTypeInternal,
   getIOTypeColor,
+  HAS_WIDGET_TYPES,
   isConnectRequiredType,
   isPrimitiveIOType,
   isPrimitiveType,
   isWidgetType,
   parseConstValue,
+  PRIMITIVE_TYPES,
   requiresConnectedNodeMetadata,
   shouldCheckInputConnection,
 } from '@/entities/node/node-io';
@@ -79,6 +79,7 @@ describe('entities/node-io', () => {
     ).toBe(true);
 
     expect(isWidgetType('STRING' as any)).toBe(true);
+    expect(isWidgetType('JSON' as any)).toBe(true);
     expect(isWidgetType('DATAFRAME' as any)).toBe(false);
   });
 

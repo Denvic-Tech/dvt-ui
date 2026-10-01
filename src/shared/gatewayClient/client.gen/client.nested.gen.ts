@@ -224,8 +224,6 @@ import type {
   GetExtensionStateExtensionsExtensionNameStateGetData,
   GetExtensionStateExtensionsExtensionNameStateGetError,
   GetExtensionStateExtensionsExtensionNameStateGetResponses,
-  GetFixturesPytestMonFixturesGetData,
-  GetFixturesPytestMonFixturesGetResponses,
   GetGraphProjectsProjectIdGraphGetData,
   GetGraphProjectsProjectIdGraphGetError,
   GetGraphProjectsProjectIdGraphGetResponses,
@@ -301,8 +299,6 @@ import type {
   GetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetData,
   GetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetError,
   GetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetResponses,
-  GetTestsPytestMonTestsGetData,
-  GetTestsPytestMonTestsGetResponses,
   GetUserApiTokensApiTokensGetData,
   GetUserApiTokensApiTokensGetResponses,
   GetUserByIdAdminUsersUserIdGetData,
@@ -662,8 +658,6 @@ import {
   zGetExtensionFrontendExtensionsExtensionNameFrontendGetResponse,
   zGetExtensionStateExtensionsExtensionNameStateGetData,
   zGetExtensionStateExtensionsExtensionNameStateGetResponse,
-  zGetFixturesPytestMonFixturesGetData,
-  zGetFixturesPytestMonFixturesGetResponse,
   zGetGraphProjectsProjectIdGraphGetData,
   zGetGraphProjectsProjectIdGraphGetResponse,
   zGetLogsLogsGetData,
@@ -719,8 +713,6 @@ import {
   zGetTaskInfoProjectsProjectIdTasksTaskIdInfoGetResponse,
   zGetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetData,
   zGetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetResponse,
-  zGetTestsPytestMonTestsGetData,
-  zGetTestsPytestMonTestsGetResponse,
   zGetUserApiTokensApiTokensGetData,
   zGetUserApiTokensApiTokensGetResponse,
   zGetUserByIdAdminUsersUserIdGetData,
@@ -10712,116 +10704,6 @@ export const nestedClient = {
         method: 'POST',
         url: '/mcp-tokens',
       });
-    },
-  },
-  pytestMon: {
-    fixtures: {
-      /**
-       * Get pytest fixtures
-       */
-      get: async (
-        params?: OperationParams<GetFixturesPytestMonFixturesGetData>,
-        config?: OperationConfig<
-          GetFixturesPytestMonFixturesGetData,
-          GetFixturesPytestMonFixturesGetResponses[keyof GetFixturesPytestMonFixturesGetResponses]
-        >
-      ): OperationResult<
-        GetFixturesPytestMonFixturesGetResponses[keyof GetFixturesPytestMonFixturesGetResponses],
-        never
-      > => {
-        const requestParams = (params ??
-          {}) as OperationParams<GetFixturesPytestMonFixturesGetData>;
-        const { client: clientOverride, ...requestConfig } = (config ??
-          {}) as OperationConfig<
-          GetFixturesPytestMonFixturesGetData,
-          GetFixturesPytestMonFixturesGetResponses[keyof GetFixturesPytestMonFixturesGetResponses]
-        >;
-        const requestClient = clientOverride ?? client;
-        const requestOptions = {
-          ...requestConfig,
-          ...requestParams,
-        } satisfies Omit<
-          OperationBaseOptions<
-            GetFixturesPytestMonFixturesGetData,
-            GetFixturesPytestMonFixturesGetResponses[keyof GetFixturesPytestMonFixturesGetResponses]
-          >,
-          'path'
-        >;
-        if (requestOptions.requestValidator == null) {
-          requestOptions.requestValidator = async data => {
-            return await zGetFixturesPytestMonFixturesGetData.parseAsync(data);
-          };
-        }
-        if (requestOptions.responseValidator == null) {
-          requestOptions.responseValidator = async data => {
-            return await zGetFixturesPytestMonFixturesGetResponse.parseAsync(
-              data
-            );
-          };
-        }
-        return requestClient.request<
-          GetFixturesPytestMonFixturesGetResponses[keyof GetFixturesPytestMonFixturesGetResponses],
-          never,
-          true
-        >({
-          ...requestOptions,
-          method: 'GET',
-          url: '/pytest-mon/fixtures',
-        });
-      },
-    },
-    tests: {
-      /**
-       * Get pytest tests
-       */
-      get: async (
-        params?: OperationParams<GetTestsPytestMonTestsGetData>,
-        config?: OperationConfig<
-          GetTestsPytestMonTestsGetData,
-          GetTestsPytestMonTestsGetResponses[keyof GetTestsPytestMonTestsGetResponses]
-        >
-      ): OperationResult<
-        GetTestsPytestMonTestsGetResponses[keyof GetTestsPytestMonTestsGetResponses],
-        never
-      > => {
-        const requestParams = (params ??
-          {}) as OperationParams<GetTestsPytestMonTestsGetData>;
-        const { client: clientOverride, ...requestConfig } = (config ??
-          {}) as OperationConfig<
-          GetTestsPytestMonTestsGetData,
-          GetTestsPytestMonTestsGetResponses[keyof GetTestsPytestMonTestsGetResponses]
-        >;
-        const requestClient = clientOverride ?? client;
-        const requestOptions = {
-          ...requestConfig,
-          ...requestParams,
-        } satisfies Omit<
-          OperationBaseOptions<
-            GetTestsPytestMonTestsGetData,
-            GetTestsPytestMonTestsGetResponses[keyof GetTestsPytestMonTestsGetResponses]
-          >,
-          'path'
-        >;
-        if (requestOptions.requestValidator == null) {
-          requestOptions.requestValidator = async data => {
-            return await zGetTestsPytestMonTestsGetData.parseAsync(data);
-          };
-        }
-        if (requestOptions.responseValidator == null) {
-          requestOptions.responseValidator = async data => {
-            return await zGetTestsPytestMonTestsGetResponse.parseAsync(data);
-          };
-        }
-        return requestClient.request<
-          GetTestsPytestMonTestsGetResponses[keyof GetTestsPytestMonTestsGetResponses],
-          never,
-          true
-        >({
-          ...requestOptions,
-          method: 'GET',
-          url: '/pytest-mon/tests',
-        });
-      },
     },
   },
   auth: {

@@ -465,14 +465,63 @@ export const zDataType = z.enum([
   'DICTIONARY',
   'OBJECT',
   'UNKNOWN',
+  'BINARY',
+  'LIST',
+  'STRUCT',
 ]);
 
 export type DataTypeZodType = z.infer<typeof zDataType>;
 
 /**
+ * ArrowFieldMetadata
+ */
+export const zArrowFieldMetadataInput = z.object({
+  name: z.string(),
+  nullable: z.optional(z.boolean()).default(true),
+  get type() {
+    return zArrowTypeMetadataInput;
+  },
+});
+
+export type ArrowFieldMetadataInputZodType = z.infer<
+  typeof zArrowFieldMetadataInput
+>;
+
+/**
+ * ArrowTypeMetadata
+ */
+export const zArrowTypeMetadataInput = z.object({
+  kind: z.enum([
+    'scalar',
+    'timestamp',
+    'duration',
+    'decimal',
+    'list',
+    'large_list',
+    'fixed_size_list',
+    'struct',
+    'fixed_size_binary',
+  ]),
+  name: z.optional(z.union([z.string(), z.null()])),
+  unit: z.optional(z.union([z.enum(['s', 'ms', 'us', 'ns']), z.null()])),
+  timezone: z.optional(z.union([z.string(), z.null()])),
+  precision: z.optional(z.union([z.int(), z.null()])),
+  scale: z.optional(z.union([z.int(), z.null()])),
+  size: z.optional(z.union([z.int(), z.null()])),
+  get fields(): z.ZodOptional {
+    return z.optional(z.array(zArrowFieldMetadataInput)).default([]);
+  },
+});
+
+export type ArrowTypeMetadataInputZodType = z.infer<
+  typeof zArrowTypeMetadataInput
+>;
+
+/**
  * DTypeMetadata
  */
-export const zDTypeMetadata = z.object({
+export const zDTypeMetadataInput = z.object({
+  arrow_type: z.optional(z.union([zArrowTypeMetadataInput, z.null()])),
   name: z.string(),
   class: z.string(),
   origin: z.enum(['numpy', 'pandas', 'python']),
@@ -490,25 +539,25 @@ export const zDTypeMetadata = z.object({
   categories_dtype: z.optional(z.union([z.string(), z.null()])),
 });
 
-export type DTypeMetadataZodType = z.infer<typeof zDTypeMetadata>;
+export type DTypeMetadataInputZodType = z.infer<typeof zDTypeMetadataInput>;
 
 /**
  * DBColumn
  *
  * Модель, представляющая метаданные колонки таблицы БД.
  */
-export const zDbColumn = z.object({
+export const zDbColumnInput = z.object({
   name: z.string(),
   comment: z.optional(z.union([z.string(), z.null()])),
   dtype: zDataType,
-  dtype_metadata: z.optional(z.union([zDTypeMetadata, z.null()])),
+  dtype_metadata: z.optional(z.union([zDTypeMetadataInput, z.null()])),
   nullable: z.optional(z.union([z.boolean(), z.null()])),
   index: z.optional(z.union([z.boolean(), z.null()])),
   indexes: z.optional(z.union([z.array(z.string()), z.null()])),
   primary_key: z.optional(z.union([z.boolean(), z.null()])),
 });
 
-export type DbColumnZodType = z.infer<typeof zDbColumn>;
+export type DbColumnInputZodType = z.infer<typeof zDbColumnInput>;
 
 /**
  * TableColumnAction
@@ -522,7 +571,7 @@ export const zTableColumnActionInput = z.object({
     'set_column_nullable',
   ]),
   column_name: z.string().min(1),
-  column: z.optional(z.union([zDbColumn, z.null()])),
+  column: z.optional(z.union([zDbColumnInput, z.null()])),
   comment: z.optional(z.union([z.string(), z.null()])),
   nullable: z.optional(z.union([z.boolean(), z.null()])),
 });
@@ -559,6 +608,93 @@ export const zWriteDiagnostic = z.object({
 export type WriteDiagnosticZodType = z.infer<typeof zWriteDiagnostic>;
 
 /**
+ * ArrowFieldMetadata
+ */
+export const zArrowFieldMetadataOutput = z.object({
+  name: z.string(),
+  nullable: z.optional(z.boolean()).default(true),
+  get type() {
+    return zArrowTypeMetadataOutput;
+  },
+});
+
+export type ArrowFieldMetadataOutputZodType = z.infer<
+  typeof zArrowFieldMetadataOutput
+>;
+
+/**
+ * ArrowTypeMetadata
+ */
+export const zArrowTypeMetadataOutput = z.object({
+  kind: z.enum([
+    'scalar',
+    'timestamp',
+    'duration',
+    'decimal',
+    'list',
+    'large_list',
+    'fixed_size_list',
+    'struct',
+    'fixed_size_binary',
+  ]),
+  name: z.optional(z.union([z.string(), z.null()])),
+  unit: z.optional(z.union([z.enum(['s', 'ms', 'us', 'ns']), z.null()])),
+  timezone: z.optional(z.union([z.string(), z.null()])),
+  precision: z.optional(z.union([z.int(), z.null()])),
+  scale: z.optional(z.union([z.int(), z.null()])),
+  size: z.optional(z.union([z.int(), z.null()])),
+  get fields(): z.ZodOptional {
+    return z.optional(z.array(zArrowFieldMetadataOutput)).default([]);
+  },
+});
+
+export type ArrowTypeMetadataOutputZodType = z.infer<
+  typeof zArrowTypeMetadataOutput
+>;
+
+/**
+ * DTypeMetadata
+ */
+export const zDTypeMetadataOutput = z.object({
+  arrow_type: z.optional(z.union([zArrowTypeMetadataOutput, z.null()])),
+  name: z.string(),
+  class: z.string(),
+  origin: z.enum(['numpy', 'pandas', 'python']),
+  repr: z.optional(z.union([z.string(), z.null()])),
+  module: z.optional(z.union([z.string(), z.null()])),
+  kind: z.optional(z.union([z.string(), z.null()])),
+  itemsize: z.optional(z.union([z.int(), z.null()])),
+  is_extension: z.optional(z.union([z.boolean(), z.null()])),
+  scalar_type: z.optional(z.union([z.string(), z.null()])),
+  storage: z.optional(z.union([z.string(), z.null()])),
+  unit: z.optional(z.union([z.string(), z.null()])),
+  timezone: z.optional(z.union([z.string(), z.null()])),
+  ordered: z.optional(z.union([z.boolean(), z.null()])),
+  categories_count: z.optional(z.union([z.int(), z.null()])),
+  categories_dtype: z.optional(z.union([z.string(), z.null()])),
+});
+
+export type DTypeMetadataOutputZodType = z.infer<typeof zDTypeMetadataOutput>;
+
+/**
+ * DBColumn
+ *
+ * Модель, представляющая метаданные колонки таблицы БД.
+ */
+export const zDbColumnOutput = z.object({
+  name: z.string(),
+  comment: z.optional(z.union([z.string(), z.null()])),
+  dtype: zDataType,
+  dtype_metadata: z.optional(z.union([zDTypeMetadataOutput, z.null()])),
+  nullable: z.optional(z.union([z.boolean(), z.null()])),
+  index: z.optional(z.union([z.boolean(), z.null()])),
+  indexes: z.optional(z.union([z.array(z.string()), z.null()])),
+  primary_key: z.optional(z.union([z.boolean(), z.null()])),
+});
+
+export type DbColumnOutputZodType = z.infer<typeof zDbColumnOutput>;
+
+/**
  * DBTableType
  *
  * Перечисление типов таблиц в базе данных.
@@ -584,7 +720,7 @@ export const zDbTable = z.object({
   database_name: z.optional(z.union([z.string(), z.null()])),
   name: z.string(),
   comment: z.optional(z.union([z.string(), z.null()])),
-  columns: z.array(zDbColumn),
+  columns: z.array(zDbColumnOutput),
   type: zDbTableType,
 });
 
@@ -1342,16 +1478,32 @@ export type ClickhouseSqlNativeDefaultDriverConnectionUpdateRequestZodType =
  *
  * Метаданные одной колонки DataFrame.
  */
-export const zColumn = z.object({
+export const zColumnInput = z.object({
   name: z.string(),
   comment: z.optional(z.union([z.string(), z.null()])),
   dtype: zDataType,
-  dtype_metadata: z.optional(z.union([zDTypeMetadata, z.null()])),
+  dtype_metadata: z.optional(z.union([zDTypeMetadataInput, z.null()])),
   nullable: z.optional(z.union([z.boolean(), z.null()])),
   index: z.optional(z.union([z.boolean(), z.null()])),
 });
 
-export type ColumnZodType = z.infer<typeof zColumn>;
+export type ColumnInputZodType = z.infer<typeof zColumnInput>;
+
+/**
+ * Column
+ *
+ * Метаданные одной колонки DataFrame.
+ */
+export const zColumnOutput = z.object({
+  name: z.string(),
+  comment: z.optional(z.union([z.string(), z.null()])),
+  dtype: zDataType,
+  dtype_metadata: z.optional(z.union([zDTypeMetadataOutput, z.null()])),
+  nullable: z.optional(z.union([z.boolean(), z.null()])),
+  index: z.optional(z.union([z.boolean(), z.null()])),
+});
+
+export type ColumnOutputZodType = z.infer<typeof zColumnOutput>;
 
 /**
  * CommonResponse
@@ -1516,7 +1668,7 @@ export const zCreateTableFromSchemaRequest = z.object({
   connection_id: z.string().min(1),
   database_name: z.optional(z.union([z.string(), z.null()])),
   schema_name: z.optional(z.union([z.string(), z.null()])),
-  columns: z.array(zDbColumn),
+  columns: z.array(zDbColumnInput),
   table_create_spec: z.optional(z.union([zTableCreateSpec, z.null()])),
   on_exists: z.optional(z.enum(['ignore', 'recreate', 'error'])),
 });
@@ -1553,7 +1705,7 @@ export type DvtServiceFilesSecretsZodType = z.infer<
  * Данные DataFrame с метаданными (для передачи части данных).
  */
 export const zDataFrameData = z.object({
-  columns: z.array(zColumn),
+  columns: z.array(zColumnOutput),
   values: z.array(z.array(z.unknown())),
   total_rows: z.int(),
   total_partitions: z.int(),
@@ -1568,7 +1720,7 @@ export type DataFrameDataZodType = z.infer<typeof zDataFrameData>;
  */
 export const zDataFrameMetadataInput = z.object({
   type: z.optional(z.literal('DATAFRAME')).default('DATAFRAME'),
-  columns: z.array(zColumn),
+  columns: z.array(zColumnInput),
   comment: z.optional(z.union([z.string(), z.null()])),
   rows_num: z.optional(z.union([z.int().gte(0), z.null()])),
   size: z.optional(z.union([z.int().gte(0), z.null()])),
@@ -1585,7 +1737,7 @@ export type DataFrameMetadataInputZodType = z.infer<
  */
 export const zDataFrameMetadataOutput = z.object({
   type: z.optional(z.literal('DATAFRAME')).default('DATAFRAME'),
-  columns: z.array(zColumn),
+  columns: z.array(zColumnOutput),
   comment: z.optional(z.union([z.string(), z.null()])),
   rows_num: z.optional(z.union([z.int().gte(0), z.null()])),
   size: z.optional(z.union([z.int().gte(0), z.null()])),
@@ -2226,7 +2378,7 @@ export const zGenerateTableDdl = z.object({
   database_name: z.optional(z.union([z.string(), z.null()])),
   schema_name: z.optional(z.union([z.string(), z.null()])),
   index_col: z.optional(z.union([z.string(), z.array(z.string()), z.null()])),
-  columns: z.optional(z.union([z.array(zDbColumn), z.null()])),
+  columns: z.optional(z.union([z.array(zDbColumnInput), z.null()])),
   table_create_spec: z.optional(z.union([zTableCreateSpec, z.null()])),
 });
 
@@ -2614,8 +2766,13 @@ export type JsonDataZodType = z.infer<typeof zJsonData>;
  */
 export const zKafkaProperties = z.object({
   bootstrap_servers: z.array(z.string()),
-  security_protocol: z.optional(z.string()).default('PLAINTEXT'),
-  sasl_mechanism: z.optional(z.union([z.string(), z.null()])),
+  security_protocol: z.optional(
+    z.enum(['PLAINTEXT', 'SSL', 'SASL_PLAINTEXT', 'SASL_SSL'])
+  ),
+  ssl_ca_pem: z.optional(z.union([z.string(), z.null()])),
+  sasl_mechanism: z.optional(
+    z.union([z.enum(['PLAIN', 'SCRAM-SHA-256', 'SCRAM-SHA-512']), z.null()])
+  ),
   sasl_plain_username: z.optional(z.union([z.string(), z.null()])),
   client_id: z.optional(z.string()).default('kafka_client'),
   request_timeout_ms: z.optional(z.int()).default(30000),
@@ -4332,49 +4489,6 @@ export type PublishedNodeDocumentationSchemaZodType = z.infer<
 >;
 
 /**
- * PytestEntityLocation
- */
-export const zPytestEntityLocation = z.object({
-  absolute_path: z.string(),
-  relative_path: z.string(),
-  lineno: z.int(),
-  end_lineno: z.int(),
-});
-
-export type PytestEntityLocationZodType = z.infer<typeof zPytestEntityLocation>;
-
-/**
- * PytestEntitySchema
- */
-export const zPytestEntitySchema = z.object({
-  name: z.string(),
-  python_name: z.string(),
-  qualified_name: z.string(),
-  signature: z.string(),
-  description: z.optional(z.union([z.string(), z.null()])),
-  code: z.string(),
-  is_async: z.boolean(),
-  location: zPytestEntityLocation,
-});
-
-export type PytestEntitySchemaZodType = z.infer<typeof zPytestEntitySchema>;
-
-/**
- * PytestEntityListResponse
- */
-export const zPytestEntityListResponse = z.object({
-  root_path: z.string(),
-  fingerprint: z.string(),
-  count: z.int(),
-  items: z.optional(z.array(zPytestEntitySchema)),
-  errors: z.optional(z.array(z.string())),
-});
-
-export type PytestEntityListResponseZodType = z.infer<
-  typeof zPytestEntityListResponse
->;
-
-/**
  * QueueAction
  */
 export const zQueueAction = z.enum(['cancel']);
@@ -4461,7 +4575,7 @@ export type QueueStateResponseZodType = z.infer<typeof zQueueStateResponse>;
  */
 export const zQueueTopicCreateSchema = z.object({
   name: z.string(),
-  columns_schema: z.array(zColumn),
+  columns_schema: z.array(zColumnInput),
 });
 
 export type QueueTopicCreateSchemaZodType = z.infer<
@@ -4508,7 +4622,7 @@ export const zQueueTopicReadSchema = z.object({
   ),
   id: z.optional(z.union([z.string(), z.null()])),
   name: z.string(),
-  columns_schema: z.array(zColumn),
+  columns_schema: z.array(zColumnOutput),
 });
 
 export type QueueTopicReadSchemaZodType = z.infer<typeof zQueueTopicReadSchema>;
@@ -4524,7 +4638,7 @@ export type QueueTopicReadSchemaZodType = z.infer<typeof zQueueTopicReadSchema>;
  */
 export const zQueueTopicUpdateSchema = z.object({
   name: z.optional(z.union([z.string(), z.null()])),
-  columns_schema: z.optional(z.union([z.array(zColumn), z.null()])),
+  columns_schema: z.optional(z.union([z.array(zColumnInput), z.null()])),
 });
 
 export type QueueTopicUpdateSchemaZodType = z.infer<
@@ -4539,7 +4653,7 @@ export const zRecreateTableRequest = z.object({
   table_name: z.string().min(1),
   database_name: z.optional(z.union([z.string(), z.null()])),
   schema_name: z.optional(z.union([z.string(), z.null()])),
-  columns: z.array(zDbColumn).min(1),
+  columns: z.array(zDbColumnInput).min(1),
   table_create_spec: z.optional(z.union([zTableCreateSpec, z.null()])),
 });
 
@@ -4599,7 +4713,7 @@ export const zTableColumnActionOutput = z.object({
     'set_column_nullable',
   ]),
   column_name: z.string().min(1),
-  column: z.optional(z.union([zDbColumn, z.null()])),
+  column: z.optional(z.union([zDbColumnOutput, z.null()])),
   comment: z.optional(z.union([z.string(), z.null()])),
   nullable: z.optional(z.union([z.boolean(), z.null()])),
 });
@@ -5761,6 +5875,87 @@ export type TaskExecutionTelemetryEventZodType = z.infer<
 >;
 
 /**
+ * ArrowFieldMetadata
+ */
+export const zArrowFieldMetadata = z.object({
+  name: z.string(),
+  nullable: z.optional(z.boolean()).default(true),
+  get type() {
+    return zArrowTypeMetadata;
+  },
+});
+
+export type ArrowFieldMetadataZodType = z.infer<typeof zArrowFieldMetadata>;
+
+/**
+ * ArrowTypeMetadata
+ */
+export const zArrowTypeMetadata = z.object({
+  kind: z.enum([
+    'scalar',
+    'timestamp',
+    'duration',
+    'decimal',
+    'list',
+    'large_list',
+    'fixed_size_list',
+    'struct',
+    'fixed_size_binary',
+  ]),
+  name: z.optional(z.union([z.string(), z.null()])),
+  unit: z.optional(z.union([z.enum(['s', 'ms', 'us', 'ns']), z.null()])),
+  timezone: z.optional(z.union([z.string(), z.null()])),
+  precision: z.optional(z.union([z.int(), z.null()])),
+  scale: z.optional(z.union([z.int(), z.null()])),
+  size: z.optional(z.union([z.int(), z.null()])),
+  get fields(): z.ZodOptional {
+    return z.optional(z.array(zArrowFieldMetadata)).default([]);
+  },
+});
+
+export type ArrowTypeMetadataZodType = z.infer<typeof zArrowTypeMetadata>;
+
+/**
+ * DTypeMetadata
+ */
+export const zDTypeMetadata = z.object({
+  arrow_type: z.optional(z.union([zArrowTypeMetadata, z.null()])),
+  name: z.string(),
+  class: z.string(),
+  origin: z.enum(['numpy', 'pandas', 'python']),
+  repr: z.optional(z.union([z.string(), z.null()])),
+  module: z.optional(z.union([z.string(), z.null()])),
+  kind: z.optional(z.union([z.string(), z.null()])),
+  itemsize: z.optional(z.union([z.int(), z.null()])),
+  is_extension: z.optional(z.union([z.boolean(), z.null()])),
+  scalar_type: z.optional(z.union([z.string(), z.null()])),
+  storage: z.optional(z.union([z.string(), z.null()])),
+  unit: z.optional(z.union([z.string(), z.null()])),
+  timezone: z.optional(z.union([z.string(), z.null()])),
+  ordered: z.optional(z.union([z.boolean(), z.null()])),
+  categories_count: z.optional(z.union([z.int(), z.null()])),
+  categories_dtype: z.optional(z.union([z.string(), z.null()])),
+});
+
+export type DTypeMetadataZodType = z.infer<typeof zDTypeMetadata>;
+
+/**
+ * Column
+ *
+ * Метаданные одной колонки DataFrame.
+ */
+export const zColumn = z.object({
+  name: z.string(),
+  comment: z.optional(z.union([z.string(), z.null()])),
+  dtype: zDataType,
+  dtype_metadata: z.optional(z.union([zDTypeMetadata, z.null()])),
+  nullable: z.optional(z.union([z.boolean(), z.null()])),
+  index: z.optional(z.union([z.boolean(), z.null()])),
+});
+
+export type ColumnZodType = z.infer<typeof zColumn>;
+
+/**
  * DataFrameMetadata
  *
  * Метаданные DataFrame.
@@ -6429,6 +6624,24 @@ export const zEvent = z.union([
 ]);
 
 export type EventZodType = z.infer<typeof zEvent>;
+
+/**
+ * DBColumn
+ *
+ * Модель, представляющая метаданные колонки таблицы БД.
+ */
+export const zDbColumn = z.object({
+  name: z.string(),
+  comment: z.optional(z.union([z.string(), z.null()])),
+  dtype: zDataType,
+  dtype_metadata: z.optional(z.union([zDTypeMetadata, z.null()])),
+  nullable: z.optional(z.union([z.boolean(), z.null()])),
+  index: z.optional(z.union([z.boolean(), z.null()])),
+  indexes: z.optional(z.union([z.array(z.string()), z.null()])),
+  primary_key: z.optional(z.union([z.boolean(), z.null()])),
+});
+
+export type DbColumnZodType = z.infer<typeof zDbColumn>;
 
 export const zDbDialect = z.union([
   z.enum([
@@ -12719,45 +12932,6 @@ export const zUpdateMcpTokenMcpTokensTokenIdPatchResponse = zMcpTokenReadSchema;
 
 export type UpdateMcpTokenMcpTokensTokenIdPatchResponseZodType = z.infer<
   typeof zUpdateMcpTokenMcpTokensTokenIdPatchResponse
->;
-
-export const zGetFixturesPytestMonFixturesGetData = z.object({
-  body: z.optional(z.never()),
-  path: z.optional(z.never()),
-  query: z.optional(z.never()),
-});
-
-export type GetFixturesPytestMonFixturesGetDataZodType = z.infer<
-  typeof zGetFixturesPytestMonFixturesGetData
->;
-
-/**
- * Successful Response
- */
-export const zGetFixturesPytestMonFixturesGetResponse =
-  zPytestEntityListResponse;
-
-export type GetFixturesPytestMonFixturesGetResponseZodType = z.infer<
-  typeof zGetFixturesPytestMonFixturesGetResponse
->;
-
-export const zGetTestsPytestMonTestsGetData = z.object({
-  body: z.optional(z.never()),
-  path: z.optional(z.never()),
-  query: z.optional(z.never()),
-});
-
-export type GetTestsPytestMonTestsGetDataZodType = z.infer<
-  typeof zGetTestsPytestMonTestsGetData
->;
-
-/**
- * Successful Response
- */
-export const zGetTestsPytestMonTestsGetResponse = zPytestEntityListResponse;
-
-export type GetTestsPytestMonTestsGetResponseZodType = z.infer<
-  typeof zGetTestsPytestMonTestsGetResponse
 >;
 
 export const zUserProfileProfileGetData = z.object({

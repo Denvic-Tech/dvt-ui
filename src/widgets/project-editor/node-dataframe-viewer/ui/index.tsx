@@ -22,11 +22,13 @@ import {
   useDataFrameCsvDownload,
   useDataFrameData,
 } from '@/entities/data/dataframe';
+import { formatPreviewValue } from '@/entities/data/dataframe/model/formatPreviewValue';
 import { useNodeDataFrameViewer } from '@/entities/node/node-dataframe-viewer';
 import { useCurrentProject } from '@/entities/project/projects';
 import { useTaskExecutionStatus } from '@/entities/project/task-execution-status';
 
 import type { Column as DFColumn } from '@/shared/gatewayClient';
+import { formatArrowType } from '@/shared/lib/formatArrowType';
 import { NodeIcon } from '@/shared/ui/node-icon/NodeIcon';
 
 import {
@@ -87,6 +89,9 @@ const dtypeIconSvg: Record<string, React.ReactNode> = {
   TIMEDELTA: <MdHourglassEmpty />,
   CATEGORY: <MdCategory />,
   DICTIONARY: <MdMenuBook />,
+  BINARY: <Bs123 />,
+  LIST: <MdMenuBook />,
+  STRUCT: <IoMdSettings />,
   OBJECT: <IoMdSettings />,
   UNKNOWN: <BiQuestionMark />,
 };
@@ -149,7 +154,7 @@ const isAbortError = (error: unknown): boolean =>
 
 function HeaderWithType({ col }: { col: DFColumn }) {
   const tip = `${col.name}
-dtype: ${col.dtype}${col.nullable !== undefined ? `\nnullable: ${col.nullable}` : ''}${col.index ? `\nindex: true` : ''}`;
+dtype: ${col.dtype}${col.dtype_metadata?.arrow_type ? `\nArrow: ${formatArrowType(col.dtype_metadata.arrow_type)}` : ''}${col.nullable !== undefined ? `\nnullable: ${col.nullable}` : ''}${col.index ? `\nindex: true` : ''}`;
 
   const iconNode = dtypeIconSvg[col.dtype] ?? dtypeIconSvg['UNKNOWN'];
   const scale = iconScale[col.dtype] ?? 1;
@@ -472,7 +477,7 @@ const DataFrameBody: React.FC<DataFrameBodyProps> = ({
       if (d) return formatLocalDateTime(d);
     }
 
-    return String(value);
+    return formatPreviewValue(value);
   };
 
   if (status == 'loading') {
