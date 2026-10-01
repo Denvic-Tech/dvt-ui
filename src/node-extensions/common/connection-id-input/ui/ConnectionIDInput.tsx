@@ -33,6 +33,8 @@ export const ConnectionIDInput: React.FC<NodeInputExtensionProps> = ({
             return conn.type === 's3';
           case 'FTP_CONNECTION_ID':
             return conn.type === 'ftp';
+          case 'KAFKA_CONNECTION_ID':
+            return conn.kind === 'queue' && conn.type === 'kafka';
           case 'SMB_CONNECTION_ID':
             return conn.type === 'smbprotocol';
           default:

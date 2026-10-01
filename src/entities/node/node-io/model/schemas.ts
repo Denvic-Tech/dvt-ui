@@ -17,6 +17,7 @@ export const IOConnectionRequiredTypeSchema = zIo.extract([
   'DB_CONNECTION_ID',
   'FTP_CONNECTION_ID',
   'SMB_CONNECTION_ID',
+  'KAFKA_CONNECTION_ID',
   'S3_CONNECTION,FTP_CONNECTION,SMB_CONNECTION',
   'VARIABLE',
   'SIGNAL',
@@ -32,6 +33,7 @@ export const IOConnectionRequiredSubgraphTypeSchema = zIo.extract([
 ]);
 
 export const IOHasWidgetTypeSchema = zIo.extract([
+  'JSON',
   'STRING',
   'BOOLEAN',
   'INT',
@@ -44,4 +46,5 @@ export const IOHasWidgetTypeSchema = zIo.extract([
   'DB_CONNECTION_ID',
   'FTP_CONNECTION_ID',
   'SMB_CONNECTION_ID',
+  'KAFKA_CONNECTION_ID',
 ]);

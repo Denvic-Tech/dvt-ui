@@ -10,7 +10,7 @@ import {
   type NodeMetadata,
 } from '@/shared/gatewayClient';
 import type { VariableOutput } from '@/shared/lib/variables';
-import { TemplateMonacoInput } from '@/shared/ui/node-input';
+import { JSONNodeInput, TemplateMonacoInput } from '@/shared/ui/node-input';
 import PrimitiveNodeInput from '@/shared/ui/node-input/PrimitiveNodeInput';
 
 import { ColumnNameNodeInput, ListNodeInput, LiteralNodeInput } from './inputs';
@@ -115,6 +115,19 @@ const NodeDataInput_: React.FC<NodeDataInputProps> = ({
         inputDefinition={inputDefinition}
         currentValue={listValue}
         onChange={onValueChange}
+      />
+    );
+  }
+
+  if (type === 'JSON') {
+    if (renderMode === 'canvas') return null;
+
+    return (
+      <JSONNodeInput
+        value={currentValue}
+        onChange={onValueChange}
+        variables={variables}
+        allowVariableBinding={Boolean(inputDefinition.allow_expressions)}
       />
     );
   }

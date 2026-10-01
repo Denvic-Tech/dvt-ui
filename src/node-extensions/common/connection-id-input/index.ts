@@ -9,6 +9,7 @@ const CONNECTION_NODE_IO_TYPES: Io[] = [
   'S3_CONNECTION_ID',
   'FTP_CONNECTION_ID',
   'SMB_CONNECTION_ID',
+  'KAFKA_CONNECTION_ID',
 ];
 
 const ConnectionIDInputExtension: NodeExtension = {

@@ -1,31 +1,32 @@
 import { IconType } from 'react-icons';
+import { BiShow } from 'react-icons/bi'; // для представления (VIEW)
 import {
-  BsType, // String
   Bs123, // Int
-  BsToggleOn, // Boolean
-  BsCalendarDate, // Datetime
-  BsTag, // Category
   BsBox, // Object
+  BsCalendarDate, // Datetime
+  BsDatabase, // для базы данных
   BsQuestionSquare, // Unknown
+  BsTag, // Category
+  BsToggleOn, // Boolean
+  BsType, // String
 } from 'react-icons/bs';
-import {
-  TbDecimal, // Float
-} from 'react-icons/tb';
+import { GoProjectTemplate } from 'react-icons/go'; // для temporary table
+import { GrStatusUnknown } from 'react-icons/gr'; // unknown table type
 import {
   IoHourglassOutline, // timeDelta
 } from 'react-icons/io5';
+import { LuFileSpreadsheet } from 'react-icons/lu';
 import {
   MdDataObject, // Dictionary
 } from 'react-icons/md';
-import { BsDatabase } from 'react-icons/bs'; // для базы данных
-import { LuFileSpreadsheet } from 'react-icons/lu';
-import { TbTable, TbTableOptions } from 'react-icons/tb'; // для таблицы (BASE_TABLE) и системной таблицы (SYSTEM)
-import { BiShow } from 'react-icons/bi'; // для представления (VIEW)
-import { GoProjectTemplate } from 'react-icons/go'; // для temporary table
-import { GrStatusUnknown } from 'react-icons/gr'; // unknown table type
+import {
+  TbDecimal, // Float
+  TbTable, // для таблицы (BASE_TABLE)
+  TbTableOptions, // для системной таблицы (SYSTEM)
+} from 'react-icons/tb';
 
-import { DataType } from '@/shared/gatewayClient';
 import type { DbTableType as DBTableType } from '@/shared/gatewayClient';
+import { DataType } from '@/shared/gatewayClient';
 
 export const dataTypeIconMap: Record<DataType, IconType> = {
   STRING: BsType,
@@ -38,6 +39,9 @@ export const dataTypeIconMap: Record<DataType, IconType> = {
   DICTIONARY: MdDataObject,
   OBJECT: BsBox,
   UNKNOWN: BsQuestionSquare,
+  BINARY: BsBox,
+  LIST: LuFileSpreadsheet,
+  STRUCT: MdDataObject,
 };
 
 export const DBIcon = BsDatabase; // Иконка для базы данных

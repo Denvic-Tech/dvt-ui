@@ -1,11 +1,22 @@
 import { Box, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
+
 import type { DTypeMetadata } from '@/shared/gatewayClient';
+import { formatArrowType } from '@/shared/lib/formatArrowType';
+
 import { formatBoolean } from '../lib/formatters.ts';
+
 import { MetadataKeyValueGrid } from './MetadataPrimitives.tsx';
 
 export const getDTypeMetadataItems = (dtypeMetadata?: DTypeMetadata | null) => {
   return [
+    {
+      label: 'Arrow',
+      value: dtypeMetadata?.arrow_type
+        ? formatArrowType(dtypeMetadata.arrow_type)
+        : null,
+      mono: true,
+    },
     { label: 'dtype.name', value: dtypeMetadata?.name },
     { label: 'dtype.class', value: dtypeMetadata?.class },
     { label: 'dtype.origin', value: dtypeMetadata?.origin },

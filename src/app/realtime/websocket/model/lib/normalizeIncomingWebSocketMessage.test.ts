@@ -37,6 +37,7 @@ describe('normalizeIncomingWebSocketMessage', () => {
       variables: [
         {
           name: 'table_name',
+          is_list_type: false,
           type: 'STRING',
           value_state: 'resolved',
         },
@@ -77,11 +78,13 @@ describe('normalizeIncomingWebSocketMessage', () => {
       variables: [
         {
           name: 'source_table',
+          is_list_type: false,
           type: 'STRING',
           value_state: 'resolved',
         },
         {
           name: 'batch_size',
+          is_list_type: false,
           type: 'INT',
           var_type: 'system',
         },

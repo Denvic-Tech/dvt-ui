@@ -228,8 +228,6 @@ import type {
   GetExtensionStateExtensionsExtensionNameStateGetData,
   GetExtensionStateExtensionsExtensionNameStateGetErrors,
   GetExtensionStateExtensionsExtensionNameStateGetResponses,
-  GetFixturesPytestMonFixturesGetData,
-  GetFixturesPytestMonFixturesGetResponses,
   GetGraphProjectsProjectIdGraphGetData,
   GetGraphProjectsProjectIdGraphGetErrors,
   GetGraphProjectsProjectIdGraphGetResponses,
@@ -305,8 +303,6 @@ import type {
   GetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetData,
   GetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetErrors,
   GetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetResponses,
-  GetTestsPytestMonTestsGetData,
-  GetTestsPytestMonTestsGetResponses,
   GetUserApiTokensApiTokensGetData,
   GetUserApiTokensApiTokensGetResponses,
   GetUserByIdAdminUsersUserIdGetData,
@@ -668,8 +664,6 @@ import {
   zGetExtensionFrontendExtensionsExtensionNameFrontendGetResponse,
   zGetExtensionStateExtensionsExtensionNameStateGetData,
   zGetExtensionStateExtensionsExtensionNameStateGetResponse,
-  zGetFixturesPytestMonFixturesGetData,
-  zGetFixturesPytestMonFixturesGetResponse,
   zGetGraphProjectsProjectIdGraphGetData,
   zGetGraphProjectsProjectIdGraphGetResponse,
   zGetLogsLogsGetData,
@@ -725,8 +719,6 @@ import {
   zGetTaskInfoProjectsProjectIdTasksTaskIdInfoGetResponse,
   zGetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetData,
   zGetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetResponse,
-  zGetTestsPytestMonTestsGetData,
-  zGetTestsPytestMonTestsGetResponse,
   zGetUserApiTokensApiTokensGetData,
   zGetUserApiTokensApiTokensGetResponse,
   zGetUserByIdAdminUsersUserIdGetData,
@@ -6031,54 +6023,6 @@ export const updateMcpTokenMcpTokensTokenIdPatch = <
       'Content-Type': 'application/json',
       ...options.headers,
     },
-  });
-};
-
-/**
- * Get pytest fixtures
- */
-export const getFixturesPytestMonFixturesGet = <
-  ThrowOnError extends boolean = false,
->(
-  options?: Options<GetFixturesPytestMonFixturesGetData, ThrowOnError>
-) => {
-  return (options?.client ?? client).get<
-    GetFixturesPytestMonFixturesGetResponses,
-    unknown,
-    ThrowOnError
-  >({
-    requestValidator: async data => {
-      return await zGetFixturesPytestMonFixturesGetData.parseAsync(data);
-    },
-    responseType: 'json',
-    responseValidator: async data => {
-      return await zGetFixturesPytestMonFixturesGetResponse.parseAsync(data);
-    },
-    url: '/pytest-mon/fixtures',
-    ...options,
-  });
-};
-
-/**
- * Get pytest tests
- */
-export const getTestsPytestMonTestsGet = <ThrowOnError extends boolean = false>(
-  options?: Options<GetTestsPytestMonTestsGetData, ThrowOnError>
-) => {
-  return (options?.client ?? client).get<
-    GetTestsPytestMonTestsGetResponses,
-    unknown,
-    ThrowOnError
-  >({
-    requestValidator: async data => {
-      return await zGetTestsPytestMonTestsGetData.parseAsync(data);
-    },
-    responseType: 'json',
-    responseValidator: async data => {
-      return await zGetTestsPytestMonTestsGetResponse.parseAsync(data);
-    },
-    url: '/pytest-mon/tests',
-    ...options,
   });
 };
 

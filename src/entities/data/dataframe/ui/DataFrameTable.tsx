@@ -1,19 +1,21 @@
 import React, { useMemo } from 'react';
 import { Box, Paper, Tooltip } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-
+import { BiCheckboxChecked, BiQuestionMark } from 'react-icons/bi';
 import { Bs123, BsCalendarDate } from 'react-icons/bs';
-import { TbDecimal } from 'react-icons/tb';
+import { IoMdSettings } from 'react-icons/io';
 import {
   MdAbc,
-  MdHourglassEmpty,
   MdCategory,
+  MdHourglassEmpty,
   MdMenuBook,
 } from 'react-icons/md';
-import { BiCheckboxChecked, BiQuestionMark } from 'react-icons/bi';
-import { IoMdSettings } from 'react-icons/io';
+import { TbDecimal } from 'react-icons/tb';
 
-import type { DataFrameData, Column as DFColumn } from '@/shared/gatewayClient';
+import type { Column as DFColumn, DataFrameData } from '@/shared/gatewayClient';
+import { formatArrowType } from '@/shared/lib/formatArrowType';
+
+import { formatPreviewValue } from '../model/formatPreviewValue';
 
 interface DataFrameTableProps {
   data: DataFrameData;
@@ -71,6 +73,9 @@ const dtypeIconSvg: Record<string, React.ReactNode> = {
   TIMEDELTA: <MdHourglassEmpty />,
   CATEGORY: <MdCategory />,
   DICTIONARY: <MdMenuBook />,
+  BINARY: <Bs123 />,
+  LIST: <MdMenuBook />,
+  STRUCT: <IoMdSettings />,
   OBJECT: <IoMdSettings />,
   UNKNOWN: <BiQuestionMark />,
 };
@@ -155,7 +160,7 @@ function calcHeaderWidth(colName: string, headerFont: string) {
 
 function HeaderWithType({ col }: { col: DFColumn }) {
   const tip = `${col.name}
-dtype: ${col.dtype}${col.nullable !== undefined ? `\nnullable: ${col.nullable}` : ''}${col.index ? `\nindex: true` : ''}`;
+dtype: ${col.dtype}${col.dtype_metadata?.arrow_type ? `\nArrow: ${formatArrowType(col.dtype_metadata.arrow_type)}` : ''}${col.nullable !== undefined ? `\nnullable: ${col.nullable}` : ''}${col.index ? `\nindex: true` : ''}`;
 
   const iconNode = dtypeIconSvg[col.dtype] ?? dtypeIconSvg['UNKNOWN'];
   const scale = iconScale[col.dtype] ?? 1;
@@ -221,7 +226,7 @@ export const DataFrameTable: React.FC<DataFrameTableProps> = ({
         return v === null || v === undefined ? (
           <i style={{ opacity: 0.7 }}>null</i>
         ) : (
-          String(v)
+          formatPreviewValue(v)
         );
       };
 
