@@ -9,6 +9,8 @@ const DataFrameRegexReplaceExtension: NodeExtension = {
     return nodeDefinition.name === 'DataFrameRegexReplace';
   },
   type: 'modal',
+  allowOpenWithoutConnectedMetadata: true,
+  presentation: { type: 'centered', contentWidth: 'wide' },
   component: DataFrameRegexReplaceEditor,
 };
 

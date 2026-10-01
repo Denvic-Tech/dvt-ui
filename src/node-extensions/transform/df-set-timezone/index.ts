@@ -9,6 +9,8 @@ const DataFrameSetTimezoneExtension: NodeExtension = {
     return nodeDefinition.name === 'DataFrameSetTimezone';
   },
   type: 'modal',
+  allowOpenWithoutConnectedMetadata: true,
+  presentation: { type: 'centered', contentWidth: 'wide' },
   component: SetTimezoneToDataFrameEditor,
 };
 

@@ -15,6 +15,7 @@ import CreateTableExtension from '@/node-extensions/tool/create-table';
 import ExecuteProjectExtension from '@/node-extensions/tool/execute-project';
 import ExecutePythonExtension from '@/node-extensions/tool/execute-python';
 import SchemaPolicyExtension from '@/node-extensions/tool/schema-policy';
+import ColumnRulesExtension from '@/node-extensions/transform/column-rules';
 import AddTimeDeltaToDataFrameExtension from '@/node-extensions/transform/df-add-time-delta';
 import DataFrameCastColumnTypeExtension from '@/node-extensions/transform/df-cast-column-type';
 import DataFrameDropColumnsExtension from '@/node-extensions/transform/df-drop-columns';
@@ -66,6 +67,7 @@ nodeExtensionsRegistry.register(
   ExecuteProjectExtension,
   ExecutePythonExtension,
   SchemaPolicyExtension,
+  ColumnRulesExtension,
   AddTimeDeltaToDataFrameExtension,
   DataFrameCastColumnTypeExtension,
   DataFrameDropColumnsExtension,

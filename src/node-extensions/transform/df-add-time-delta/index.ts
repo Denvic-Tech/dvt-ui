@@ -9,6 +9,8 @@ const AddTimeDeltaToDataFrameExtension: NodeExtension = {
     return nodeDefinition.name === 'AddTimeDeltaToDataFrame';
   },
   type: 'modal',
+  allowOpenWithoutConnectedMetadata: true,
+  presentation: { type: 'centered', contentWidth: 'wide' },
   component: AddTimeDeltaToDataFrameEditor,
 };
 
