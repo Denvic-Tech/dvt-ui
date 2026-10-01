@@ -9,6 +9,8 @@ const DataFrameReplaceValuesExtension: NodeExtension = {
     return nodeDefinition.name === 'DataFrameReplaceValues';
   },
   type: 'modal',
+  allowOpenWithoutConnectedMetadata: true,
+  presentation: { type: 'centered', contentWidth: 'wide' },
   component: DataFrameReplaceValuesEditor,
 };
 

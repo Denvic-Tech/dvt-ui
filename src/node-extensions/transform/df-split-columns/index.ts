@@ -9,6 +9,8 @@ const DataFrameSplitColumnExtension: NodeExtension = {
     return nodeDefinition.name === 'DataFrameSplitColumn';
   },
   type: 'modal',
+  allowOpenWithoutConnectedMetadata: true,
+  presentation: { type: 'centered', contentWidth: 'wide' },
   component: DataFrameSplitColumnEditor,
 };
 
