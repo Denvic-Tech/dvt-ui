@@ -77,6 +77,16 @@ describe('entities/node-io', () => {
         type: 'DATAFRAME',
       } as any)
     ).toBe(true);
+    expect(
+      isConnectRequiredType({
+        type: 'KAFKA_CONNECTION',
+      } as any)
+    ).toBe(true);
+    expect(
+      requiresConnectedNodeMetadata({
+        type: 'KAFKA_CONNECTION',
+      } as any)
+    ).toBe(true);
 
     expect(isWidgetType('STRING' as any)).toBe(true);
     expect(isWidgetType('JSON' as any)).toBe(true);
