@@ -15,10 +15,13 @@ import {
   SearchCtaKbHint,
   SearchCtaText,
   SearchDropdown,
+  SearchDropdownDivider,
   SearchGlobalCta,
   SearchIconWrap,
   SearchInputField,
   SearchInputWrap,
+  SearchSourceCta,
+  SearchSourceIconBox,
 } from './ProjectsSearch.styles';
 
 type SearchScope = 'local' | 'global';
@@ -28,6 +31,7 @@ type ProjectsSearchProps = {
   scope: SearchScope;
   onChange: (value: string) => void;
   onGlobalSearch: () => void;
+  onSourceSearch: () => void;
   onClear: () => void;
 };
 
@@ -60,6 +64,22 @@ const GlobeSvg = () => (
   >
     <circle cx='12' cy='12' r='10' />
     <path d='M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z' />
+  </svg>
+);
+
+const DatabaseSvg = () => (
+  <svg
+    width='14'
+    height='14'
+    viewBox='0 0 24 24'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth='2'
+    strokeLinecap='round'
+    strokeLinejoin='round'
+  >
+    <ellipse cx='12' cy='5.5' rx='7.5' ry='2.8' />
+    <path d='M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8' />
   </svg>
 );
 
@@ -98,6 +118,7 @@ export const ProjectsSearch: React.FC<ProjectsSearchProps> = ({
   scope,
   onChange,
   onGlobalSearch,
+  onSourceSearch,
   onClear,
 }) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -117,7 +138,7 @@ export const ProjectsSearch: React.FC<ProjectsSearchProps> = ({
 
   const placeholder = isGlobal
     ? 'Поиск во всех проектах...'
-    : 'Поиск по названию...';
+    : 'Поиск по названию или источнику...';
 
   useEffect(() => {
     if (!focused) {
@@ -151,6 +172,17 @@ export const ProjectsSearch: React.FC<ProjectsSearchProps> = ({
     setIsDropdownDismissed(true);
     onGlobalSearch();
   }, [onGlobalSearch, trimmedValue]);
+
+  const handleSourceSearch = useCallback(() => {
+    if (!trimmedValue) {
+      return;
+    }
+
+    setIsDropdownDismissed(true);
+    setFocused(false);
+    inputRef.current?.blur();
+    onSourceSearch();
+  }, [onSourceSearch, trimmedValue]);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,6 +228,10 @@ export const ProjectsSearch: React.FC<ProjectsSearchProps> = ({
 
   const searchCtaLabel = useMemo(
     () => `Искать «${trimmedValue}» во всех проектах`,
+    [trimmedValue]
+  );
+  const sourceCtaLabel = useMemo(
+    () => `Найти проекты по источнику «${trimmedValue}»`,
     [trimmedValue]
   );
 
@@ -263,6 +299,22 @@ export const ProjectsSearch: React.FC<ProjectsSearchProps> = ({
               Enter
             </SearchCtaKbHint>
           </SearchGlobalCta>
+          <SearchDropdownDivider />
+          <SearchSourceCta
+            type='button'
+            aria-label='Найти проекты по источнику'
+            data-testid='features/projects/users-projects/projects-search-by-source'
+            onMouseDown={event => event.preventDefault()}
+            onClick={handleSourceSearch}
+          >
+            <SearchSourceIconBox>
+              <DatabaseSvg />
+            </SearchSourceIconBox>
+            <SearchCtaText title={sourceCtaLabel}>
+              Найти проекты по источнику{' '}
+              <span className='query'>«{trimmedValue}»</span>
+            </SearchCtaText>
+          </SearchSourceCta>
         </SearchDropdown>
       ) : null}
     </SearchContainer>
