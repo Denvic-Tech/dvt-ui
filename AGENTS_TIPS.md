@@ -95,3 +95,9 @@
 - Для больших editable таблиц внутри модалки удобнее держать sticky/static header отдельно, а scrollable body виртуализировать через `react-virtuoso`; это позволяет сохранить layout колонок и не рендерить сотни `input/select/switch` одновременно.
 - Если таблица поддерживает jump-to-row из summary/preview, старый `scrollIntoView` по DOM-ref ломается после виртуализации. Надежный паттерн: для large-list использовать `VirtuosoHandle.scrollToIndex`, а для малых невиртуализированных списков оставить fallback на локальный `rowElementsRef`.
 - В ClickHouse advanced options дрожание hover/focus часто связано не с самими контролами, а с появлением/исчезновением scrollbar внутри вложенных scroll-box. Практический фикс: `overflowY: auto`, `overflowX: hidden`, `scrollbarGutter: stable`, `overscrollBehavior: contain` и отказ от лишнего `transition: all` на интерактивных элементах.
+
+### 2026-10-08 — Синхронизация detail-запроса со списком в RTK Query (data-catalog)
+
+- Если detail-запрос меняет данные на бэкенде (например, `GET /data-catalog/datasets/{id}?sync=true`), обновляйте уже загруженные страницы списка в `onQueryStarted`: `api.util.selectCachedArgsForQuery(getState(), 'searchDatasets')` + `updateQueryData` по каждому аргументу. В RTK 2.11 это работает и для `infiniteQuery` (draft = `{ pages, pageParams }`).
+- Для «свежих» данных при каждом открытии модалки монтируйте компонент с хуком внутри `Dialog` (MUI размонтирует children после закрытия) и передавайте `refetchOnMountOrArgChange: true`.
+- При `exactOptionalPropertyTypes` нельзя перекладывать optional-поля поштучно (`description: details.description` даёт `| undefined`); безопаснее отрезать лишние ключи деструктуризацией и делать spread остатка.

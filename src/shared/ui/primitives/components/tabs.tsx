@@ -1,7 +1,7 @@
+import * as React from 'react';
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import TabsMui from '@mui/material/Tabs';
-import * as React from 'react';
 
 import { mergeSx } from './control-styles.ts';
 
@@ -17,9 +17,11 @@ type TabsListProps = {
   sx?: React.ComponentProps<typeof TabsMui>['sx'];
 };
 
-type TabsTriggerProps = {
+type TabsTriggerProps = Omit<
+  React.ComponentProps<typeof Tab>,
+  'children' | 'label' | 'value'
+> & {
   children?: React.ReactNode;
-  sx?: React.ComponentProps<typeof Tab>['sx'];
   value: string;
 };
 
@@ -52,7 +54,8 @@ const Tabs = ({
   onValueChange,
   value: valueProp,
 }: TabsProps) => {
-  const [uncontrolledValue, setUncontrolledValue] = React.useState(defaultValue);
+  const [uncontrolledValue, setUncontrolledValue] =
+    React.useState(defaultValue);
 
   const value = valueProp ?? uncontrolledValue;
 
@@ -89,8 +92,10 @@ const TabsList = ({ children, sx }: TabsListProps) => {
   );
 };
 
-const TabsTrigger = ({ children, sx, value }: TabsTriggerProps) => (
-  <Tab {...(sx ? { sx } : {})} label={children} value={value} />
+// MUI Tabs клонирует прямых детей и передаёт им onChange/selected/indicator и
+// т.п. — их нужно пробросить в Tab, иначе клик по вкладке не переключает её.
+const TabsTrigger = ({ children, value, ...tabProps }: TabsTriggerProps) => (
+  <Tab {...tabProps} label={children} value={value} />
 );
 
 const TabsContent = ({ children, sx, value }: TabsContentProps) => {
@@ -100,11 +105,7 @@ const TabsContent = ({ children, sx, value }: TabsContentProps) => {
     return null;
   }
 
-  return (
-    <Box sx={mergeSx({ mt: 2 }, sx)}>
-      {children}
-    </Box>
-  );
+  return <Box sx={mergeSx({ mt: 2 }, sx)}>{children}</Box>;
 };
 
 export { Tabs, TabsContent, TabsList, TabsTrigger };

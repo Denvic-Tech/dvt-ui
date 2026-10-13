@@ -46,6 +46,7 @@ import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { OrganizationSwitcherBar } from './OrganizationSwitcherBar';
 import { ProjectContextMenu } from './ProjectContextMenu';
 import { ProjectsSearch } from './ProjectsSearch';
+import { ProjectsSourceSearchDialog } from './ProjectsSourceSearchDialog';
 import {
   ActionGate,
   BreadcrumbButton,
@@ -1107,6 +1108,8 @@ export const UsersProjects: React.FC = () => {
   const [renameFolder, setRenameFolder] =
     useState<ProjectFolderReadSchema | null>(null);
   const [search, setSearch] = useState('');
+  const [sourceSearchOpen, setSourceSearchOpen] = useState(false);
+  const [sourceSearchQuery, setSourceSearchQuery] = useState('');
   const [sortValue, setSortValue] = useState<SortValue>('updated-desc');
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
@@ -1494,6 +1497,19 @@ export const UsersProjects: React.FC = () => {
     setSearch('');
     setIsGlobalSearch(false);
     setSelectedKeys([]);
+  }, []);
+
+  const handleOpenSourceSearch = useCallback(() => {
+    if (!trimmedSearch) {
+      return;
+    }
+
+    setSourceSearchQuery(trimmedSearch);
+    setSourceSearchOpen(true);
+  }, [trimmedSearch]);
+
+  const handleCloseSourceSearch = useCallback(() => {
+    setSourceSearchOpen(false);
   }, []);
 
   const handleToggleGlobalSearch = useCallback(() => {
@@ -1938,6 +1954,7 @@ export const UsersProjects: React.FC = () => {
               scope={isGlobalSearch ? 'global' : 'local'}
               onChange={handleSearchChange}
               onGlobalSearch={handleToggleGlobalSearch}
+              onSourceSearch={handleOpenSourceSearch}
               onClear={handleClearSearch}
             />
 
@@ -2519,6 +2536,13 @@ export const UsersProjects: React.FC = () => {
           setRenameFolder(null);
         }}
         onConfirm={handleConfirmRenameFolder}
+      />
+
+      <ProjectsSourceSearchDialog
+        open={sourceSearchOpen}
+        initialQuery={sourceSearchQuery}
+        onClose={handleCloseSourceSearch}
+        onOpenProject={handleOpenProject}
       />
 
       <RunDetailsDialog

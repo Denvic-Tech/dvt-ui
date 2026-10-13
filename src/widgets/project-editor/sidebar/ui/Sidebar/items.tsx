@@ -2,6 +2,7 @@ import DataObjectIcon from '@mui/icons-material/DataObject';
 import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import ViewListRoundedIcon from '@mui/icons-material/ViewListRounded';
 import { LuDatabase } from 'react-icons/lu';
@@ -25,6 +26,10 @@ export const categoryItems = {
     label: 'Файловый менеджер',
     icon: <FolderOpenOutlinedIcon sx={{ fontSize: 22 }} />,
   },
+  dataCatalog: {
+    label: 'Каталог данных',
+    icon: <MenuBookOutlinedIcon sx={{ fontSize: 22 }} />,
+  },
   queueTaskList: {
     label: 'Очередь задач',
     icon: <ListAltIcon sx={{ fontSize: 24 }} />,
@@ -42,3 +47,11 @@ export const categoryItems = {
     icon: <AIAnalysisIcon sx={{ fontSize: 24 }} />,
   },
 };
+
+/**
+ * Вкладки, которые временно скрыты из рейла сайдбара. Код вкладок сохранён:
+ * чтобы снова показать вкладку, достаточно убрать её ключ отсюда.
+ * - `dataCatalog` — каталог данных ещё в разработке.
+ */
+export const hiddenCategoryKeys: ReadonlySet<keyof typeof categoryItems> =
+  new Set(['dataCatalog']);

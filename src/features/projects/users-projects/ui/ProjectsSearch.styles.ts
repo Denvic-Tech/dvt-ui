@@ -165,3 +165,23 @@ export const SearchCtaKbHint = styled('span')(() => ({
   flexShrink: 0,
   border: 'none',
 }));
+
+export const SearchDropdownDivider = styled('div')(() => ({
+  height: 1,
+  backgroundColor: '#f3f4f6',
+  margin: '4px 6px',
+}));
+
+export const SearchSourceCta = styled(SearchGlobalCta)(() => ({
+  '&:hover': {
+    backgroundColor: '#e6f5f3',
+  },
+  '&:hover > span:first-of-type': {
+    boxShadow: 'inset 0 0 0 1px #bfe5df',
+  },
+}));
+
+export const SearchSourceIconBox = styled(SearchCtaIconBox)(() => ({
+  backgroundColor: '#e6f5f3',
+  color: '#0e8f86',
+}));

@@ -288,7 +288,9 @@ export const ProjectsFilterDropdown: React.FC<ProjectsFilterDropdownProps> = ({
                             organization.id as string
                           )}
                         >
-                          {selectedOrgIds.includes(organization.id as string) ? (
+                          {selectedOrgIds.includes(
+                            organization.id as string
+                          ) ? (
                             <CheckmarkIcon />
                           ) : null}
                         </FilterCheckbox>
@@ -299,7 +301,6 @@ export const ProjectsFilterDropdown: React.FC<ProjectsFilterDropdownProps> = ({
                 </FilterSectionContent>
               ) : null}
             </FilterSection>
-
           </FilterSections>
         </FilterDropdown>
       ) : null}
