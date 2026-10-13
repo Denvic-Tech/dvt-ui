@@ -40,6 +40,9 @@ import type {
   ClearProjectsProjectIdCacheClearPostData,
   ClearProjectsProjectIdCacheClearPostErrors,
   ClearProjectsProjectIdCacheClearPostResponses,
+  ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostData,
+  ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostErrors,
+  ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponses,
   CopyProjectProjectsProjectIdCopyPostData,
   CopyProjectProjectsProjectIdCopyPostErrors,
   CopyProjectProjectsProjectIdCopyPostResponses,
@@ -211,6 +214,12 @@ import type {
   GetConnectionPublicDbConnectionsConnectionIdGetData,
   GetConnectionPublicDbConnectionsConnectionIdGetErrors,
   GetConnectionPublicDbConnectionsConnectionIdGetResponses,
+  GetDatasetDataCatalogDatasetsDatasetIdGetData,
+  GetDatasetDataCatalogDatasetsDatasetIdGetErrors,
+  GetDatasetDataCatalogDatasetsDatasetIdGetResponses,
+  GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetData,
+  GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetErrors,
+  GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponses,
   GetDataStoreGetData,
   GetDataStoreGetErrors,
   GetDataStoreGetResponses,
@@ -228,6 +237,8 @@ import type {
   GetExtensionStateExtensionsExtensionNameStateGetData,
   GetExtensionStateExtensionsExtensionNameStateGetErrors,
   GetExtensionStateExtensionsExtensionNameStateGetResponses,
+  GetFixturesPytestMonFixturesGetData,
+  GetFixturesPytestMonFixturesGetResponses,
   GetGraphProjectsProjectIdGraphGetData,
   GetGraphProjectsProjectIdGraphGetErrors,
   GetGraphProjectsProjectIdGraphGetResponses,
@@ -303,6 +314,8 @@ import type {
   GetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetData,
   GetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetErrors,
   GetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetResponses,
+  GetTestsPytestMonTestsGetData,
+  GetTestsPytestMonTestsGetResponses,
   GetUserApiTokensApiTokensGetData,
   GetUserApiTokensApiTokensGetResponses,
   GetUserByIdAdminUsersUserIdGetData,
@@ -397,6 +410,9 @@ import type {
   RefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostData,
   RefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostErrors,
   RefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostResponses,
+  RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData,
+  RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostErrors,
+  RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses,
   RefreshTokenRefreshPostData,
   RefreshTokenRefreshPostResponses,
   RegisterExceptionExceptionsRegisterExceptionPostData,
@@ -425,6 +441,9 @@ import type {
   ScheduleProjectsSchedulerSchedulePostData,
   ScheduleProjectsSchedulerSchedulePostErrors,
   ScheduleProjectsSchedulerSchedulePostResponses,
+  SearchDatasetsDataCatalogDatasetsGetData,
+  SearchDatasetsDataCatalogDatasetsGetErrors,
+  SearchDatasetsDataCatalogDatasetsGetResponses,
   SearchProjectsProjectsSearchGetData,
   SearchProjectsProjectsSearchGetErrors,
   SearchProjectsProjectsSearchGetResponses,
@@ -472,6 +491,9 @@ import type {
   UpdateConnectionPublicDbConnectionsConnectionIdPatchData,
   UpdateConnectionPublicDbConnectionsConnectionIdPatchErrors,
   UpdateConnectionPublicDbConnectionsConnectionIdPatchResponses,
+  UpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchData,
+  UpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchErrors,
+  UpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchResponses,
   UpdateExtensionStateExtensionsExtensionNameStatePutData,
   UpdateExtensionStateExtensionsExtensionNameStatePutErrors,
   UpdateExtensionStateExtensionsExtensionNameStatePutResponses,
@@ -543,6 +565,8 @@ import {
   zClearMetadataProjectsProjectIdCacheClearMetadataPostResponse,
   zClearProjectsProjectIdCacheClearPostData,
   zClearProjectsProjectIdCacheClearPostResponse,
+  zConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostData,
+  zConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponse,
   zCopyProjectProjectsProjectIdCopyPostData,
   zCopyProjectProjectsProjectIdCopyPostResponse,
   zCreateAiAnalysisRequestProjectsProjectIdAiAnalyzePostData,
@@ -654,6 +678,10 @@ import {
   zGetConnectionDbConnectionsConnectionIdGetResponse,
   zGetConnectionPublicDbConnectionsConnectionIdGetData,
   zGetConnectionPublicDbConnectionsConnectionIdGetResponse,
+  zGetDatasetDataCatalogDatasetsDatasetIdGetData,
+  zGetDatasetDataCatalogDatasetsDatasetIdGetResponse,
+  zGetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetData,
+  zGetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponse,
   zGetDataStoreGetData,
   zGetDataStoreGetResponse,
   zGetExceptionsExceptionsGetData,
@@ -664,6 +692,8 @@ import {
   zGetExtensionFrontendExtensionsExtensionNameFrontendGetResponse,
   zGetExtensionStateExtensionsExtensionNameStateGetData,
   zGetExtensionStateExtensionsExtensionNameStateGetResponse,
+  zGetFixturesPytestMonFixturesGetData,
+  zGetFixturesPytestMonFixturesGetResponse,
   zGetGraphProjectsProjectIdGraphGetData,
   zGetGraphProjectsProjectIdGraphGetResponse,
   zGetLogsLogsGetData,
@@ -719,6 +749,8 @@ import {
   zGetTaskInfoProjectsProjectIdTasksTaskIdInfoGetResponse,
   zGetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetData,
   zGetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetResponse,
+  zGetTestsPytestMonTestsGetData,
+  zGetTestsPytestMonTestsGetResponse,
   zGetUserApiTokensApiTokensGetData,
   zGetUserApiTokensApiTokensGetResponse,
   zGetUserByIdAdminUsersUserIdGetData,
@@ -788,6 +820,8 @@ import {
   zRecreateTableUtilsDdlRecreateTablePostResponse,
   zRefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostData,
   zRefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostResponse,
+  zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData,
+  zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponse,
   zRefreshTokenRefreshPostData,
   zRefreshTokenRefreshPostResponse,
   zRegisterExceptionExceptionsRegisterExceptionPostData,
@@ -807,6 +841,8 @@ import {
   zRunUpdateUpdateRunPostResponse,
   zScheduleProjectsSchedulerSchedulePostData,
   zScheduleProjectsSchedulerSchedulePostResponse,
+  zSearchDatasetsDataCatalogDatasetsGetData,
+  zSearchDatasetsDataCatalogDatasetsGetResponse,
   zSearchProjectsProjectsSearchGetData,
   zSearchProjectsProjectsSearchGetResponse,
   zSetAppSettingsValueAppSettingsKeyPostData,
@@ -836,6 +872,8 @@ import {
   zUpdateConnectionDbConnectionsConnectionIdPatchResponse,
   zUpdateConnectionPublicDbConnectionsConnectionIdPatchData,
   zUpdateConnectionPublicDbConnectionsConnectionIdPatchResponse,
+  zUpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchData,
+  zUpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchResponse,
   zUpdateExtensionStateExtensionsExtensionNameStatePutData,
   zUpdateExtensionStateExtensionsExtensionNameStatePutResponse,
   zUpdateMcpTokenMcpTokensTokenIdPatchData,
@@ -3418,6 +3456,201 @@ export const refreshCatalogDbConnectionsConnectionIdCatalogRefreshPost = <
     ...options,
   });
 };
+
+/**
+ * Search Datasets
+ */
+export const searchDatasetsDataCatalogDatasetsGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<SearchDatasetsDataCatalogDatasetsGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    SearchDatasetsDataCatalogDatasetsGetResponses,
+    SearchDatasetsDataCatalogDatasetsGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zSearchDatasetsDataCatalogDatasetsGetData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zSearchDatasetsDataCatalogDatasetsGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/data-catalog/datasets',
+    ...options,
+  });
+};
+
+/**
+ * Get Dataset
+ */
+export const getDatasetDataCatalogDatasetsDatasetIdGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetDatasetDataCatalogDatasetsDatasetIdGetData, ThrowOnError>
+) => {
+  return (options.client ?? client).get<
+    GetDatasetDataCatalogDatasetsDatasetIdGetResponses,
+    GetDatasetDataCatalogDatasetsDatasetIdGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetDatasetDataCatalogDatasetsDatasetIdGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetDatasetDataCatalogDatasetsDatasetIdGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/data-catalog/datasets/{dataset_id}',
+    ...options,
+  });
+};
+
+/**
+ * Update Dataset Descriptions
+ *
+ * Глобальные описания: пропущенный ключ не меняет значение, явный null очищает.
+ */
+export const updateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatch = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    UpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).patch<
+    UpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchResponses,
+    UpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zUpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zUpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchResponse.parseAsync(
+        data
+      );
+    },
+    url: '/data-catalog/datasets/{dataset_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Get Dataset Usage
+ */
+export const getDatasetUsageDataCatalogDatasetsDatasetIdUsageGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).get<
+    GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponses,
+    GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/data-catalog/datasets/{dataset_id}/usage',
+    ...options,
+  });
+};
+
+/**
+ * Refresh Dataset
+ *
+ * Принудительно перечитывает схему из источника; неудача возвращается статусом, не ошибкой.
+ */
+export const refreshDatasetDataCatalogDatasetsDatasetIdRefreshPost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).post<
+    RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses,
+    RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponse.parseAsync(
+        data
+      );
+    },
+    url: '/data-catalog/datasets/{dataset_id}/refresh',
+    ...options,
+  });
+};
+
+/**
+ * Confirm Field Rename
+ */
+export const confirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPost =
+  <ThrowOnError extends boolean = false>(
+    options: Options<
+      ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostData,
+      ThrowOnError
+    >
+  ) => {
+    return (options.client ?? client).post<
+      ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponses,
+      ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostErrors,
+      ThrowOnError
+    >({
+      requestValidator: async data => {
+        return await zConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostData.parseAsync(
+          data
+        );
+      },
+      responseType: 'json',
+      responseValidator: async data => {
+        return await zConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponse.parseAsync(
+          data
+        );
+      },
+      url: '/data-catalog/datasets/{dataset_id}/fields/rename-confirm',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  };
 
 /**
  * Sql Code Metadata
@@ -6023,6 +6256,54 @@ export const updateMcpTokenMcpTokensTokenIdPatch = <
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+};
+
+/**
+ * Get pytest fixtures
+ */
+export const getFixturesPytestMonFixturesGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetFixturesPytestMonFixturesGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    GetFixturesPytestMonFixturesGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetFixturesPytestMonFixturesGetData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetFixturesPytestMonFixturesGetResponse.parseAsync(data);
+    },
+    url: '/pytest-mon/fixtures',
+    ...options,
+  });
+};
+
+/**
+ * Get pytest tests
+ */
+export const getTestsPytestMonTestsGet = <ThrowOnError extends boolean = false>(
+  options?: Options<GetTestsPytestMonTestsGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    GetTestsPytestMonTestsGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetTestsPytestMonTestsGetData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetTestsPytestMonTestsGetResponse.parseAsync(data);
+    },
+    url: '/pytest-mon/tests',
+    ...options,
   });
 };
 

@@ -1748,6 +1748,259 @@ export type DataFrameMetadataOutputZodType = z.infer<
 >;
 
 /**
+ * FieldDescriptionPatchSchema
+ *
+ * Ключ description обязателен: null означает очистку, пропуск недопустим.
+ */
+export const zFieldDescriptionPatchSchema = z.object({
+  field_id: z.optional(z.union([z.string().min(1), z.null()])),
+  name: z.optional(z.union([z.string().min(1), z.null()])),
+  description: z.union([z.string().max(20480), z.null()]),
+});
+
+export type FieldDescriptionPatchSchemaZodType = z.infer<
+  typeof zFieldDescriptionPatchSchema
+>;
+
+/**
+ * DatasetDescriptionPatchSchema
+ */
+export const zDatasetDescriptionPatchSchema = z.object({
+  description: z.optional(z.union([z.string().max(20480), z.null()])),
+  fields: z.optional(
+    z.union([z.array(zFieldDescriptionPatchSchema), z.null()])
+  ),
+});
+
+export type DatasetDescriptionPatchSchemaZodType = z.infer<
+  typeof zDatasetDescriptionPatchSchema
+>;
+
+/**
+ * DatasetLocatorSchema
+ *
+ * Адрес источника: вид и части адреса, которые понимает адаптер этого вида.
+ */
+export const zDatasetLocatorSchema = z.object({
+  kind: z.string(),
+  location: z.string(),
+  parts: z.optional(
+    z.record(z.string(), z.union([z.string(), z.int(), z.null()]))
+  ),
+});
+
+export type DatasetLocatorSchemaZodType = z.infer<typeof zDatasetLocatorSchema>;
+
+/**
+ * DatasetFieldSchema
+ */
+export const zDatasetFieldSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  dtype: z.optional(z.union([z.string(), z.null()])),
+  nullable: z.optional(z.union([z.boolean(), z.null()])),
+  ordinal: z.optional(z.union([z.int(), z.null()])),
+  primary_key: z.optional(z.boolean()).default(false),
+  source_comment: z.optional(z.union([z.string(), z.null()])),
+  description: z.optional(z.union([z.string(), z.null()])),
+  effective_description: z.optional(z.union([z.string(), z.null()])),
+  description_provenance: z.optional(z.enum(['declared', 'source', 'none'])),
+  description_updated_by: z.optional(z.union([z.string(), z.null()])),
+  description_updated_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  status: z.enum(['ok', 'new', 'missing', 'type_changed']),
+  first_seen_at: z.iso.datetime({
+    offset: true,
+  }),
+  last_seen_at: z.iso.datetime({
+    offset: true,
+  }),
+  observed_via: z.optional(z.array(z.string())),
+});
+
+export type DatasetFieldSchemaZodType = z.infer<typeof zDatasetFieldSchema>;
+
+/**
+ * DatasetDetailsSchema
+ */
+export const zDatasetDetailsSchema = z.object({
+  id: z.string(),
+  organization_id: z.string(),
+  physical_key: z.string(),
+  locator: zDatasetLocatorSchema,
+  description: z.optional(z.union([z.string(), z.null()])),
+  effective_description: z.optional(z.union([z.string(), z.null()])),
+  description_provenance: z.optional(z.enum(['declared', 'none'])),
+  description_updated_by: z.optional(z.union([z.string(), z.null()])),
+  description_updated_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  freshness: z.enum([
+    'fresh',
+    'stale',
+    'unverified',
+    'unreachable',
+    'not_found',
+  ]),
+  schema_synced_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  last_check_failed_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  last_check_error: z.optional(z.union([z.string(), z.null()])),
+  last_check_error_kind: z.optional(
+    z.union([z.enum(['not_found', 'unreachable']), z.null()])
+  ),
+  observed_at_run: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  connection_ids: z.optional(z.array(z.string())),
+  fields: z.optional(z.array(zDatasetFieldSchema)),
+  created_at: z.iso.datetime({
+    offset: true,
+  }),
+  updated_at: z.iso.datetime({
+    offset: true,
+  }),
+});
+
+export type DatasetDetailsSchemaZodType = z.infer<typeof zDatasetDetailsSchema>;
+
+/**
+ * DatasetSummarySchema
+ */
+export const zDatasetSummarySchema = z.object({
+  id: z.string(),
+  organization_id: z.string(),
+  physical_key: z.string(),
+  locator: zDatasetLocatorSchema,
+  description: z.optional(z.union([z.string(), z.null()])),
+  effective_description: z.optional(z.union([z.string(), z.null()])),
+  description_provenance: z.optional(z.enum(['declared', 'none'])),
+  description_updated_by: z.optional(z.union([z.string(), z.null()])),
+  description_updated_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  freshness: z.enum([
+    'fresh',
+    'stale',
+    'unverified',
+    'unreachable',
+    'not_found',
+  ]),
+  schema_synced_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  last_check_failed_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  last_check_error: z.optional(z.union([z.string(), z.null()])),
+  last_check_error_kind: z.optional(
+    z.union([z.enum(['not_found', 'unreachable']), z.null()])
+  ),
+  observed_at_run: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  field_count: z.int().gte(0),
+  reader_count: z.int().gte(0),
+  writer_count: z.int().gte(0),
+  updated_at: z.iso.datetime({
+    offset: true,
+  }),
+});
+
+export type DatasetSummarySchemaZodType = z.infer<typeof zDatasetSummarySchema>;
+
+/**
+ * DatasetPageSchema
+ */
+export const zDatasetPageSchema = z.object({
+  items: z.array(zDatasetSummarySchema),
+  next_cursor: z.optional(z.union([z.string(), z.null()])),
+});
+
+export type DatasetPageSchemaZodType = z.infer<typeof zDatasetPageSchema>;
+
+/**
+ * DatasetUsageEntrySchema
+ */
+export const zDatasetUsageEntrySchema = z.object({
+  project_id: z.string(),
+  project_name: z.optional(z.union([z.string(), z.null()])),
+  node_id: z.string(),
+  node_name: z.string(),
+  direction: z.enum(['read', 'write']),
+  kind: z.literal('declared'),
+  resolved_via: z.enum(['const', 'expression', 'sql']),
+  graph_revision: z.int(),
+  updated_at: z.iso.datetime({
+    offset: true,
+  }),
+});
+
+export type DatasetUsageEntrySchemaZodType = z.infer<
+  typeof zDatasetUsageEntrySchema
+>;
+
+/**
+ * DatasetUsageResponseSchema
+ */
+export const zDatasetUsageResponseSchema = z.object({
+  items: z.array(zDatasetUsageEntrySchema),
+});
+
+export type DatasetUsageResponseSchemaZodType = z.infer<
+  typeof zDatasetUsageResponseSchema
+>;
+
+/**
  * DeleteFilesIn
  */
 export const zDeleteFilesIn = z.object({
@@ -2268,6 +2521,30 @@ export const zFtpSecrets = z.object({
 });
 
 export type FtpSecretsZodType = z.infer<typeof zFtpSecrets>;
+
+/**
+ * FieldRefSchema
+ *
+ * Ссылка на поле: ровно одно из field_id или name.
+ */
+export const zFieldRefSchema = z.object({
+  field_id: z.optional(z.union([z.string().min(1), z.null()])),
+  name: z.optional(z.union([z.string().min(1), z.null()])),
+});
+
+export type FieldRefSchemaZodType = z.infer<typeof zFieldRefSchema>;
+
+/**
+ * FieldRenameConfirmSchema
+ */
+export const zFieldRenameConfirmSchema = z.object({
+  missing: zFieldRefSchema,
+  new: zFieldRefSchema,
+});
+
+export type FieldRenameConfirmSchemaZodType = z.infer<
+  typeof zFieldRenameConfirmSchema
+>;
 
 /**
  * FtpFileNoDriverConnectionCreateRequest
@@ -4489,6 +4766,49 @@ export type PublishedNodeDocumentationSchemaZodType = z.infer<
 >;
 
 /**
+ * PytestEntityLocation
+ */
+export const zPytestEntityLocation = z.object({
+  absolute_path: z.string(),
+  relative_path: z.string(),
+  lineno: z.int(),
+  end_lineno: z.int(),
+});
+
+export type PytestEntityLocationZodType = z.infer<typeof zPytestEntityLocation>;
+
+/**
+ * PytestEntitySchema
+ */
+export const zPytestEntitySchema = z.object({
+  name: z.string(),
+  python_name: z.string(),
+  qualified_name: z.string(),
+  signature: z.string(),
+  description: z.optional(z.union([z.string(), z.null()])),
+  code: z.string(),
+  is_async: z.boolean(),
+  location: zPytestEntityLocation,
+});
+
+export type PytestEntitySchemaZodType = z.infer<typeof zPytestEntitySchema>;
+
+/**
+ * PytestEntityListResponse
+ */
+export const zPytestEntityListResponse = z.object({
+  root_path: z.string(),
+  fingerprint: z.string(),
+  count: z.int(),
+  items: z.optional(z.array(zPytestEntitySchema)),
+  errors: z.optional(z.array(z.string())),
+});
+
+export type PytestEntityListResponseZodType = z.infer<
+  typeof zPytestEntityListResponse
+>;
+
+/**
  * QueueAction
  */
 export const zQueueAction = z.enum(['cancel']);
@@ -4658,6 +4978,23 @@ export const zRecreateTableRequest = z.object({
 });
 
 export type RecreateTableRequestZodType = z.infer<typeof zRecreateTableRequest>;
+
+/**
+ * RefreshOutcomeSchema
+ */
+export const zRefreshOutcomeSchema = z.object({
+  status: z.enum(['synced', 'failed', 'no_connection', 'unsupported']),
+  new: z.optional(z.int().gte(0)).default(0),
+  missing: z.optional(z.int().gte(0)).default(0),
+  type_changed: z.optional(z.int().gte(0)).default(0),
+  affected_project_ids: z.optional(z.array(z.string())),
+  error: z.optional(z.union([z.string(), z.null()])),
+  error_kind: z.optional(
+    z.union([z.enum(['not_found', 'unreachable']), z.null()])
+  ),
+});
+
+export type RefreshOutcomeSchemaZodType = z.infer<typeof zRefreshOutcomeSchema>;
 
 /**
  * RenamePathIn
@@ -7676,9 +8013,292 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * DataFrameSchemaMappingError
+ * DatasetNotFoundError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel46 =
+  z.object({
+    name: z.optional(z.string()).default('DATASET_NOT_FOUND'),
+    code: z.optional(z.string()).default('DATA_CATALOG_004'),
+    description: z
+      .optional(z.string())
+      .default('Dataset was not found or is not visible to the current user.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel46ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel46
+  >;
+
+/**
+ * DatasetAccessDeniedError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel47 =
+  z.object({
+    name: z.optional(z.string()).default('DATASET_ACCESS_DENIED'),
+    code: z.optional(z.string()).default('DATA_CATALOG_005'),
+    description: z
+      .optional(z.string())
+      .default('Dataset is not accessible to the current user.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel47ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel47
+  >;
+
+/**
+ * ExpressionUnresolvedError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel48 =
+  z.object({
+    name: z.optional(z.string()).default('DATA_CATALOG_EXPRESSION_UNRESOLVED'),
+    code: z.optional(z.string()).default('DATA_CATALOG_006'),
+    description: z
+      .optional(z.string())
+      .default('Locator expression cannot be resolved statically.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel48ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel48
+  >;
+
+/**
+ * SqlReferenceExtractionError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel49 =
+  z.object({
+    name: z
+      .optional(z.string())
+      .default('DATA_CATALOG_SQL_REFERENCE_EXTRACTION_FAILED'),
+    code: z.optional(z.string()).default('DATA_CATALOG_007'),
+    description: z
+      .optional(z.string())
+      .default('Table references cannot be extracted from SQL.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel49ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel49
+  >;
+
+/**
+ * SchemaSourceUnavailableError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel50 =
+  z.object({
+    name: z.optional(z.string()).default('DATASET_SCHEMA_SOURCE_UNAVAILABLE'),
+    code: z.optional(z.string()).default('DATA_CATALOG_008'),
+    description: z
+      .optional(z.string())
+      .default('Dataset schema source is unavailable.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel50ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel50
+  >;
+
+/**
+ * ProjectGraphNotFoundError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel51 =
+  z.object({
+    name: z
+      .optional(z.string())
+      .default('DATA_CATALOG_PROJECT_GRAPH_NOT_FOUND'),
+    code: z.optional(z.string()).default('DATA_CATALOG_009'),
+    description: z
+      .optional(z.string())
+      .default('Project graph for catalog projection was not found.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel51ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel51
+  >;
+
+/**
+ * DatasetFieldNotFoundError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel52 =
+  z.object({
+    name: z.optional(z.string()).default('DATASET_FIELD_NOT_FOUND'),
+    code: z.optional(z.string()).default('DATA_CATALOG_012'),
+    description: z.optional(z.string()).default('Dataset field was not found.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel52ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel52
+  >;
+
+/**
+ * FieldRenameNotApplicableError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel53 =
+  z.object({
+    name: z.optional(z.string()).default('DATASET_FIELD_RENAME_NOT_APPLICABLE'),
+    code: z.optional(z.string()).default('DATA_CATALOG_013'),
+    description: z
+      .optional(z.string())
+      .default(
+        'Dataset field rename cannot be confirmed for the given fields.'
+      ),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel53ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel53
+  >;
+
+/**
+ * InvalidFieldReferenceError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel54 =
+  z.object({
+    name: z.optional(z.string()).default('DATASET_FIELD_REFERENCE_INVALID'),
+    code: z.optional(z.string()).default('DATA_CATALOG_014'),
+    description: z
+      .optional(z.string())
+      .default('Dataset field reference is invalid.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel54ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel54
+  >;
+
+/**
+ * SchemaSourceNotFoundError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel55 =
+  z.object({
+    name: z.optional(z.string()).default('DATASET_SCHEMA_SOURCE_NOT_FOUND'),
+    code: z.optional(z.string()).default('DATA_CATALOG_015'),
+    description: z
+      .optional(z.string())
+      .default('Dataset table or database does not exist in the source.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel55ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel55
+  >;
+
+/**
+ * UnknownSourceKindError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel56 =
+  z.object({
+    name: z.optional(z.string()).default('DATA_CATALOG_UNKNOWN_SOURCE_KIND'),
+    code: z.optional(z.string()).default('DATA_CATALOG_016'),
+    description: z
+      .optional(z.string())
+      .default('No source adapter is registered for the dataset kind.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel56ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel56
+  >;
+
+/**
+ * SourceNotSupportedError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel57 =
+  z.object({
+    name: z.optional(z.string()).default('DATA_CATALOG_SOURCE_NOT_SUPPORTED'),
+    code: z.optional(z.string()).default('DATA_CATALOG_017'),
+    description: z
+      .optional(z.string())
+      .default('Connection type is not supported by the source adapter.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel57ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel57
+  >;
+
+/**
+ * OrchestratorRPCError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel58 =
+  z.object({
+    name: z.optional(z.string()).default('ORCHESTRATOR_RPC_ERROR'),
+    code: z.optional(z.string()).default('ORCHESTRATOR_503'),
+    description: z.optional(z.string()).default('Orchestrator RPC error'),
+    category: z.optional(z.string()).default('ORCHESTRATOR_CLIENT'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel58ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel58
+  >;
+
+/**
+ * OrchestratorTaskRejected
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel59 =
+  z.object({
+    name: z.optional(z.string()).default('ORCHESTRATOR_TASK_REJECTED'),
+    code: z.optional(z.string()).default('ORCHESTRATOR_500'),
+    description: z.optional(z.string()).default('Orchestrator rejected task'),
+    category: z.optional(z.string()).default('ORCHESTRATOR_CLIENT'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel59ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel59
+  >;
+
+/**
+ * OrchestratorInvalidStats
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel60 =
+  z.object({
+    name: z.optional(z.string()).default('ORCHESTRATOR_INVALID_STATS'),
+    code: z.optional(z.string()).default('ORCHESTRATOR_500'),
+    description: z.optional(z.string()).default('Orchestrator invalid stats'),
+    category: z.optional(z.string()).default('ORCHESTRATOR_CLIENT'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel60ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel60
+  >;
+
+/**
+ * DataFrameSchemaMappingError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel61 =
   z.object({
     name: z.optional(z.string()).default('DATAFRAME_SCHEMA_MAPPING_ERROR'),
     code: z.optional(z.string()).default('DATA_CATALOG_003'),
@@ -7689,66 +8309,34 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel46ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel61ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel46
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel61
   >;
 
 /**
- * OrchestratorRPCError
+ * DataCatalogPersistenceError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel47 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel62 =
   z.object({
-    name: z.optional(z.string()).default('ORCHESTRATOR_RPC_ERROR'),
-    code: z.optional(z.string()).default('ORCHESTRATOR_503'),
-    description: z.optional(z.string()).default('Orchestrator RPC error'),
-    category: z.optional(z.string()).default('ORCHESTRATOR_CLIENT'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
+    name: z.optional(z.string()).default('DATA_CATALOG_PERSISTENCE_ERROR'),
+    code: z.optional(z.string()).default('DATA_CATALOG_010'),
+    description: z
+      .optional(z.string())
+      .default('Data catalog persistence operation failed.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_INFRA_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel47ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel62ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel47
-  >;
-
-/**
- * OrchestratorTaskRejected
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel48 =
-  z.object({
-    name: z.optional(z.string()).default('ORCHESTRATOR_TASK_REJECTED'),
-    code: z.optional(z.string()).default('ORCHESTRATOR_500'),
-    description: z.optional(z.string()).default('Orchestrator rejected task'),
-    category: z.optional(z.string()).default('ORCHESTRATOR_CLIENT'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel48ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel48
-  >;
-
-/**
- * OrchestratorInvalidStats
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel49 =
-  z.object({
-    name: z.optional(z.string()).default('ORCHESTRATOR_INVALID_STATS'),
-    code: z.optional(z.string()).default('ORCHESTRATOR_500'),
-    description: z.optional(z.string()).default('Orchestrator invalid stats'),
-    category: z.optional(z.string()).default('ORCHESTRATOR_CLIENT'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel49ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel49
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel62
   >;
 
 /**
  * ProjectNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel50 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63 =
   z.object({
     name: z.optional(z.string()).default('CRUD_PROJECT_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_PROJECT_404'),
@@ -7757,15 +8345,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel50ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel50
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63
   >;
 
 /**
  * ProjectAccessForbiddenException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel51 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64 =
   z.object({
     name: z.optional(z.string()).default('CRUD_PROJECT_ACCESS_FORBIDDEN'),
     code: z.optional(z.string()).default('CRUD_PROJECT_403'),
@@ -7774,15 +8362,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel51ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel51
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64
   >;
 
 /**
  * ProjectVariableNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel52 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65 =
   z.object({
     name: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_404'),
@@ -7793,15 +8381,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel52ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel52
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65
   >;
 
 /**
  * ProjectVariableAlreadyExistsException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel53 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66 =
   z.object({
     name: z
       .optional(z.string())
@@ -7814,15 +8402,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel53ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel53
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66
   >;
 
 /**
  * ProjectVariableAlreadyExists
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel54 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67 =
   z.object({
     name: z.optional(z.string()).default('PROJECT_VARIABLE_ALREADY_EXISTS'),
     code: z.optional(z.string()).default('PROJECT_VARIABLE_409'),
@@ -7833,15 +8421,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel54ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel54
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67
   >;
 
 /**
  * ProjectVariableNotFound
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel55 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel68 =
   z.object({
     name: z.optional(z.string()).default('PROJECT_VARIABLE_OT_FOUND'),
     code: z.optional(z.string()).default('PROJECT_VARIABLE_404'),
@@ -7850,15 +8438,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel55ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel68ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel55
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel68
   >;
 
 /**
  * ProjectAccessForbidden
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel56 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel69 =
   z.object({
     name: z.optional(z.string()).default('PROJECT_ACCESS_FORBIDDEN'),
     code: z.optional(z.string()).default('PROJECT_ACCESS_403'),
@@ -7867,15 +8455,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel56ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel69ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel56
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel69
   >;
 
 /**
  * ProjectNotFound
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel57 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel70 =
   z.object({
     name: z.optional(z.string()).default('PROJECT_NOT_FOUND'),
     code: z.optional(z.string()).default('PROJECT_400'),
@@ -7884,15 +8472,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel57ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel70ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel57
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel70
   >;
 
 /**
  * DataFrameMetaNotFound
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel58 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel71 =
   z.object({
     name: z.optional(z.string()).default('DATA_FRAME_META_NOT_FOUND'),
     code: z.optional(z.string()).default('DATA_FRAME_404'),
@@ -7901,15 +8489,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel58ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel71ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel58
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel71
   >;
 
 /**
  * DataFrameNotFound
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel59 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel72 =
   z.object({
     name: z.optional(z.string()).default('DATA_FRAME_NOT_FOUND'),
     code: z.optional(z.string()).default('DATA_FRAME_404'),
@@ -7918,15 +8506,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel59ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel72ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel59
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel72
   >;
 
 /**
  * JSONNotFound
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel60 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel73 =
   z.object({
     name: z.optional(z.string()).default('JSON_NOT_FOUND'),
     code: z.optional(z.string()).default('JSON_404'),
@@ -7935,15 +8523,36 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel60ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel73ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel60
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel73
+  >;
+
+/**
+ * ProjectionRebuildFailedError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74 =
+  z.object({
+    name: z
+      .optional(z.string())
+      .default('DATA_CATALOG_PROJECTION_REBUILD_FAILED'),
+    code: z.optional(z.string()).default('DATA_CATALOG_011'),
+    description: z
+      .optional(z.string())
+      .default('Data catalog projection rebuild failed.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_FLOW_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74
   >;
 
 /**
  * ProjectNotFoundHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel61 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75 =
   z.object({
     name: z.optional(z.string()).default('CRUD_PROJECT_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_PROJECT_404'),
@@ -7952,15 +8561,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel61ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel61
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75
   >;
 
 /**
  * ProjectAccessForbiddenHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel62 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76 =
   z.object({
     name: z.optional(z.string()).default('CRUD_PROJECT_ACCESS_FORBIDDEN'),
     code: z.optional(z.string()).default('CRUD_PROJECT_403'),
@@ -7969,15 +8578,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel62ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel62
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76
   >;
 
 /**
  * ProjectVariableNotFoundHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77 =
   z.object({
     name: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_404'),
@@ -7988,15 +8597,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77
   >;
 
 /**
  * ProjectVariableAlreadyExistsHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78 =
   z.object({
     name: z
       .optional(z.string())
@@ -8009,15 +8618,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78
   >;
 
 /**
  * AppSettingsDomainError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79 =
   z.object({
     name: z.optional(z.string()).default('APP_SETTINGS_DOMAIN_ERROR'),
     code: z.optional(z.string()).default('APP_SETTINGS_001'),
@@ -8028,15 +8637,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79
   >;
 
 /**
  * SettingNotFoundError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80 =
   z.object({
     name: z.optional(z.string()).default('APP_SETTING_NOT_FOUND'),
     code: z.optional(z.string()).default('APP_SETTINGS_002'),
@@ -8047,15 +8656,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80
   >;
 
 /**
  * SettingValidationError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81 =
   z.object({
     name: z.optional(z.string()).default('APP_SETTING_VALIDATION_ERROR'),
     code: z.optional(z.string()).default('APP_SETTINGS_003'),
@@ -8066,15 +8675,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81
   >;
 
 /**
  * SettingReadOnlyError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel68 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82 =
   z.object({
     name: z.optional(z.string()).default('APP_SETTING_READ_ONLY'),
     code: z.optional(z.string()).default('APP_SETTINGS_004'),
@@ -8085,15 +8694,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel68ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel68
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82
   >;
 
 /**
  * UserNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel69 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83 =
   z.object({
     name: z.optional(z.string()).default('CRUD_USER_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_USER_404'),
@@ -8102,15 +8711,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel69ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel69
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83
   >;
 
 /**
  * UserAlreadyExistsException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel70 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84 =
   z.object({
     name: z.optional(z.string()).default('CRUD_USER_ALREADY_EXISTS'),
     code: z.optional(z.string()).default('CRUD_USER_409'),
@@ -8119,15 +8728,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel70ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel70
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84
   >;
 
 /**
  * UserActionForbiddenException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel71 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85 =
   z.object({
     name: z.optional(z.string()).default('CRUD_USER_FORBIDDEN'),
     code: z.optional(z.string()).default('CRUD_USER_403'),
@@ -8138,15 +8747,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel71ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel71
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85
   >;
 
 /**
  * UserAlreadyExistsHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel72 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86 =
   z.object({
     name: z.optional(z.string()).default('CRUD_USER_ALREADY_EXISTS'),
     code: z.optional(z.string()).default('CRUD_USER_409'),
@@ -8155,15 +8764,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel72ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel72
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86
   >;
 
 /**
  * UserNotFoundHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel73 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87 =
   z.object({
     name: z.optional(z.string()).default('CRUD_USER_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_USER_404'),
@@ -8172,15 +8781,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel73ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel73
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87
   >;
 
 /**
  * UserActionForbiddenHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88 =
   z.object({
     name: z.optional(z.string()).default('CRUD_USER_FORBIDDEN'),
     code: z.optional(z.string()).default('CRUD_USER_403'),
@@ -8191,15 +8800,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88
   >;
 
 /**
  * OrganizationNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89 =
   z.object({
     name: z.optional(z.string()).default('CRUD_ORGANIZATION_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_ORGANIZATION_404'),
@@ -8208,15 +8817,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89
   >;
 
 /**
  * OrganizationINNConflictException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90 =
   z.object({
     name: z.optional(z.string()).default('CRUD_ORGANIZATION_INN_CONFLICT'),
     code: z.optional(z.string()).default('CRUD_ORGANIZATION_409'),
@@ -8227,15 +8836,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90
   >;
 
 /**
  * OrganizationNotFoundHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91 =
   z.object({
     name: z.optional(z.string()).default('CRUD_ORGANIZATION_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_ORGANIZATION_404'),
@@ -8244,15 +8853,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91
   >;
 
 /**
  * OrganizationINNConflictHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92 =
   z.object({
     name: z.optional(z.string()).default('CRUD_ORGANIZATION_INN_CONFLICT'),
     code: z.optional(z.string()).default('CRUD_ORGANIZATION_409'),
@@ -8263,15 +8872,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92
   >;
 
 /**
  * OrganizationForbiddenHttpError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93 =
   z.object({
     name: z.optional(z.string()).default('CRUD_ORGANIZATION_FORBIDDEN'),
     code: z.optional(z.string()).default('CRUD_ORGANIZATION_403'),
@@ -8282,15 +8891,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93
   >;
 
 /**
  * OrganizationInvalidINNHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel94 =
   z.object({
     name: z.optional(z.string()).default('CRUD_ORGANIZATION_INN_INVALID'),
     code: z.optional(z.string()).default('CRUD_ORGANIZATION_400'),
@@ -8299,15 +8908,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel94ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel94
   >;
 
 /**
  * ExceptionRegistryNotFound
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel95 =
   z.object({
     name: z.optional(z.string()).default('REGISTRY_NOT_FOUND'),
     code: z.optional(z.string()).default('EXCEPTION_404'),
@@ -8316,15 +8925,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel95ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel95
   >;
 
 /**
  * ExceptionRegistryValidationError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel96 =
   z.object({
     name: z.optional(z.string()).default('REGISTRY_VALIDATION_ERROR'),
     code: z.optional(z.string()).default('EXCEPTION_400'),
@@ -8335,15 +8944,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel96ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel96
   >;
 
 /**
  * ConnectionNotFound
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel97 =
   z.object({
     name: z.optional(z.string()).default('CONNECTION_NOT_FOUND'),
     code: z.optional(z.string()).default('CONNECTION_404'),
@@ -8352,15 +8961,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel97ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel97
   >;
 
 /**
  * GraphNodeNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel98 =
   z.object({
     name: z.optional(z.string()).default('CRUD_GRAPH_NODE_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_GRAPH_NODE_404'),
@@ -8369,15 +8978,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel98ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel98
   >;
 
 /**
  * GraphEdgeNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel99 =
   z.object({
     name: z.optional(z.string()).default('CRUD_GRAPH_EDGE_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_GRAPH_EDGE_404'),
@@ -8386,15 +8995,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel99ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel99
   >;
 
 /**
  * SubgraphNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel100 =
   z.object({
     name: z.optional(z.string()).default('CRUD_SUBGRAPH_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_SUBGRAPH_404'),
@@ -8403,15 +9012,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel100ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel100
   >;
 
 /**
  * GraphNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel101 =
   z.object({
     name: z.optional(z.string()).default('CRUD_GRAPH_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_GRAPH_404'),
@@ -8420,15 +9029,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel101ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel101
   >;
 
 /**
  * TaskExecutionFlowError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102 =
   z.object({
     name: z.optional(z.string()).default('TASK_EXECUTION_FLOW_ERROR'),
     code: z.optional(z.string()).default('TASK_EXECUTION_FLOW_001'),
@@ -8439,15 +9048,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102
   >;
 
 /**
  * InvalidReconciliationTerminationReason
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103 =
   z.object({
     name: z
       .optional(z.string())
@@ -8460,15 +9069,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103
   >;
 
 /**
  * InvalidPendingExecutionFailureReason
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104 =
   z.object({
     name: z
       .optional(z.string())
@@ -8481,15 +9090,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104
   >;
 
 /**
  * QueueTopicNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105 =
   z.object({
     name: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_404'),
@@ -8498,15 +9107,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105
   >;
 
 /**
  * QueueTopicAlreadyExistsException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106 =
   z.object({
     name: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_ALREADY_EXISTS'),
     code: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_409'),
@@ -8515,15 +9124,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106
   >;
 
 /**
  * AIMCPHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107 =
   z.object({
     name: z.optional(z.string()).default('AI_MCP_ERROR'),
     code: z.optional(z.string()).default('AI_MCP_ERROR'),
@@ -8532,9 +9141,9 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107
   >;
 
 export const zRegisteredException = z.union([
@@ -8631,6 +9240,20 @@ export const zRegisteredException = z.union([
   zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91,
   zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92,
   zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel94,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel95,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel96,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel97,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel98,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel99,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel100,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel101,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107,
 ]);
 
 export type RegisteredExceptionZodType = z.infer<typeof zRegisteredException>;
@@ -10939,6 +11562,159 @@ export type RefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostResponseZod
     typeof zRefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostResponse
   >;
 
+export const zSearchDatasetsDataCatalogDatasetsGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(
+    z.object({
+      query: z.optional(z.union([z.string().max(512), z.null()])),
+      connection_id: z.optional(z.union([z.string(), z.null()])),
+      project_id: z.optional(z.union([z.string(), z.null()])),
+      kind: z.optional(z.union([z.string().max(64), z.null()])),
+      cursor: z.optional(z.union([z.string(), z.null()])),
+      limit: z.optional(z.int().gte(1).lte(200)).default(50),
+    })
+  ),
+});
+
+export type SearchDatasetsDataCatalogDatasetsGetDataZodType = z.infer<
+  typeof zSearchDatasetsDataCatalogDatasetsGetData
+>;
+
+/**
+ * Successful Response
+ */
+export const zSearchDatasetsDataCatalogDatasetsGetResponse = zDatasetPageSchema;
+
+export type SearchDatasetsDataCatalogDatasetsGetResponseZodType = z.infer<
+  typeof zSearchDatasetsDataCatalogDatasetsGetResponse
+>;
+
+export const zGetDatasetDataCatalogDatasetsDatasetIdGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.object({
+    dataset_id: z.string(),
+  }),
+  query: z.optional(
+    z.object({
+      include_fields: z.optional(z.boolean()).default(true),
+      sync: z.optional(z.boolean()).default(true),
+    })
+  ),
+});
+
+export type GetDatasetDataCatalogDatasetsDatasetIdGetDataZodType = z.infer<
+  typeof zGetDatasetDataCatalogDatasetsDatasetIdGetData
+>;
+
+/**
+ * Successful Response
+ */
+export const zGetDatasetDataCatalogDatasetsDatasetIdGetResponse =
+  zDatasetDetailsSchema;
+
+export type GetDatasetDataCatalogDatasetsDatasetIdGetResponseZodType = z.infer<
+  typeof zGetDatasetDataCatalogDatasetsDatasetIdGetResponse
+>;
+
+export const zUpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchData =
+  z.object({
+    body: zDatasetDescriptionPatchSchema,
+    path: z.object({
+      dataset_id: z.string(),
+    }),
+    query: z.optional(z.never()),
+  });
+
+export type UpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchDataZodType =
+  z.infer<
+    typeof zUpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchData
+  >;
+
+/**
+ * Successful Response
+ */
+export const zUpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchResponse =
+  zDatasetDetailsSchema;
+
+export type UpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchResponseZodType =
+  z.infer<
+    typeof zUpdateDatasetDescriptionsDataCatalogDatasetsDatasetIdPatchResponse
+  >;
+
+export const zGetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetData =
+  z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+      dataset_id: z.string(),
+    }),
+    query: z.optional(
+      z.object({
+        direction: z.optional(z.union([z.enum(['read', 'write']), z.null()])),
+      })
+    ),
+  });
+
+export type GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetDataZodType =
+  z.infer<typeof zGetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetData>;
+
+/**
+ * Successful Response
+ */
+export const zGetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponse =
+  zDatasetUsageResponseSchema;
+
+export type GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponseZodType =
+  z.infer<typeof zGetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponse>;
+
+export const zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData =
+  z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+      dataset_id: z.string(),
+    }),
+    query: z.optional(z.never()),
+  });
+
+export type RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostDataZodType =
+  z.infer<typeof zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData>;
+
+/**
+ * Successful Response
+ */
+export const zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponse =
+  zRefreshOutcomeSchema;
+
+export type RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponseZodType =
+  z.infer<
+    typeof zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponse
+  >;
+
+export const zConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostData =
+  z.object({
+    body: zFieldRenameConfirmSchema,
+    path: z.object({
+      dataset_id: z.string(),
+    }),
+    query: z.optional(z.never()),
+  });
+
+export type ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostDataZodType =
+  z.infer<
+    typeof zConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostData
+  >;
+
+/**
+ * Successful Response
+ */
+export const zConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponse =
+  zDatasetDetailsSchema;
+
+export type ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponseZodType =
+  z.infer<
+    typeof zConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponse
+  >;
+
 export const zSqlCodeMetadataUtilsSqlCodeMetadataPostData = z.object({
   body: zBodySqlCodeMetadataUtilsSqlCodeMetadataPost,
   path: z.optional(z.never()),
@@ -12932,6 +13708,45 @@ export const zUpdateMcpTokenMcpTokensTokenIdPatchResponse = zMcpTokenReadSchema;
 
 export type UpdateMcpTokenMcpTokensTokenIdPatchResponseZodType = z.infer<
   typeof zUpdateMcpTokenMcpTokensTokenIdPatchResponse
+>;
+
+export const zGetFixturesPytestMonFixturesGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type GetFixturesPytestMonFixturesGetDataZodType = z.infer<
+  typeof zGetFixturesPytestMonFixturesGetData
+>;
+
+/**
+ * Successful Response
+ */
+export const zGetFixturesPytestMonFixturesGetResponse =
+  zPytestEntityListResponse;
+
+export type GetFixturesPytestMonFixturesGetResponseZodType = z.infer<
+  typeof zGetFixturesPytestMonFixturesGetResponse
+>;
+
+export const zGetTestsPytestMonTestsGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type GetTestsPytestMonTestsGetDataZodType = z.infer<
+  typeof zGetTestsPytestMonTestsGetData
+>;
+
+/**
+ * Successful Response
+ */
+export const zGetTestsPytestMonTestsGetResponse = zPytestEntityListResponse;
+
+export type GetTestsPytestMonTestsGetResponseZodType = z.infer<
+  typeof zGetTestsPytestMonTestsGetResponse
 >;
 
 export const zUserProfileProfileGetData = z.object({
