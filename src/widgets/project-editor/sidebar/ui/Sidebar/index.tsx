@@ -41,8 +41,9 @@ import { usePointerResize } from '@/shared/lib/hooks/usePointerResize';
 import { getRadius } from '@/shared/ui/primitives/components/theme-style-helpers';
 
 import { ActiveNodesSection } from './ActiveNodesSection';
+import { DataCatalogSection } from './DataCatalog';
 import { FileManagerSection } from './FileManagerSection';
-import { categoryItems } from './items';
+import { categoryItems, hiddenCategoryKeys } from './items';
 import { ProjectSettings } from './ProjectSettings';
 import { ProjectVariables } from './ProjectVariables';
 import { QueueTaskList } from './QueueTaskList';
@@ -169,6 +170,14 @@ const SidebarCategoryContent = memo<SidebarCategoryContentProps>(
           />
         );
 
+      case 'dataCatalog':
+        return (
+          <DataCatalogSection
+            projectId={currentProjectID}
+            searchTerm={searchTerm}
+          />
+        );
+
       case 'queueTaskList':
         return (
           <QueueTaskList projectId={currentProjectID} searchTerm={searchTerm} />
@@ -210,7 +219,9 @@ export const Sidebar: React.FC = () => {
   const visibleCategoryItems = useMemo(
     () =>
       Object.entries(categoryItems).filter(
-        ([key]) => key !== 'aiAnalysis' || isAIAnalysisEnabled
+        ([key]) =>
+          !hiddenCategoryKeys.has(key as Category) &&
+          (key !== 'aiAnalysis' || isAIAnalysisEnabled)
       ),
     [isAIAnalysisEnabled]
   );
