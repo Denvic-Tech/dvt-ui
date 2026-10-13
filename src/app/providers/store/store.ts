@@ -20,6 +20,7 @@ import { websocketMiddleware } from '@/app/realtime/websocket';
 
 import { syncGraphMiddleware } from '@/features/project-editor/sync-graph';
 
+import { dataCatalogApi } from '@/entities/data/data-catalog';
 import { dbCatalogApi } from '@/entities/data/db-connection';
 import { nodeExecutionStatusListenerMiddleware } from '@/entities/node/node-execution-status';
 import { taskExecutionStatusListenerMiddleware } from '@/entities/project/task-execution-status';
@@ -69,6 +70,7 @@ export const store = configureStore({
       },
     })
       .concat(dbCatalogApi.middleware)
+      .concat(dataCatalogApi.middleware)
       .concat(websocketMiddleware)
       .prepend(syncGraphMiddleware)
       .prepend(taskExecutionStatusListenerMiddleware)

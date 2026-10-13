@@ -21,6 +21,7 @@ import { aiAnalysisReducer } from '@/entities/ai-analysis';
 import { appSettingsReducer } from '@/entities/config/app-settings';
 import { expressionsConfigReducer } from '@/entities/config/expressions-config';
 import { runtimeConfigReducer } from '@/entities/config/runtime-config';
+import { dataCatalogApi } from '@/entities/data/data-catalog';
 import { dataframeReducer } from '@/entities/data/dataframe';
 import {
   dbCatalogApi,
@@ -77,6 +78,7 @@ export const rootReducer = combineReducers({
   jsonData: jsonDataReducer,
   dbConnections: dbConnectionsReducer,
   [dbCatalogApi.reducerPath]: dbCatalogApi.reducer,
+  [dataCatalogApi.reducerPath]: dataCatalogApi.reducer,
   logs: logsReducer,
   graph: graphReducer,
   syncGraph: syncGraphReducer,
