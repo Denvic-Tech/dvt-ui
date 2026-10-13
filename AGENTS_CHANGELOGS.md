@@ -472,6 +472,51 @@
 
 - Редактор правил поддерживает контракт миграции 0063: сохранённую перезапись, явные имена результатов, единственную Series без привязки к имени и динамические входы. При редактировании поля снимается только соответствующая динамическая привязка. Проверены 12 UI-тестов, TypeScript, ESLint и production-сборка.
 
+### 2026-10-08 15:21:34
+
+- Скилл `dvt-node-extension-builder` перенесён из `.codex/skills` в `.claude/skills` для Claude Code: скопированы скрипты, шаблоны и справочник паттернов, `SKILL.md` адаптирован (пути к скриптам, `--output` в `tmp/`, указания по `BACKEND_PROJECT_PATH`, шаг проверки lint/build и записи в changelog). Codex-специфичный `agents/openai.yaml` не переносился; исходный `.codex/skills` оставлен без изменений.
+
+### 2026-10-08 15:42:37
+
+- Добавлена сущность `src/entities/data/data-catalog`: RTK Query API `dataCatalogApi` поверх gateway client (`/data-catalog/datasets` с курсорной пагинацией, детали датасета, использование), хелперы отображения статусов/локатора, `DatasetCard` и бейджи статусов. API зарегистрирован в `rootReducer` и `store`. Теги `Dataset`/`DatasetList` заложены под будущие мутации редактирования описаний.
+- В сайдбар редактора проекта добавлена вкладка «Каталог данных» (`Sidebar/DataCatalog`): список карточек датасетов с фильтром по текущему `project_id`, серверный поиск из строки поиска сайдбара (debounce 300 мс), «Показать ещё».
+- По клику на карточку открывается read-only модалка `DatasetDetailsModal` (запрос с `sync=true` при каждом открытии) с вкладками «Обзор», «Поля», «Использование»; результат синхронизации переносится в карточку списка.
+- Добавлены тесты `presentation.test.ts` и `DataCatalogSection.test.tsx`; проверены TypeScript, ESLint, Prettier и Vitest (24 теста сайдбара).
+
+### 2026-10-08 15:48:30
+
+- Исправлено переключение вкладок в общем примитиве `Tabs` (`src/shared/ui/primitives/components/tabs.tsx`): `TabsTrigger` не пробрасывал в MUI `Tab` пропсы (`onChange`, `selected` и др.), которые инжектит MUI `Tabs`, из-за чего клик по вкладке не работал (в т.ч. в модалке датасета каталога данных). Добавлен регрессионный тест переключения вкладок в `DataCatalogSection.test.tsx`.
+
+### 2026-10-08 17:53:03
+
+- Реализован поиск проектов по источнику на странице проектов (`src/features/projects/users-projects`) по макету «Поиск по источнику - финал» из Claude Design.
+- В дропдаун поиска `ProjectsSearch` добавлен второй пункт «Найти проекты по источнику «…»» (Data Catalog) под пунктом глобального поиска.
+- Добавлена модалка `ProjectsSourceSearchDialog` (+ `.styles.ts`): слева таблицы из `GET /data-catalog/datasets?query=…` (debounce 400 мс, статусы «Ввод…»/«Ищем…», скелетоны, подсветка совпадения, «Показать ещё» по курсору), справа проекты выбранной таблицы из `GET /data-catalog/datasets/{id}/usage`, сгруппированные по `project_id`; клик по проекту открывает редактор. Состояния: таблица не выбрана, загрузка usage, не используется, ошибка с повтором.
+- Модалка подключена в `UsersProjects.tsx`; используется существующий `dataCatalogApi` (`useSearchDatasetsInfiniteQuery`, `useGetDatasetUsageQuery`).
+
+### 2026-10-08 18:05:00
+
+- Исправлен перенос пути таблицы в модалке `ProjectsSourceSearchDialog`: строка `database.schema.` + имя таблицы теперь flex-строка в одну линию (сначала сжимается namespace, затем имя, оба с многоточием); классы переименованы в `dataset-namespace`/`dataset-table`, чтобы исключить конфликт с внешними стилями.
+
+### 2026-10-12 18:28:00
+
+- Адаптация к обновлённому gatewayClient: `DatasetLocatorSchema` теперь `{ kind, location, parts }` вместо плоских `dialect/host/port/database/schema/table`, а фильтр поиска датасетов `dialect` заменён на `kind`. Из-за этого поиск по источнику падал с `Cannot read properties of undefined (reading 'trim')` в `normalizeDatasetDialect`.
+- В `entities/data/data-catalog` добавлены `getDatasetLocatorParts` (безопасное чтение `locator.parts` с приведением типов, `table` по умолчанию — `locator.location`), `getDatasetDialect`, `getDatasetName` и тип `DatasetLocatorParts`; `normalizeDatasetDialect` принимает `null`, `getDatasetHostLabel` возвращает `null` без хоста. `SearchDatasetsArg.dialect` → `kind`.
+- Обновлены потребители: `ProjectsSourceSearchDialog`, `DatasetCard`, сайдбар `DataCatalogSection`, `DatasetDetailsModal`, `DatasetOverviewTab` (добавлены поля «Вид источника» и «Расположение»). Обновлены фикстуры тестов, добавлены тесты разбора `parts`; TypeScript, ESLint, Prettier и Vitest (9 тестов) проходят.
+
+### 2026-10-13 16:41:36
+
+- Вкладка «Каталог данных» временно скрыта из рейла сайдбара редактора проекта: добавлен набор `hiddenCategoryKeys` в `Sidebar/items.tsx`, который исключает `dataCatalog` из `visibleCategoryItems`. Код вкладки, модалки и сущности `data-catalog` сохранён; для включения достаточно убрать ключ из набора.
+
+### 2026-10-13 10:00:00
+
+- Визуальные правки поиска по источнику: в дропдауне поиска проектов убрана подпись «Поиск по таблицам Data Catalog»; в модалке `ProjectsSourceSearchDialog` убран зелёный чип «Data Catalog» в шапке (удалены неиспользуемые стили `SearchCtaBody`, `SearchCtaSubtext`, `CatalogBadge`).
+- В карточках списка «Используется в проектах» под названием проекта выводится «Используется в N ноде/нодах» — число уникальных `node_id` из ответа usage для этого проекта.
+
+### 2026-10-13 10:10:00
+
+- В `ProjectsSearch` изменён placeholder локального поиска проектов: «Поиск по названию или источнику...».
+
 ### 2026-10-02 17:11:24
 
 - `KAFKA_CONNECTION` сохранён как полноценный metadata-required connection type; добавлена регрессия для connection handle и обязательного ожидания upstream metadata.
