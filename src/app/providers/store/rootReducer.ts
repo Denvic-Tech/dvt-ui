@@ -29,6 +29,7 @@ import {
 } from '@/entities/data/db-connection';
 import { jsonDataReducer } from '@/entities/data/json-data';
 import { storageReducer } from '@/entities/data/storage';
+import { homeWidgetsApi } from '@/entities/home-widget';
 import { logsReducer } from '@/entities/log';
 import { fileStorageManagerViewerReducer } from '@/entities/node/file-storage-manager-viewer';
 import { nodeDataFrameViewerReducer } from '@/entities/node/node-dataframe-viewer';
@@ -79,6 +80,7 @@ export const rootReducer = combineReducers({
   dbConnections: dbConnectionsReducer,
   [dbCatalogApi.reducerPath]: dbCatalogApi.reducer,
   [dataCatalogApi.reducerPath]: dataCatalogApi.reducer,
+  [homeWidgetsApi.reducerPath]: homeWidgetsApi.reducer,
   logs: logsReducer,
   graph: graphReducer,
   syncGraph: syncGraphReducer,
