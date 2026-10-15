@@ -171,10 +171,6 @@ export const MenuAppBar = () => {
 
   const unreadCount = historyItems.length;
 
-  const handleNavigateHome = React.useCallback(() => {
-    window.location.assign('/');
-  }, []);
-
   if (isSignInRoute || isSetupRoute || isHomeRoute) {
     return null;
   }
@@ -185,10 +181,9 @@ export const MenuAppBar = () => {
         <Box component='nav' aria-label='Header navigation' sx={headerNavSx}>
           <Box sx={headerBrandGroupSx}>
             <Box
-              component='button'
-              type='button'
+              component={RouterLink}
+              to='/'
               aria-label='На главную'
-              onClick={handleNavigateHome}
               sx={headerBrandButtonSx}
             >
               <Box sx={logoLinkSx}>

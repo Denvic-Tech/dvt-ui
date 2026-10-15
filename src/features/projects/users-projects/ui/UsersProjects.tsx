@@ -18,7 +18,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAlert } from '@/app/notifications';
 
@@ -1038,6 +1038,7 @@ export const UsersProjects: React.FC = () => {
   const { confirm } = useConfirmDialog();
   const { showAlert } = useAlert();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const currentUserRole = normalizeRole(currentUser?.role);
   const isSuperadmin = currentUserRole === 'superadmin';
@@ -1563,7 +1564,7 @@ export const UsersProjects: React.FC = () => {
       folder_id: folderId,
     }).unwrap();
     setOpenModal(false);
-    window.location.assign(`/project-editor/${createdProject.id}`);
+    navigate(`/project-editor/${createdProject.id}`);
   };
 
   const handleCreateFolder = async (name: string) => {
@@ -1582,9 +1583,14 @@ export const UsersProjects: React.FC = () => {
     }
   };
 
-  const handleOpenProject = useCallback((projectId: string) => {
-    window.location.assign(`/project-editor/${projectId}`);
-  }, []);
+  // In-app navigation: a full reload would re-run checkAuth, the setup and
+  // availability gates and redux-persist rehydration before the editor shows.
+  const handleOpenProject = useCallback(
+    (projectId: string) => {
+      navigate(`/project-editor/${projectId}`);
+    },
+    [navigate]
+  );
 
   const toggleSelection = useCallback((item: SelectedItem) => {
     const key = selectedKey(item);
