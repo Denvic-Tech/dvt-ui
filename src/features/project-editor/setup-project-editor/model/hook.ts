@@ -17,7 +17,8 @@ export const useProjectEditorSetup = () => {
     connectWs,
     disconnectWs,
   } = useWebSocketConnection();
-  const { createProjectTask, lastProjectTaskID } = useProjectTask();
+  const { createProjectTask, lastProjectTaskID, resetProjectTask } =
+    useProjectTask();
   const metadataTaskStartedForProjectRef = useRef<string | null>(null);
 
   const loadProject = useCallback(async () => {
@@ -70,8 +71,13 @@ export const useProjectEditorSetup = () => {
 
     return () => {
       disconnectWs(projectID);
+      // Task state is per project. Without this, `lastProjectTaskID` from the
+      // previous editor visit survives an in-app navigation and
+      // `createInitialMetadataTask` skips the metadata task of the next
+      // project, leaving its nodes without metadata.
+      resetProjectTask();
     };
-  }, [connectWs, disconnectWs, projectID]);
+  }, [connectWs, disconnectWs, projectID, resetProjectTask]);
 
   useEffect(() => {
     loadProject()

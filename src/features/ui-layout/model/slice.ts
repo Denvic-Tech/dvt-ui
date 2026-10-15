@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+import { isSameGraphViewport } from '../lib/isSameGraphViewport.ts';
+
 import { GraphViewport, UILayoutState } from './types.ts';
 
 const DEFAULT_SIDEBAR_CATEGORIES_WIDTH = 60;
@@ -62,7 +64,14 @@ const uiLayoutSlice = createSlice({
       state,
       { payload }: PayloadAction<{ projectId: string; viewport: GraphViewport }>
     ) {
-      state.graphViewports[payload.projectId] = payload.viewport;
+      const { projectId, viewport } = payload;
+      // Keep state identity when nothing changed: subscribers compare the
+      // stored object by reference, and a fresh copy of equal numbers would
+      // re-trigger viewport effects in the graph editor.
+      if (isSameGraphViewport(state.graphViewports[projectId], viewport)) {
+        return;
+      }
+      state.graphViewports[projectId] = viewport;
     },
   },
 });

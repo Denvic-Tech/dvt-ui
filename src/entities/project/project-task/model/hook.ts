@@ -6,6 +6,7 @@ import {
   cancelProjectTask as cancelProjectTaskThunk,
   createProjectTask as createProjectTaskThunk,
   getProjectTaskInfo as getProjectTaskInfoThunk,
+  projectTaskActions,
   selectLastProjectTaskID,
   selectProjectTaskCancelError,
   selectProjectTaskCancelPending,
@@ -65,10 +66,15 @@ export const useProjectTask = () => {
     [dispatch]
   );
 
+  const resetProjectTask = useCallback(() => {
+    dispatch(projectTaskActions.resetProjectTask());
+  }, [dispatch]);
+
   return {
     createProjectTask,
     cancelProjectTask,
     getProjectTaskInfo,
+    resetProjectTask,
     lastProjectTaskID,
     projectTaskPending,
     projectTaskError,

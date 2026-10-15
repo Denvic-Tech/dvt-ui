@@ -1,15 +1,21 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useProjectEditorSetup } from '@/features/project-editor/setup-project-editor';
+
 const {
   useParamsMock,
   connectWsMock,
+  disconnectWsMock,
+  resetProjectTaskMock,
   loadNodeDefinitionsMock,
   createProjectTaskMock,
   getGraphMock,
 } = vi.hoisted(() => ({
   useParamsMock: vi.fn(() => ({ projectID: 'project-123' })),
   connectWsMock: vi.fn(),
+  disconnectWsMock: vi.fn(),
+  resetProjectTaskMock: vi.fn(),
   loadNodeDefinitionsMock: vi.fn(async () => ({ reader: {}, writer: {} })),
   createProjectTaskMock: vi.fn(async () => ({ task_id: 'task-1' })),
   getGraphMock: vi.fn(async () => ({
@@ -32,8 +38,9 @@ vi.mock('@/entities/node/node-definition', () => ({
 
 vi.mock('@/app/realtime/websocket', () => ({
   useWebSocketConnection: () => ({
-    status: 'disconnected',
+    status: 'connected',
     connectWs: connectWsMock,
+    disconnectWs: disconnectWsMock,
   }),
 }));
 
@@ -41,6 +48,7 @@ vi.mock('@/entities/project/project-task', () => ({
   useProjectTask: () => ({
     lastProjectTaskID: null,
     createProjectTask: createProjectTaskMock,
+    resetProjectTask: resetProjectTaskMock,
   }),
 }));
 
@@ -49,8 +57,6 @@ vi.mock('@/entities/project-editor/graph', () => ({
     getGraph: getGraphMock,
   },
 }));
-
-import { useProjectEditorSetup } from '@/features/project-editor/setup-project-editor';
 
 describe('features/setup-project-editor', () => {
   beforeEach(() => {
@@ -96,5 +102,19 @@ describe('features/setup-project-editor', () => {
     });
 
     expect(createProjectTaskMock).not.toHaveBeenCalled();
+  });
+
+  it('disconnects websocket and resets task state when the editor is left', async () => {
+    const { unmount } = renderHook(() => useProjectEditorSetup());
+
+    await waitFor(() => {
+      expect(connectWsMock).toHaveBeenCalledWith('project-123');
+    });
+    expect(resetProjectTaskMock).not.toHaveBeenCalled();
+
+    unmount();
+
+    expect(disconnectWsMock).toHaveBeenCalledWith('project-123');
+    expect(resetProjectTaskMock).toHaveBeenCalledTimes(1);
   });
 });

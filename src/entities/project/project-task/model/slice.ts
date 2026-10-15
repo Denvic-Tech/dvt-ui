@@ -79,7 +79,12 @@ export const getProjectTaskInfo = createAppAsyncThunk<
 const projectTaskSlice = createSlice({
   name: 'projectTask',
   initialState,
-  reducers: {},
+  reducers: {
+    // Called when the editor is left: task ids are per project, and a stale
+    // `lastTaskID` would block the initial metadata task of the next project
+    // opened without a page reload.
+    resetProjectTask: () => initialState,
+  },
   extraReducers: builder => {
     builder
       .addCase(createProjectTask.pending, state => {
@@ -148,4 +153,5 @@ const projectTaskSlice = createSlice({
   },
 });
 
+export const projectTaskActions = projectTaskSlice.actions;
 export const projectTaskReducer = projectTaskSlice.reducer;
