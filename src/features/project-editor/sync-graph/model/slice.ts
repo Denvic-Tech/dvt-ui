@@ -2,6 +2,7 @@ import {
   createListenerMiddleware,
   createSlice,
   isAnyOf,
+  type PayloadAction,
 } from '@reduxjs/toolkit';
 import type { Edge, EdgeChange, NodeChange, XYPosition } from '@xyflow/react';
 
@@ -442,7 +443,11 @@ export const flushGraphOperations = createAppAsyncThunk<
   'syncGraph/flushGraphOperations',
   async (_, { getState, rejectWithValue }) => {
     const state = getState();
-    const projectID = state.projects.selectedProject?.id;
+    // Operations belong to the project they were made in, even if the user
+    // has already navigated to another project (SPA navigation keeps the
+    // debounced flush alive after the editor unmounts).
+    const projectID =
+      state.syncGraph.projectId ?? state.projects.selectedProject?.id;
     if (!projectID) {
       return rejectWithValue(
         createUnknownError(
@@ -501,6 +506,8 @@ interface SyncGraphState {
   backoffMs: number;
   lastError: ApiErrorPayload | null;
   lastFlushAt?: number | undefined;
+  /** Project the pending outbox belongs to; `null` while the outbox is empty. */
+  projectId: string | null;
 }
 
 const initialState: SyncGraphState = {
@@ -511,6 +518,7 @@ const initialState: SyncGraphState = {
   backoffMs: 0,
   lastError: null,
   lastFlushAt: undefined,
+  projectId: null,
 };
 
 const appendOperations = (
@@ -570,6 +578,13 @@ export const syncGraphSlice = createSlice({
       state.flushMode = 'none';
       state.backoffMs = 0;
       state.lastError = null;
+      state.projectId = null;
+    },
+    /** Pins a non-empty outbox to the project its operations were made in. */
+    bindOutboxProject(state, action: PayloadAction<string>) {
+      if (state.outbox.length > 0 && !state.projectId) {
+        state.projectId = action.payload;
+      }
     },
   },
   extraReducers: builder => {
@@ -745,12 +760,14 @@ export const syncGraphSlice = createSlice({
         state.flushMode = 'none';
         state.backoffMs = 0;
         state.lastError = null;
+        state.projectId = null;
       })
       .addCase(graphActions.setGraph, state => {
         state.outbox = [];
         state.flushMode = 'none';
         state.backoffMs = 0;
         state.lastError = null;
+        state.projectId = null;
       })
       .addCase(flushGraphOperations.pending, state => {
         state.inFlight = true;
@@ -769,6 +786,7 @@ export const syncGraphSlice = createSlice({
 
         if (state.outbox.length === 0) {
           state.flushMode = 'none';
+          state.projectId = null;
         }
       })
       .addCase(flushGraphOperations.rejected, (state, action) => {
@@ -821,6 +839,12 @@ syncGraphListener.startListening({
     _,
     { cancelActiveListeners, getState, dispatch, delay, signal }
   ) => {
+    const { projects, syncGraph } = getState();
+    const selectedProjectId = projects.selectedProject?.id;
+    if (syncGraph?.outbox.length && !syncGraph.projectId && selectedProjectId) {
+      dispatch(syncGraphSlice.actions.bindOutboxProject(selectedProjectId));
+    }
+
     if (selectIsSystemAvailabilityBlocking(getState())) return;
 
     const state = getState().syncGraph;

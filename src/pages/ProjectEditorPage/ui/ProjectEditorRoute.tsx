@@ -13,7 +13,10 @@ import { useNavigate } from 'react-router-dom';
 
 import { PageTitle } from '@/app/router/ui/PageTitle.tsx';
 
-import { useGraphUnsavedChangesGuard } from '@/features/project-editor/sync-graph';
+import {
+  useFlushGraphOnLeave,
+  useGraphUnsavedChangesGuard,
+} from '@/features/project-editor/sync-graph';
 
 import { useCurrentProject } from '@/entities/project/projects';
 
@@ -52,6 +55,7 @@ export const ProjectEditorRoute = () => {
     isProjectUnavailable,
     projectAccessError,
   } = useCurrentProject();
+  useFlushGraphOnLeave(currentProject?.id);
 
   const pageTitle = currentProject?.name ?? 'Project editor';
   const isResolvingProject = !currentProject && !isProjectUnavailable;
