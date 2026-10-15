@@ -12,6 +12,12 @@ export interface NodeModalWorkspaceUIPreferences {
   previewWidth: number;
 }
 
+export interface HomeDashboardUIPreferences {
+  sectionUses: Partial<Record<string, number>>;
+  /** Ordered ids of shown home widgets; `undefined` means the default set. */
+  widgetIds?: string[] | undefined;
+}
+
 export interface UIPreferencesState {
   themeMode: ThemeMode;
   projectsPage: {
@@ -19,6 +25,7 @@ export interface UIPreferencesState {
   };
   nodeLibrary: NodeLibraryUIPreferences;
   nodeModalWorkspace: NodeModalWorkspaceUIPreferences;
+  homeDashboard: HomeDashboardUIPreferences;
   skipHardStopConfirm: boolean;
   suppressedPrompts: Partial<Record<SuppressiblePromptId, true>>;
 }

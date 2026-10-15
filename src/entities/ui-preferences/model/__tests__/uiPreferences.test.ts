@@ -8,6 +8,7 @@ import {
   selectPinnedNodeNames,
 } from '../selectors';
 import { uiPreferencesActions, uiPreferencesReducer } from '../slice';
+import type { UIPreferencesState } from '../types';
 
 describe('uiPreferences slice', () => {
   it('initializes node-library preferences with empty persisted values', () => {
@@ -89,5 +90,56 @@ describe('uiPreferences slice', () => {
       uiPreferencesActions.setNodeModalWorkspacePreviewWidth(464)
     );
     expect(migratedState.nodeModalWorkspace.previewWidth).toBe(464);
+  });
+
+  it('counts home section usage and resets it', () => {
+    const once = uiPreferencesReducer(
+      undefined,
+      uiPreferencesActions.incrementHomeSectionUse('projects')
+    );
+    const twice = uiPreferencesReducer(
+      once,
+      uiPreferencesActions.incrementHomeSectionUse('projects')
+    );
+
+    expect(twice.homeDashboard.sectionUses).toEqual({ projects: 2 });
+
+    const reset = uiPreferencesReducer(
+      twice,
+      uiPreferencesActions.resetHomeSectionUses()
+    );
+    expect(reset.homeDashboard.sectionUses).toEqual({});
+  });
+
+  it('restores home dashboard preferences missing in persisted state', () => {
+    const { homeDashboard: _omitted, ...legacyState } = uiPreferencesReducer(
+      undefined,
+      { type: 'unknown' }
+    );
+
+    const state = uiPreferencesReducer(
+      legacyState as UIPreferencesState,
+      uiPreferencesActions.incrementHomeSectionUse('admin')
+    );
+
+    expect(state.homeDashboard.sectionUses).toEqual({ admin: 1 });
+  });
+
+  it('stores the ordered home widget ids', () => {
+    const initial = uiPreferencesReducer(undefined, { type: 'unknown' });
+    expect(initial.homeDashboard.widgetIds).toBeUndefined();
+
+    const state = uiPreferencesReducer(
+      initial,
+      uiPreferencesActions.setHomeWidgetIds(['runs-24h', 'services'])
+    );
+    expect(state.homeDashboard.widgetIds).toEqual(['runs-24h', 'services']);
+
+    const { homeDashboard: _omitted, ...legacyState } = initial;
+    const migrated = uiPreferencesReducer(
+      legacyState as UIPreferencesState,
+      uiPreferencesActions.setHomeWidgetIds([])
+    );
+    expect(migrated.homeDashboard).toEqual({ sectionUses: {}, widgetIds: [] });
   });
 });
