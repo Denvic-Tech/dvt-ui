@@ -2523,6 +2523,44 @@ export const zFtpSecrets = z.object({
 export type FtpSecretsZodType = z.infer<typeof zFtpSecrets>;
 
 /**
+ * FailingProjectItemSchema
+ */
+export const zFailingProjectItemSchema = z.object({
+  project_id: z.string(),
+  project_name: z.union([z.string(), z.null()]),
+  error_count: z.int().gte(0),
+  total_count: z.int().gte(0),
+  last_error_at: z.iso.datetime({
+    offset: true,
+  }),
+  consecutive_failures: z.int().gte(0),
+});
+
+export type FailingProjectItemSchemaZodType = z.infer<
+  typeof zFailingProjectItemSchema
+>;
+
+/**
+ * FailingProjectsWidgetSchema
+ */
+export const zFailingProjectsWidgetSchema = z.object({
+  generated_at: z.iso.datetime({
+    offset: true,
+  }),
+  window_start: z.iso.datetime({
+    offset: true,
+  }),
+  window_end: z.iso.datetime({
+    offset: true,
+  }),
+  items: z.array(zFailingProjectItemSchema),
+});
+
+export type FailingProjectsWidgetSchemaZodType = z.infer<
+  typeof zFailingProjectsWidgetSchema
+>;
+
+/**
  * FieldRefSchema
  *
  * Ссылка на поле: ровно одно из field_id или name.
@@ -4375,6 +4413,7 @@ export const zProjectReadSchema = z.object({
     z.union([z.record(z.string(), zProjectVariableBase), z.null()])
   ),
   last_runs: z.optional(z.array(zProjectLastRunSchema)),
+  is_favorite: z.optional(z.boolean()).default(false),
   created_at: z.optional(
     z.iso.datetime({
       offset: true,
@@ -4588,6 +4627,7 @@ export const zProjectScheduleResponse = z.object({
   retry_delay_seconds: z.optional(z.int().gte(1).lte(86400)).default(60),
   retry_backoff: z.optional(zRetryBackoff),
   retry_max_delay_seconds: z.optional(z.int().gte(1).lte(86400)).default(3600),
+  project_name: z.optional(z.union([z.string(), z.null()])),
   disabled: z.optional(z.boolean()).default(false),
   scheduled_by_user_id: z.optional(z.union([z.string(), z.null()])),
   task_id: z.optional(z.union([z.string(), z.null()])),
@@ -5111,6 +5151,49 @@ export type ResolveWriteColumnsResponseZodType = z.infer<
 >;
 
 /**
+ * RunsBucketSchema
+ */
+export const zRunsBucketSchema = z.object({
+  start: z.iso.datetime({
+    offset: true,
+  }),
+  total: z.int().gte(0),
+  success: z.int().gte(0),
+  error: z.int().gte(0),
+  cancelled: z.int().gte(0),
+  running: z.int().gte(0),
+});
+
+export type RunsBucketSchemaZodType = z.infer<typeof zRunsBucketSchema>;
+
+/**
+ * RunsLast24hWidgetSchema
+ */
+export const zRunsLast24hWidgetSchema = z.object({
+  generated_at: z.iso.datetime({
+    offset: true,
+  }),
+  window_start: z.iso.datetime({
+    offset: true,
+  }),
+  window_end: z.iso.datetime({
+    offset: true,
+  }),
+  bucket_minutes: z.int().gte(1),
+  total: z.int().gte(0),
+  success: z.int().gte(0),
+  error: z.int().gte(0),
+  cancelled: z.int().gte(0),
+  running: z.int().gte(0),
+  success_ratio: z.union([z.number().gte(0).lte(1), z.null()]),
+  buckets: z.array(zRunsBucketSchema),
+});
+
+export type RunsLast24hWidgetSchemaZodType = z.infer<
+  typeof zRunsLast24hWidgetSchema
+>;
+
+/**
  * RuntimeConfigFeatures
  */
 export const zRuntimeConfigFeatures = z.object({
@@ -5367,6 +5450,66 @@ export const zScheduleResponse = z.object({
 export type ScheduleResponseZodType = z.infer<typeof zScheduleResponse>;
 
 /**
+ * ScheduledRunItemSchema
+ */
+export const zScheduledRunItemSchema = z.object({
+  project_id: z.string(),
+  project_name: z.union([z.string(), z.null()]),
+  cron: z.string(),
+  next_run_time: z.iso.datetime({
+    offset: true,
+  }),
+  last_run_status: z.union([zTaskExecutionStatus, z.null()]),
+  last_run_time: z.union([
+    z.iso.datetime({
+      offset: true,
+    }),
+    z.null(),
+  ]),
+});
+
+export type ScheduledRunItemSchemaZodType = z.infer<
+  typeof zScheduledRunItemSchema
+>;
+
+/**
+ * ScheduledRunsWidgetSchema
+ */
+export const zScheduledRunsWidgetSchema = z.object({
+  generated_at: z.iso.datetime({
+    offset: true,
+  }),
+  total_schedules: z.int().gte(0),
+  disabled_schedules: z.int().gte(0),
+  items: z.array(zScheduledRunItemSchema),
+});
+
+export type ScheduledRunsWidgetSchemaZodType = z.infer<
+  typeof zScheduledRunsWidgetSchema
+>;
+
+/**
+ * WorkerStatus
+ */
+export const zWorkerStatus = z.enum(['online', 'offline']);
+
+export type WorkerStatusZodType = z.infer<typeof zWorkerStatus>;
+
+/**
+ * ServiceStatusItemSchema
+ */
+export const zServiceStatusItemSchema = z.object({
+  name: z.enum(['gateway', 'project_scheduler', 'orchestrator']),
+  status: zWorkerStatus,
+  latency_ms: z.union([z.number(), z.null()]),
+  uptime_seconds: z.union([z.number(), z.null()]),
+});
+
+export type ServiceStatusItemSchemaZodType = z.infer<
+  typeof zServiceStatusItemSchema
+>;
+
+/**
  * SystemInfo
  *
  * Модель для хранения системной информации.
@@ -5395,13 +5538,6 @@ export const zSystemInfo = z.object({
 });
 
 export type SystemInfoZodType = z.infer<typeof zSystemInfo>;
-
-/**
- * WorkerStatus
- */
-export const zWorkerStatus = z.enum(['online', 'offline']);
-
-export type WorkerStatusZodType = z.infer<typeof zWorkerStatus>;
 
 /**
  * WorkerSystemInfo
@@ -5452,6 +5588,38 @@ export const zServicesStatus = z.object({
 });
 
 export type ServicesStatusZodType = z.infer<typeof zServicesStatus>;
+
+/**
+ * SystemStateValue
+ */
+export const zSystemStateValue = z.enum(['ready', 'updating', 'degraded']);
+
+export type SystemStateValueZodType = z.infer<typeof zSystemStateValue>;
+
+/**
+ * WorkersSummarySchema
+ */
+export const zWorkersSummarySchema = z.object({
+  total: z.int().gte(0),
+  online: z.int().gte(0),
+  busy: z.int().gte(0),
+});
+
+export type WorkersSummarySchemaZodType = z.infer<typeof zWorkersSummarySchema>;
+
+/**
+ * ServicesWidgetSchema
+ */
+export const zServicesWidgetSchema = z.object({
+  generated_at: z.iso.datetime({
+    offset: true,
+  }),
+  system_state: zSystemStateValue,
+  services: z.array(zServiceStatusItemSchema),
+  workers: zWorkersSummarySchema,
+});
+
+export type ServicesWidgetSchemaZodType = z.infer<typeof zServicesWidgetSchema>;
 
 /**
  * SetupStepField
@@ -5653,13 +5821,6 @@ export const zSmbprotocolFileNoDriverConnectionUpdateRequest = z.object({
 export type SmbprotocolFileNoDriverConnectionUpdateRequestZodType = z.infer<
   typeof zSmbprotocolFileNoDriverConnectionUpdateRequest
 >;
-
-/**
- * SystemStateValue
- */
-export const zSystemStateValue = z.enum(['ready', 'updating', 'degraded']);
-
-export type SystemStateValueZodType = z.infer<typeof zSystemStateValue>;
 
 /**
  * SystemStateResponse
@@ -8296,16 +8457,14 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * DataFrameSchemaMappingError
+ * ProjectNotFoundException
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel61 =
   z.object({
-    name: z.optional(z.string()).default('DATAFRAME_SCHEMA_MAPPING_ERROR'),
-    code: z.optional(z.string()).default('DATA_CATALOG_003'),
-    description: z
-      .optional(z.string())
-      .default('DataFrame cannot be converted to a table schema.'),
-    category: z.optional(z.string()).default('DATA_CATALOG_INFRA_ERROR'),
+    name: z.optional(z.string()).default('CRUD_PROJECT_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_PROJECT_404'),
+    description: z.optional(z.string()).default('Проект не найден'),
+    category: z.optional(z.string()).default('CRUD_PROJECT'),
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
@@ -8315,16 +8474,14 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * DataCatalogPersistenceError
+ * ProjectAccessForbiddenException
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel62 =
   z.object({
-    name: z.optional(z.string()).default('DATA_CATALOG_PERSISTENCE_ERROR'),
-    code: z.optional(z.string()).default('DATA_CATALOG_010'),
-    description: z
-      .optional(z.string())
-      .default('Data catalog persistence operation failed.'),
-    category: z.optional(z.string()).default('DATA_CATALOG_INFRA_ERROR'),
+    name: z.optional(z.string()).default('CRUD_PROJECT_ACCESS_FORBIDDEN'),
+    code: z.optional(z.string()).default('CRUD_PROJECT_403'),
+    description: z.optional(z.string()).default('Доступ к проекту запрещен'),
+    category: z.optional(z.string()).default('CRUD_PROJECT'),
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
@@ -8334,43 +8491,9 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * ProjectNotFoundException
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_PROJECT_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_PROJECT_404'),
-    description: z.optional(z.string()).default('Проект не найден'),
-    category: z.optional(z.string()).default('CRUD_PROJECT'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63
-  >;
-
-/**
- * ProjectAccessForbiddenException
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_PROJECT_ACCESS_FORBIDDEN'),
-    code: z.optional(z.string()).default('CRUD_PROJECT_403'),
-    description: z.optional(z.string()).default('Доступ к проекту запрещен'),
-    category: z.optional(z.string()).default('CRUD_PROJECT'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64
-  >;
-
-/**
  * ProjectVariableNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63 =
   z.object({
     name: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_404'),
@@ -8381,15 +8504,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63
   >;
 
 /**
  * ProjectVariableAlreadyExistsException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64 =
   z.object({
     name: z
       .optional(z.string())
@@ -8402,15 +8525,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64
   >;
 
 /**
  * ProjectVariableAlreadyExists
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65 =
   z.object({
     name: z.optional(z.string()).default('PROJECT_VARIABLE_ALREADY_EXISTS'),
     code: z.optional(z.string()).default('PROJECT_VARIABLE_409'),
@@ -8421,19 +8544,53 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65
+  >;
+
+/**
+ * ProjectVariableNotFound
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66 =
+  z.object({
+    name: z.optional(z.string()).default('PROJECT_VARIABLE_OT_FOUND'),
+    code: z.optional(z.string()).default('PROJECT_VARIABLE_404'),
+    description: z.optional(z.string()).default('Project variable not found'),
+    category: z.optional(z.string()).default('GATEWAY_PROJECT'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66
+  >;
+
+/**
+ * ProjectAccessForbidden
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67 =
+  z.object({
+    name: z.optional(z.string()).default('PROJECT_ACCESS_FORBIDDEN'),
+    code: z.optional(z.string()).default('PROJECT_ACCESS_403'),
+    description: z.optional(z.string()).default('Project access forbidden'),
+    category: z.optional(z.string()).default('GATEWAY_PROJECT'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67ZodType =
   z.infer<
     typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67
   >;
 
 /**
- * ProjectVariableNotFound
+ * ProjectNotFound
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel68 =
   z.object({
-    name: z.optional(z.string()).default('PROJECT_VARIABLE_OT_FOUND'),
-    code: z.optional(z.string()).default('PROJECT_VARIABLE_404'),
-    description: z.optional(z.string()).default('Project variable not found'),
+    name: z.optional(z.string()).default('PROJECT_NOT_FOUND'),
+    code: z.optional(z.string()).default('PROJECT_400'),
+    description: z.optional(z.string()).default('Project not found'),
     category: z.optional(z.string()).default('GATEWAY_PROJECT'),
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
@@ -8444,13 +8601,13 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * ProjectAccessForbidden
+ * DataFrameMetaNotFound
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel69 =
   z.object({
-    name: z.optional(z.string()).default('PROJECT_ACCESS_FORBIDDEN'),
-    code: z.optional(z.string()).default('PROJECT_ACCESS_403'),
-    description: z.optional(z.string()).default('Project access forbidden'),
+    name: z.optional(z.string()).default('DATA_FRAME_META_NOT_FOUND'),
+    code: z.optional(z.string()).default('DATA_FRAME_404'),
+    description: z.optional(z.string()).default('DDFMeta not found'),
     category: z.optional(z.string()).default('GATEWAY_PROJECT'),
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
@@ -8461,13 +8618,13 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * ProjectNotFound
+ * DataFrameNotFound
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel70 =
   z.object({
-    name: z.optional(z.string()).default('PROJECT_NOT_FOUND'),
-    code: z.optional(z.string()).default('PROJECT_400'),
-    description: z.optional(z.string()).default('Project not found'),
+    name: z.optional(z.string()).default('DATA_FRAME_NOT_FOUND'),
+    code: z.optional(z.string()).default('DATA_FRAME_404'),
+    description: z.optional(z.string()).default('DataFrame not found'),
     category: z.optional(z.string()).default('GATEWAY_PROJECT'),
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
@@ -8478,13 +8635,13 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * DataFrameMetaNotFound
+ * JSONNotFound
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel71 =
   z.object({
-    name: z.optional(z.string()).default('DATA_FRAME_META_NOT_FOUND'),
-    code: z.optional(z.string()).default('DATA_FRAME_404'),
-    description: z.optional(z.string()).default('DDFMeta not found'),
+    name: z.optional(z.string()).default('JSON_NOT_FOUND'),
+    code: z.optional(z.string()).default('JSON_404'),
+    description: z.optional(z.string()).default('JSON not found'),
     category: z.optional(z.string()).default('GATEWAY_PROJECT'),
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
@@ -8495,14 +8652,14 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * DataFrameNotFound
+ * ProjectNotFoundHTTPError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel72 =
   z.object({
-    name: z.optional(z.string()).default('DATA_FRAME_NOT_FOUND'),
-    code: z.optional(z.string()).default('DATA_FRAME_404'),
-    description: z.optional(z.string()).default('DataFrame not found'),
-    category: z.optional(z.string()).default('GATEWAY_PROJECT'),
+    name: z.optional(z.string()).default('CRUD_PROJECT_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_PROJECT_404'),
+    description: z.optional(z.string()).default('Проект не найден'),
+    category: z.optional(z.string()).default('CRUD_PROJECT'),
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
@@ -8512,14 +8669,14 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * JSONNotFound
+ * ProjectAccessForbiddenHTTPError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel73 =
   z.object({
-    name: z.optional(z.string()).default('JSON_NOT_FOUND'),
-    code: z.optional(z.string()).default('JSON_404'),
-    description: z.optional(z.string()).default('JSON not found'),
-    category: z.optional(z.string()).default('GATEWAY_PROJECT'),
+    name: z.optional(z.string()).default('CRUD_PROJECT_ACCESS_FORBIDDEN'),
+    code: z.optional(z.string()).default('CRUD_PROJECT_403'),
+    description: z.optional(z.string()).default('Доступ к проекту запрещен'),
+    category: z.optional(z.string()).default('CRUD_PROJECT'),
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
@@ -8529,9 +8686,339 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * ProjectionRebuildFailedError
+ * ProjectVariableNotFoundHTTPError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_404'),
+    description: z
+      .optional(z.string())
+      .default('Переменная проекта не найдена'),
+    category: z.optional(z.string()).default('CRUD_PROJECT'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74
+  >;
+
+/**
+ * ProjectVariableAlreadyExistsHTTPError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75 =
+  z.object({
+    name: z
+      .optional(z.string())
+      .default('CRUD_PROJECT_VARIABLE_ALREADY_EXISTS'),
+    code: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_409'),
+    description: z
+      .optional(z.string())
+      .default('Переменная проекта уже существует'),
+    category: z.optional(z.string()).default('CRUD_PROJECT'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75
+  >;
+
+/**
+ * AppSettingsDomainError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76 =
+  z.object({
+    name: z.optional(z.string()).default('APP_SETTINGS_DOMAIN_ERROR'),
+    code: z.optional(z.string()).default('APP_SETTINGS_001'),
+    description: z
+      .optional(z.string())
+      .default('Application settings domain error'),
+    category: z.optional(z.string()).default('APP_SETTINGS_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76
+  >;
+
+/**
+ * SettingNotFoundError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77 =
+  z.object({
+    name: z.optional(z.string()).default('APP_SETTING_NOT_FOUND'),
+    code: z.optional(z.string()).default('APP_SETTINGS_002'),
+    description: z
+      .optional(z.string())
+      .default('Application setting was not found'),
+    category: z.optional(z.string()).default('APP_SETTING_NOT_FOUND'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77
+  >;
+
+/**
+ * SettingValidationError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78 =
+  z.object({
+    name: z.optional(z.string()).default('APP_SETTING_VALIDATION_ERROR'),
+    code: z.optional(z.string()).default('APP_SETTINGS_003'),
+    description: z
+      .optional(z.string())
+      .default('Application setting value is invalid'),
+    category: z.optional(z.string()).default('APP_SETTING_VALIDATION_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78
+  >;
+
+/**
+ * SettingReadOnlyError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79 =
+  z.object({
+    name: z.optional(z.string()).default('APP_SETTING_READ_ONLY'),
+    code: z.optional(z.string()).default('APP_SETTINGS_004'),
+    description: z
+      .optional(z.string())
+      .default('Application setting is read-only'),
+    category: z.optional(z.string()).default('APP_SETTING_READ_ONLY'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79
+  >;
+
+/**
+ * UserNotFoundException
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_USER_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_USER_404'),
+    description: z.optional(z.string()).default('Пользователь не найден'),
+    category: z.optional(z.string()).default('CRUD_USER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80
+  >;
+
+/**
+ * UserAlreadyExistsException
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_USER_ALREADY_EXISTS'),
+    code: z.optional(z.string()).default('CRUD_USER_409'),
+    description: z.optional(z.string()).default('Пользователь уже существует'),
+    category: z.optional(z.string()).default('CRUD_USER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81
+  >;
+
+/**
+ * UserActionForbiddenException
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_USER_FORBIDDEN'),
+    code: z.optional(z.string()).default('CRUD_USER_403'),
+    description: z
+      .optional(z.string())
+      .default('Действие над пользователем запрещено'),
+    category: z.optional(z.string()).default('CRUD_USER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82
+  >;
+
+/**
+ * UserAlreadyExistsHTTPError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_USER_ALREADY_EXISTS'),
+    code: z.optional(z.string()).default('CRUD_USER_409'),
+    description: z.optional(z.string()).default('Пользователь уже существует'),
+    category: z.optional(z.string()).default('CRUD_USER'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83
+  >;
+
+/**
+ * UserNotFoundHTTPError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_USER_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_USER_404'),
+    description: z.optional(z.string()).default('Пользователь не найден'),
+    category: z.optional(z.string()).default('CRUD_USER'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84
+  >;
+
+/**
+ * UserActionForbiddenHTTPError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_USER_FORBIDDEN'),
+    code: z.optional(z.string()).default('CRUD_USER_403'),
+    description: z
+      .optional(z.string())
+      .default('Действие над пользователем запрещено'),
+    category: z.optional(z.string()).default('CRUD_USER'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85
+  >;
+
+/**
+ * OrganizationNotFoundException
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_ORGANIZATION_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_ORGANIZATION_404'),
+    description: z.optional(z.string()).default('Организация не найдена'),
+    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86
+  >;
+
+/**
+ * OrganizationINNConflictException
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_ORGANIZATION_INN_CONFLICT'),
+    code: z.optional(z.string()).default('CRUD_ORGANIZATION_409'),
+    description: z
+      .optional(z.string())
+      .default('Организация с таким ИНН уже существует'),
+    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87
+  >;
+
+/**
+ * OrganizationNotFoundHTTPError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_ORGANIZATION_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_ORGANIZATION_404'),
+    description: z.optional(z.string()).default('Организация не найдена'),
+    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88
+  >;
+
+/**
+ * OrganizationINNConflictHTTPError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_ORGANIZATION_INN_CONFLICT'),
+    code: z.optional(z.string()).default('CRUD_ORGANIZATION_409'),
+    description: z
+      .optional(z.string())
+      .default('Организация с таким ИНН уже существует'),
+    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89
+  >;
+
+/**
+ * OrganizationForbiddenHttpError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_ORGANIZATION_FORBIDDEN'),
+    code: z.optional(z.string()).default('CRUD_ORGANIZATION_403'),
+    description: z
+      .optional(z.string())
+      .default('Действие над организацией запрещено'),
+    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90
+  >;
+
+/**
+ * OrganizationInvalidINNHTTPError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_ORGANIZATION_INN_INVALID'),
+    code: z.optional(z.string()).default('CRUD_ORGANIZATION_400'),
+    description: z.optional(z.string()).default('Некорректный ИНН организации'),
+    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91
+  >;
+
+/**
+ * ProjectionRebuildFailedError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92 =
   z.object({
     name: z
       .optional(z.string())
@@ -8544,351 +9031,23 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74
-  >;
-
-/**
- * ProjectNotFoundHTTPError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_PROJECT_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_PROJECT_404'),
-    description: z.optional(z.string()).default('Проект не найден'),
-    category: z.optional(z.string()).default('CRUD_PROJECT'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75
-  >;
-
-/**
- * ProjectAccessForbiddenHTTPError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_PROJECT_ACCESS_FORBIDDEN'),
-    code: z.optional(z.string()).default('CRUD_PROJECT_403'),
-    description: z.optional(z.string()).default('Доступ к проекту запрещен'),
-    category: z.optional(z.string()).default('CRUD_PROJECT'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76
-  >;
-
-/**
- * ProjectVariableNotFoundHTTPError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_404'),
-    description: z
-      .optional(z.string())
-      .default('Переменная проекта не найдена'),
-    category: z.optional(z.string()).default('CRUD_PROJECT'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77
-  >;
-
-/**
- * ProjectVariableAlreadyExistsHTTPError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78 =
-  z.object({
-    name: z
-      .optional(z.string())
-      .default('CRUD_PROJECT_VARIABLE_ALREADY_EXISTS'),
-    code: z.optional(z.string()).default('CRUD_PROJECT_VARIABLE_409'),
-    description: z
-      .optional(z.string())
-      .default('Переменная проекта уже существует'),
-    category: z.optional(z.string()).default('CRUD_PROJECT'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78
-  >;
-
-/**
- * AppSettingsDomainError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79 =
-  z.object({
-    name: z.optional(z.string()).default('APP_SETTINGS_DOMAIN_ERROR'),
-    code: z.optional(z.string()).default('APP_SETTINGS_001'),
-    description: z
-      .optional(z.string())
-      .default('Application settings domain error'),
-    category: z.optional(z.string()).default('APP_SETTINGS_DOMAIN_ERROR'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79
-  >;
-
-/**
- * SettingNotFoundError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80 =
-  z.object({
-    name: z.optional(z.string()).default('APP_SETTING_NOT_FOUND'),
-    code: z.optional(z.string()).default('APP_SETTINGS_002'),
-    description: z
-      .optional(z.string())
-      .default('Application setting was not found'),
-    category: z.optional(z.string()).default('APP_SETTING_NOT_FOUND'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80
-  >;
-
-/**
- * SettingValidationError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81 =
-  z.object({
-    name: z.optional(z.string()).default('APP_SETTING_VALIDATION_ERROR'),
-    code: z.optional(z.string()).default('APP_SETTINGS_003'),
-    description: z
-      .optional(z.string())
-      .default('Application setting value is invalid'),
-    category: z.optional(z.string()).default('APP_SETTING_VALIDATION_ERROR'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81
-  >;
-
-/**
- * SettingReadOnlyError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82 =
-  z.object({
-    name: z.optional(z.string()).default('APP_SETTING_READ_ONLY'),
-    code: z.optional(z.string()).default('APP_SETTINGS_004'),
-    description: z
-      .optional(z.string())
-      .default('Application setting is read-only'),
-    category: z.optional(z.string()).default('APP_SETTING_READ_ONLY'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82
-  >;
-
-/**
- * UserNotFoundException
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_USER_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_USER_404'),
-    description: z.optional(z.string()).default('Пользователь не найден'),
-    category: z.optional(z.string()).default('CRUD_USER'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83
-  >;
-
-/**
- * UserAlreadyExistsException
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_USER_ALREADY_EXISTS'),
-    code: z.optional(z.string()).default('CRUD_USER_409'),
-    description: z.optional(z.string()).default('Пользователь уже существует'),
-    category: z.optional(z.string()).default('CRUD_USER'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84
-  >;
-
-/**
- * UserActionForbiddenException
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_USER_FORBIDDEN'),
-    code: z.optional(z.string()).default('CRUD_USER_403'),
-    description: z
-      .optional(z.string())
-      .default('Действие над пользователем запрещено'),
-    category: z.optional(z.string()).default('CRUD_USER'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85
-  >;
-
-/**
- * UserAlreadyExistsHTTPError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_USER_ALREADY_EXISTS'),
-    code: z.optional(z.string()).default('CRUD_USER_409'),
-    description: z.optional(z.string()).default('Пользователь уже существует'),
-    category: z.optional(z.string()).default('CRUD_USER'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86
-  >;
-
-/**
- * UserNotFoundHTTPError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_USER_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_USER_404'),
-    description: z.optional(z.string()).default('Пользователь не найден'),
-    category: z.optional(z.string()).default('CRUD_USER'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87
-  >;
-
-/**
- * UserActionForbiddenHTTPError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_USER_FORBIDDEN'),
-    code: z.optional(z.string()).default('CRUD_USER_403'),
-    description: z
-      .optional(z.string())
-      .default('Действие над пользователем запрещено'),
-    category: z.optional(z.string()).default('CRUD_USER'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88
-  >;
-
-/**
- * OrganizationNotFoundException
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_ORGANIZATION_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_ORGANIZATION_404'),
-    description: z.optional(z.string()).default('Организация не найдена'),
-    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89
-  >;
-
-/**
- * OrganizationINNConflictException
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_ORGANIZATION_INN_CONFLICT'),
-    code: z.optional(z.string()).default('CRUD_ORGANIZATION_409'),
-    description: z
-      .optional(z.string())
-      .default('Организация с таким ИНН уже существует'),
-    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
-    type: z.optional(z.string()).default('CUSTOM'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90
-  >;
-
-/**
- * OrganizationNotFoundHTTPError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_ORGANIZATION_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_ORGANIZATION_404'),
-    description: z.optional(z.string()).default('Организация не найдена'),
-    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91ZodType =
-  z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91
-  >;
-
-/**
- * OrganizationINNConflictHTTPError
- */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92 =
-  z.object({
-    name: z.optional(z.string()).default('CRUD_ORGANIZATION_INN_CONFLICT'),
-    code: z.optional(z.string()).default('CRUD_ORGANIZATION_409'),
-    description: z
-      .optional(z.string())
-      .default('Организация с таким ИНН уже существует'),
-    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
-  });
-
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92ZodType =
   z.infer<
     typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92
   >;
 
 /**
- * OrganizationForbiddenHttpError
+ * DataFrameSchemaMappingError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_ORGANIZATION_FORBIDDEN'),
-    code: z.optional(z.string()).default('CRUD_ORGANIZATION_403'),
+    name: z.optional(z.string()).default('DATAFRAME_SCHEMA_MAPPING_ERROR'),
+    code: z.optional(z.string()).default('DATA_CATALOG_003'),
     description: z
       .optional(z.string())
-      .default('Действие над организацией запрещено'),
-    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
+      .default('DataFrame cannot be converted to a table schema.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_INFRA_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
   });
 
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93ZodType =
@@ -8897,15 +9056,17 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * OrganizationInvalidINNHTTPError
+ * DataCatalogPersistenceError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel94 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_ORGANIZATION_INN_INVALID'),
-    code: z.optional(z.string()).default('CRUD_ORGANIZATION_400'),
-    description: z.optional(z.string()).default('Некорректный ИНН организации'),
-    category: z.optional(z.string()).default('CRUD_ORGANIZATION'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
+    name: z.optional(z.string()).default('DATA_CATALOG_PERSISTENCE_ERROR'),
+    code: z.optional(z.string()).default('DATA_CATALOG_010'),
+    description: z
+      .optional(z.string())
+      .default('Data catalog persistence operation failed.'),
+    category: z.optional(z.string()).default('DATA_CATALOG_INFRA_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
   });
 
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel94ZodType =
@@ -9996,6 +10157,70 @@ export const zUpdateOrganizationOrganizationsOrganizationIdPatchResponse =
 export type UpdateOrganizationOrganizationsOrganizationIdPatchResponseZodType =
   z.infer<typeof zUpdateOrganizationOrganizationsOrganizationIdPatchResponse>;
 
+export const zGetFavoriteProjectsProjectsFavoritesGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type GetFavoriteProjectsProjectsFavoritesGetDataZodType = z.infer<
+  typeof zGetFavoriteProjectsProjectsFavoritesGetData
+>;
+
+/**
+ * Response Get Favorite Projects Projects Favorites Get
+ *
+ * Successful Response
+ */
+export const zGetFavoriteProjectsProjectsFavoritesGetResponse =
+  z.array(zProjectReadSchema);
+
+export type GetFavoriteProjectsProjectsFavoritesGetResponseZodType = z.infer<
+  typeof zGetFavoriteProjectsProjectsFavoritesGetResponse
+>;
+
+export const zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData =
+  z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+      project_id: z.string(),
+    }),
+    query: z.optional(z.never()),
+  });
+
+export type RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteDataZodType =
+  z.infer<typeof zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData>;
+
+/**
+ * Successful Response
+ */
+export const zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponse =
+  zCommonResponse;
+
+export type RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponseZodType =
+  z.infer<typeof zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponse>;
+
+export const zAddFavoriteProjectProjectsProjectIdFavoritePutData = z.object({
+  body: z.optional(z.never()),
+  path: z.object({
+    project_id: z.string(),
+  }),
+  query: z.optional(z.never()),
+});
+
+export type AddFavoriteProjectProjectsProjectIdFavoritePutDataZodType = z.infer<
+  typeof zAddFavoriteProjectProjectsProjectIdFavoritePutData
+>;
+
+/**
+ * Successful Response
+ */
+export const zAddFavoriteProjectProjectsProjectIdFavoritePutResponse =
+  zCommonResponse;
+
+export type AddFavoriteProjectProjectsProjectIdFavoritePutResponseZodType =
+  z.infer<typeof zAddFavoriteProjectProjectsProjectIdFavoritePutResponse>;
+
 export const zGetProjectItemsProjectsItemsGetData = z.object({
   body: z.optional(z.never()),
   path: z.optional(z.never()),
@@ -10122,6 +10347,7 @@ export const zGetProjectsProjectsGetData = z.object({
     z.object({
       sort_by: z.optional(z.enum(['default', 'updated_at'])),
       sort_order: z.optional(z.enum(['asc', 'desc'])),
+      limit: z.optional(z.union([z.int().gte(1), z.null()])),
     })
   ),
 });
@@ -11714,6 +11940,91 @@ export type ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPos
   z.infer<
     typeof zConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponse
   >;
+
+export const zGetRunsLast24hWidgetWidgetsRuns24hGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type GetRunsLast24hWidgetWidgetsRuns24hGetDataZodType = z.infer<
+  typeof zGetRunsLast24hWidgetWidgetsRuns24hGetData
+>;
+
+/**
+ * Successful Response
+ */
+export const zGetRunsLast24hWidgetWidgetsRuns24hGetResponse =
+  zRunsLast24hWidgetSchema;
+
+export type GetRunsLast24hWidgetWidgetsRuns24hGetResponseZodType = z.infer<
+  typeof zGetRunsLast24hWidgetWidgetsRuns24hGetResponse
+>;
+
+export const zGetScheduledRunsWidgetWidgetsScheduledRunsGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(
+    z.object({
+      limit: z.optional(z.int().gte(1).lte(20)).default(5),
+    })
+  ),
+});
+
+export type GetScheduledRunsWidgetWidgetsScheduledRunsGetDataZodType = z.infer<
+  typeof zGetScheduledRunsWidgetWidgetsScheduledRunsGetData
+>;
+
+/**
+ * Successful Response
+ */
+export const zGetScheduledRunsWidgetWidgetsScheduledRunsGetResponse =
+  zScheduledRunsWidgetSchema;
+
+export type GetScheduledRunsWidgetWidgetsScheduledRunsGetResponseZodType =
+  z.infer<typeof zGetScheduledRunsWidgetWidgetsScheduledRunsGetResponse>;
+
+export const zGetServicesWidgetWidgetsServicesGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type GetServicesWidgetWidgetsServicesGetDataZodType = z.infer<
+  typeof zGetServicesWidgetWidgetsServicesGetData
+>;
+
+/**
+ * Successful Response
+ */
+export const zGetServicesWidgetWidgetsServicesGetResponse =
+  zServicesWidgetSchema;
+
+export type GetServicesWidgetWidgetsServicesGetResponseZodType = z.infer<
+  typeof zGetServicesWidgetWidgetsServicesGetResponse
+>;
+
+export const zGetFailingProjectsWidgetWidgetsFailingProjectsGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(
+    z.object({
+      limit: z.optional(z.int().gte(1).lte(20)).default(5),
+    })
+  ),
+});
+
+export type GetFailingProjectsWidgetWidgetsFailingProjectsGetDataZodType =
+  z.infer<typeof zGetFailingProjectsWidgetWidgetsFailingProjectsGetData>;
+
+/**
+ * Successful Response
+ */
+export const zGetFailingProjectsWidgetWidgetsFailingProjectsGetResponse =
+  zFailingProjectsWidgetSchema;
+
+export type GetFailingProjectsWidgetWidgetsFailingProjectsGetResponseZodType =
+  z.infer<typeof zGetFailingProjectsWidgetWidgetsFailingProjectsGetResponse>;
 
 export const zSqlCodeMetadataUtilsSqlCodeMetadataPostData = z.object({
   body: zBodySqlCodeMetadataUtilsSqlCodeMetadataPost,

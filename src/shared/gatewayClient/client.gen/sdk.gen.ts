@@ -8,6 +8,9 @@ import {
 } from './client';
 import { client } from './client.gen';
 import type {
+  AddFavoriteProjectProjectsProjectIdFavoritePutData,
+  AddFavoriteProjectProjectsProjectIdFavoritePutErrors,
+  AddFavoriteProjectProjectsProjectIdFavoritePutResponses,
   ApplyColumnActionsUtilsDdlApplyTableColumnActionsPostData,
   ApplyColumnActionsUtilsDdlApplyTableColumnActionsPostErrors,
   ApplyColumnActionsUtilsDdlApplyTableColumnActionsPostResponses,
@@ -237,6 +240,11 @@ import type {
   GetExtensionStateExtensionsExtensionNameStateGetData,
   GetExtensionStateExtensionsExtensionNameStateGetErrors,
   GetExtensionStateExtensionsExtensionNameStateGetResponses,
+  GetFailingProjectsWidgetWidgetsFailingProjectsGetData,
+  GetFailingProjectsWidgetWidgetsFailingProjectsGetErrors,
+  GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses,
+  GetFavoriteProjectsProjectsFavoritesGetData,
+  GetFavoriteProjectsProjectsFavoritesGetResponses,
   GetFixturesPytestMonFixturesGetData,
   GetFixturesPytestMonFixturesGetResponses,
   GetGraphProjectsProjectIdGraphGetData,
@@ -290,12 +298,19 @@ import type {
   GetQueueTopicsQueueTopicsGetData,
   GetQueueTopicsQueueTopicsGetErrors,
   GetQueueTopicsQueueTopicsGetResponses,
+  GetRunsLast24hWidgetWidgetsRuns24hGetData,
+  GetRunsLast24hWidgetWidgetsRuns24hGetResponses,
   GetRuntimeConfigSystemRuntimeConfigGetData,
   GetRuntimeConfigSystemRuntimeConfigGetResponses,
   GetScheduledProjectsProjectsSchedulerScheduledGetData,
   GetScheduledProjectsProjectsSchedulerScheduledGetResponses,
+  GetScheduledRunsWidgetWidgetsScheduledRunsGetData,
+  GetScheduledRunsWidgetWidgetsScheduledRunsGetErrors,
+  GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses,
   GetServicesSystemInfoSystemServicesStatsGetData,
   GetServicesSystemInfoSystemServicesStatsGetResponses,
+  GetServicesWidgetWidgetsServicesGetData,
+  GetServicesWidgetWidgetsServicesGetResponses,
   GetSetupStatusSetupStatusGetData,
   GetSetupStatusSetupStatusGetResponses,
   GetSystemInfoSystemStatsGetData,
@@ -426,6 +441,9 @@ import type {
   ReloadExtensionExtensionsExtensionNameReloadPostResponses,
   ReloadInstalledExtensionsExtensionsReloadInstalledPostData,
   ReloadInstalledExtensionsExtensionsReloadInstalledPostResponses,
+  RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData,
+  RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteErrors,
+  RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses,
   RenamePathStoragePathRenamePostData,
   RenamePathStoragePathRenamePostErrors,
   RenamePathStoragePathRenamePostResponses,
@@ -543,6 +561,8 @@ import type {
   UserProfileProfileGetResponses,
 } from './types.gen';
 import {
+  zAddFavoriteProjectProjectsProjectIdFavoritePutData,
+  zAddFavoriteProjectProjectsProjectIdFavoritePutResponse,
   zApplyColumnActionsUtilsDdlApplyTableColumnActionsPostData,
   zApplyColumnActionsUtilsDdlApplyTableColumnActionsPostResponse,
   zBulkUpdateProjectVariablesProjectsProjectIdVariablesBulkUpdatePostData,
@@ -692,6 +712,10 @@ import {
   zGetExtensionFrontendExtensionsExtensionNameFrontendGetResponse,
   zGetExtensionStateExtensionsExtensionNameStateGetData,
   zGetExtensionStateExtensionsExtensionNameStateGetResponse,
+  zGetFailingProjectsWidgetWidgetsFailingProjectsGetData,
+  zGetFailingProjectsWidgetWidgetsFailingProjectsGetResponse,
+  zGetFavoriteProjectsProjectsFavoritesGetData,
+  zGetFavoriteProjectsProjectsFavoritesGetResponse,
   zGetFixturesPytestMonFixturesGetData,
   zGetFixturesPytestMonFixturesGetResponse,
   zGetGraphProjectsProjectIdGraphGetData,
@@ -729,12 +753,18 @@ import {
   zGetQueueTopicQueueTopicsTopicIdGetResponse,
   zGetQueueTopicsQueueTopicsGetData,
   zGetQueueTopicsQueueTopicsGetResponse,
+  zGetRunsLast24hWidgetWidgetsRuns24hGetData,
+  zGetRunsLast24hWidgetWidgetsRuns24hGetResponse,
   zGetRuntimeConfigSystemRuntimeConfigGetData,
   zGetRuntimeConfigSystemRuntimeConfigGetResponse,
   zGetScheduledProjectsProjectsSchedulerScheduledGetData,
   zGetScheduledProjectsProjectsSchedulerScheduledGetResponse,
+  zGetScheduledRunsWidgetWidgetsScheduledRunsGetData,
+  zGetScheduledRunsWidgetWidgetsScheduledRunsGetResponse,
   zGetServicesSystemInfoSystemServicesStatsGetData,
   zGetServicesSystemInfoSystemServicesStatsGetResponse,
+  zGetServicesWidgetWidgetsServicesGetData,
+  zGetServicesWidgetWidgetsServicesGetResponse,
   zGetSetupStatusSetupStatusGetData,
   zGetSetupStatusSetupStatusGetResponse,
   zGetSystemInfoSystemStatsGetData,
@@ -831,6 +861,8 @@ import {
   zReloadExtensionExtensionsExtensionNameReloadPostResponse,
   zReloadInstalledExtensionsExtensionsReloadInstalledPostData,
   zReloadInstalledExtensionsExtensionsReloadInstalledPostResponse,
+  zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData,
+  zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponse,
   zRenamePathStoragePathRenamePostData,
   zRenamePathStoragePathRenamePostResponse,
   zResolveWriteColumnsUtilsDdlResolveWriteColumnsPostData,
@@ -1659,6 +1691,99 @@ export const updateOrganizationOrganizationsOrganizationIdPatch = <
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+};
+
+/**
+ * Получить избранные проекты текущего пользователя
+ */
+export const getFavoriteProjectsProjectsFavoritesGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetFavoriteProjectsProjectsFavoritesGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    GetFavoriteProjectsProjectsFavoritesGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetFavoriteProjectsProjectsFavoritesGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetFavoriteProjectsProjectsFavoritesGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/projects/favorites',
+    ...options,
+  });
+};
+
+/**
+ * Убрать проект из избранного
+ */
+export const removeFavoriteProjectProjectsProjectIdFavoriteDelete = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).delete<
+    RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses,
+    RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponse.parseAsync(
+        data
+      );
+    },
+    url: '/projects/{project_id}/favorite',
+    ...options,
+  });
+};
+
+/**
+ * Добавить проект в избранное
+ */
+export const addFavoriteProjectProjectsProjectIdFavoritePut = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    AddFavoriteProjectProjectsProjectIdFavoritePutData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).put<
+    AddFavoriteProjectProjectsProjectIdFavoritePutResponses,
+    AddFavoriteProjectProjectsProjectIdFavoritePutErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zAddFavoriteProjectProjectsProjectIdFavoritePutData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zAddFavoriteProjectProjectsProjectIdFavoritePutResponse.parseAsync(
+        data
+      );
+    },
+    url: '/projects/{project_id}/favorite',
+    ...options,
   });
 };
 
@@ -3651,6 +3776,124 @@ export const confirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPo
       },
     });
   };
+
+/**
+ * Виджет: запуски за последние 24 часа
+ */
+export const getRunsLast24hWidgetWidgetsRuns24hGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetRunsLast24hWidgetWidgetsRuns24hGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    GetRunsLast24hWidgetWidgetsRuns24hGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetRunsLast24hWidgetWidgetsRuns24hGetData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetRunsLast24hWidgetWidgetsRuns24hGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/widgets/runs-24h',
+    ...options,
+  });
+};
+
+/**
+ * Виджет: ближайшие запуски по расписанию
+ */
+export const getScheduledRunsWidgetWidgetsScheduledRunsGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<
+    GetScheduledRunsWidgetWidgetsScheduledRunsGetData,
+    ThrowOnError
+  >
+) => {
+  return (options?.client ?? client).get<
+    GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses,
+    GetScheduledRunsWidgetWidgetsScheduledRunsGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetScheduledRunsWidgetWidgetsScheduledRunsGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetScheduledRunsWidgetWidgetsScheduledRunsGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/widgets/scheduled-runs',
+    ...options,
+  });
+};
+
+/**
+ * Виджет: состояние сервисов
+ */
+export const getServicesWidgetWidgetsServicesGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetServicesWidgetWidgetsServicesGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    GetServicesWidgetWidgetsServicesGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetServicesWidgetWidgetsServicesGetData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetServicesWidgetWidgetsServicesGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/widgets/services',
+    ...options,
+  });
+};
+
+/**
+ * Виджет: проблемные проекты за 7 дней
+ */
+export const getFailingProjectsWidgetWidgetsFailingProjectsGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<
+    GetFailingProjectsWidgetWidgetsFailingProjectsGetData,
+    ThrowOnError
+  >
+) => {
+  return (options?.client ?? client).get<
+    GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses,
+    GetFailingProjectsWidgetWidgetsFailingProjectsGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetFailingProjectsWidgetWidgetsFailingProjectsGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetFailingProjectsWidgetWidgetsFailingProjectsGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/widgets/failing-projects',
+    ...options,
+  });
+};
 
 /**
  * Sql Code Metadata
