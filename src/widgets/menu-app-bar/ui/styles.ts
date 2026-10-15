@@ -129,6 +129,8 @@ export const headerBrandButtonSx: SxProps<Theme> = {
   cursor: 'pointer',
   textAlign: 'left',
   font: 'inherit',
+  color: 'inherit',
+  textDecoration: 'none',
 };
 
 export const headerNavContentSx: SxProps<Theme> = {

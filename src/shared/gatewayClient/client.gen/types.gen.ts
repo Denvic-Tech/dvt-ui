@@ -4093,6 +4093,64 @@ export type FtpSecrets = {
 };
 
 /**
+ * FailingProjectItemSchema
+ */
+export type FailingProjectItemSchema = {
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Project Name
+   */
+  project_name: string | null;
+  /**
+   * Error Count
+   */
+  error_count: number;
+  /**
+   * Total Count
+   *
+   * Завершённых запусков за окно
+   */
+  total_count: number;
+  /**
+   * Last Error At
+   */
+  last_error_at: string;
+  /**
+   * Consecutive Failures
+   *
+   * Сколько последних завершённых запусков подряд упали (отменённые и незавершённые пропускаются)
+   */
+  consecutive_failures: number;
+};
+
+/**
+ * FailingProjectsWidgetSchema
+ */
+export type FailingProjectsWidgetSchema = {
+  /**
+   * Generated At
+   */
+  generated_at: string;
+  /**
+   * Window Start
+   */
+  window_start: string;
+  /**
+   * Window End
+   */
+  window_end: string;
+  /**
+   * Items
+   *
+   * Проекты по убыванию числа ошибок
+   */
+  items: Array<FailingProjectItemSchema>;
+};
+
+/**
  * FieldDescriptionPatchSchema
  *
  * Ключ description обязателен: null означает очистку, пропуск недопустим.
@@ -8453,6 +8511,12 @@ export type ProjectReadSchema = {
    */
   last_runs?: Array<ProjectLastRunSchema>;
   /**
+   * Is Favorite
+   *
+   * Добавлен ли проект в избранное текущим пользователем
+   */
+  is_favorite?: boolean;
+  /**
    * Created At
    *
    * Timestamp when the record was created
@@ -8670,6 +8734,12 @@ export type ProjectScheduleResponse = {
    * Максимальная задержка exponential backoff
    */
   retry_max_delay_seconds?: number;
+  /**
+   * Project Name
+   *
+   * Название проекта
+   */
+  project_name?: string | null;
   /**
    * Disabled
    *
@@ -9631,6 +9701,94 @@ export type ResourceScopeSchema = {
 export type RetryBackoff = 'fixed' | 'exponential';
 
 /**
+ * RunsBucketSchema
+ */
+export type RunsBucketSchema = {
+  /**
+   * Start
+   *
+   * Начало корзины (UTC). Корзина длится bucket_minutes, последняя заканчивается в window_end
+   */
+  start: string;
+  /**
+   * Total
+   */
+  total: number;
+  /**
+   * Success
+   */
+  success: number;
+  /**
+   * Error
+   */
+  error: number;
+  /**
+   * Cancelled
+   */
+  cancelled: number;
+  /**
+   * Running
+   *
+   * Запуски, ещё не завершившиеся
+   */
+  running: number;
+};
+
+/**
+ * RunsLast24hWidgetSchema
+ */
+export type RunsLast24hWidgetSchema = {
+  /**
+   * Generated At
+   */
+  generated_at: string;
+  /**
+   * Window Start
+   */
+  window_start: string;
+  /**
+   * Window End
+   */
+  window_end: string;
+  /**
+   * Bucket Minutes
+   */
+  bucket_minutes: number;
+  /**
+   * Total
+   */
+  total: number;
+  /**
+   * Success
+   */
+  success: number;
+  /**
+   * Error
+   */
+  error: number;
+  /**
+   * Cancelled
+   */
+  cancelled: number;
+  /**
+   * Running
+   */
+  running: number;
+  /**
+   * Success Ratio
+   *
+   * success / (success + error); null, если завершённых запусков нет. Отменённые и незавершённые в долю не входят
+   */
+  success_ratio: number | null;
+  /**
+   * Buckets
+   *
+   * Почасовые корзины от старых к новым, всегда 24 элемента
+   */
+  buckets: Array<RunsBucketSchema>;
+};
+
+/**
  * RuntimeConfig
  */
 export type RuntimeConfig = {
@@ -10233,6 +10391,80 @@ export type ScheduleResponse = {
 };
 
 /**
+ * ScheduledRunItemSchema
+ */
+export type ScheduledRunItemSchema = {
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Project Name
+   */
+  project_name: string | null;
+  /**
+   * Cron
+   */
+  cron: string;
+  /**
+   * Next Run Time
+   */
+  next_run_time: string;
+  last_run_status: TaskExecutionStatus | null;
+  /**
+   * Last Run Time
+   */
+  last_run_time: string | null;
+};
+
+/**
+ * ScheduledRunsWidgetSchema
+ */
+export type ScheduledRunsWidgetSchema = {
+  /**
+   * Generated At
+   */
+  generated_at: string;
+  /**
+   * Total Schedules
+   *
+   * Доступных расписаний, включая отключённые
+   */
+  total_schedules: number;
+  /**
+   * Disabled Schedules
+   */
+  disabled_schedules: number;
+  /**
+   * Items
+   *
+   * Ближайшие запуски, отсортированы по next_run_time
+   */
+  items: Array<ScheduledRunItemSchema>;
+};
+
+/**
+ * ServiceStatusItemSchema
+ */
+export type ServiceStatusItemSchema = {
+  /**
+   * Name
+   */
+  name: 'gateway' | 'project_scheduler' | 'orchestrator';
+  status: WorkerStatus;
+  /**
+   * Latency Ms
+   *
+   * Время ответа сервиса из gateway; null для самого gateway и при недоступности
+   */
+  latency_ms: number | null;
+  /**
+   * Uptime Seconds
+   */
+  uptime_seconds: number | null;
+};
+
+/**
  * ServicesStatus
  */
 export type ServicesStatus = {
@@ -10242,6 +10474,22 @@ export type ServicesStatus = {
    * Task Workers
    */
   task_workers: Array<WorkerSystemInfo> | null;
+};
+
+/**
+ * ServicesWidgetSchema
+ */
+export type ServicesWidgetSchema = {
+  /**
+   * Generated At
+   */
+  generated_at: string;
+  system_state: SystemStateValue;
+  /**
+   * Services
+   */
+  services: Array<ServiceStatusItemSchema>;
+  workers: WorkersSummarySchema;
 };
 
 /**
@@ -11566,6 +11814,26 @@ export type WorkerSystemInfo = {
    * Running Task Ram Used Percent
    */
   running_task_ram_used_percent?: number | null;
+};
+
+/**
+ * WorkersSummarySchema
+ */
+export type WorkersSummarySchema = {
+  /**
+   * Total
+   */
+  total: number;
+  /**
+   * Online
+   */
+  online: number;
+  /**
+   * Busy
+   *
+   * Воркеры, выполняющие задачу
+   */
+  busy: number;
 };
 
 /**
@@ -15775,7 +16043,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * DataFrameSchemaMappingError
+ * ProjectNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel61 =
   {
@@ -15802,7 +16070,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * DataCatalogPersistenceError
+ * ProjectAccessForbiddenException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel62 =
   {
@@ -15829,7 +16097,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectNotFoundException
+ * ProjectVariableNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63 =
   {
@@ -15856,7 +16124,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectAccessForbiddenException
+ * ProjectVariableAlreadyExistsException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64 =
   {
@@ -15883,7 +16151,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableNotFoundException
+ * ProjectVariableAlreadyExists
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65 =
   {
@@ -15910,7 +16178,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableAlreadyExistsException
+ * ProjectVariableNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66 =
   {
@@ -15937,7 +16205,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableAlreadyExists
+ * ProjectAccessForbidden
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67 =
   {
@@ -15964,7 +16232,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableNotFound
+ * ProjectNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel68 =
   {
@@ -15991,7 +16259,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectAccessForbidden
+ * DataFrameMetaNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel69 =
   {
@@ -16045,7 +16313,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectNotFound
+ * DataFrameNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel70 =
   {
@@ -16072,7 +16340,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * DataFrameMetaNotFound
+ * JSONNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel71 =
   {
@@ -16099,7 +16367,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * DataFrameNotFound
+ * ProjectNotFoundHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel72 =
   {
@@ -16126,7 +16394,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * JSONNotFound
+ * ProjectAccessForbiddenHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel73 =
   {
@@ -16153,7 +16421,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectionRebuildFailedError
+ * ProjectVariableNotFoundHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74 =
   {
@@ -16180,7 +16448,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectNotFoundHTTPError
+ * ProjectVariableAlreadyExistsHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75 =
   {
@@ -16207,7 +16475,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectAccessForbiddenHTTPError
+ * AppSettingsDomainError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76 =
   {
@@ -16234,7 +16502,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableNotFoundHTTPError
+ * SettingNotFoundError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77 =
   {
@@ -16261,7 +16529,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableAlreadyExistsHTTPError
+ * SettingValidationError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78 =
   {
@@ -16288,7 +16556,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * AppSettingsDomainError
+ * SettingReadOnlyError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79 =
   {
@@ -16342,7 +16610,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SettingNotFoundError
+ * UserNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80 =
   {
@@ -16369,7 +16637,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SettingValidationError
+ * UserAlreadyExistsException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81 =
   {
@@ -16396,7 +16664,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SettingReadOnlyError
+ * UserActionForbiddenException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82 =
   {
@@ -16423,7 +16691,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserNotFoundException
+ * UserAlreadyExistsHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83 =
   {
@@ -16450,7 +16718,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserAlreadyExistsException
+ * UserNotFoundHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84 =
   {
@@ -16477,7 +16745,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserActionForbiddenException
+ * UserActionForbiddenHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85 =
   {
@@ -16504,7 +16772,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserAlreadyExistsHTTPError
+ * OrganizationNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86 =
   {
@@ -16531,7 +16799,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserNotFoundHTTPError
+ * OrganizationINNConflictException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87 =
   {
@@ -16558,7 +16826,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserActionForbiddenHTTPError
+ * OrganizationNotFoundHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88 =
   {
@@ -16585,7 +16853,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationNotFoundException
+ * OrganizationINNConflictHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89 =
   {
@@ -16639,7 +16907,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationINNConflictException
+ * OrganizationForbiddenHttpError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90 =
   {
@@ -16666,7 +16934,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationNotFoundHTTPError
+ * OrganizationInvalidINNHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91 =
   {
@@ -16693,7 +16961,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationINNConflictHTTPError
+ * ProjectionRebuildFailedError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92 =
   {
@@ -16720,7 +16988,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationForbiddenHttpError
+ * DataFrameSchemaMappingError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93 =
   {
@@ -16747,7 +17015,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationInvalidINNHTTPError
+ * DataCatalogPersistenceError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel94 =
   {
@@ -17771,6 +18039,93 @@ export type UpdateOrganizationOrganizationsOrganizationIdPatchResponses = {
 export type UpdateOrganizationOrganizationsOrganizationIdPatchResponse =
   UpdateOrganizationOrganizationsOrganizationIdPatchResponses[keyof UpdateOrganizationOrganizationsOrganizationIdPatchResponses];
 
+export type GetFavoriteProjectsProjectsFavoritesGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/projects/favorites';
+};
+
+export type GetFavoriteProjectsProjectsFavoritesGetResponses = {
+  /**
+   * Response Get Favorite Projects Projects Favorites Get
+   *
+   * Successful Response
+   */
+  200: Array<ProjectReadSchema>;
+};
+
+export type GetFavoriteProjectsProjectsFavoritesGetResponse =
+  GetFavoriteProjectsProjectsFavoritesGetResponses[keyof GetFavoriteProjectsProjectsFavoritesGetResponses];
+
+export type RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     *
+     * Project ID
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/projects/{project_id}/favorite';
+};
+
+export type RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteError =
+  RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteErrors[keyof RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteErrors];
+
+export type RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: CommonResponse;
+};
+
+export type RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponse =
+  RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses[keyof RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses];
+
+export type AddFavoriteProjectProjectsProjectIdFavoritePutData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     *
+     * Project ID
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/projects/{project_id}/favorite';
+};
+
+export type AddFavoriteProjectProjectsProjectIdFavoritePutErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AddFavoriteProjectProjectsProjectIdFavoritePutError =
+  AddFavoriteProjectProjectsProjectIdFavoritePutErrors[keyof AddFavoriteProjectProjectsProjectIdFavoritePutErrors];
+
+export type AddFavoriteProjectProjectsProjectIdFavoritePutResponses = {
+  /**
+   * Successful Response
+   */
+  200: CommonResponse;
+};
+
+export type AddFavoriteProjectProjectsProjectIdFavoritePutResponse =
+  AddFavoriteProjectProjectsProjectIdFavoritePutResponses[keyof AddFavoriteProjectProjectsProjectIdFavoritePutResponses];
+
 export type GetProjectItemsProjectsItemsGetData = {
   body?: never;
   path?: never;
@@ -18022,6 +18377,12 @@ export type GetProjectsProjectsGetData = {
      * Направление серверной сортировки
      */
     sort_order?: 'asc' | 'desc';
+    /**
+     * Limit
+     *
+     * Максимальное количество проектов; null означает без ограничения
+     */
+    limit?: number | null;
   };
   url: '/projects';
 };
@@ -20391,6 +20752,108 @@ export type ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPos
 
 export type ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponse =
   ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponses[keyof ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponses];
+
+export type GetRunsLast24hWidgetWidgetsRuns24hGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/widgets/runs-24h';
+};
+
+export type GetRunsLast24hWidgetWidgetsRuns24hGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: RunsLast24hWidgetSchema;
+};
+
+export type GetRunsLast24hWidgetWidgetsRuns24hGetResponse =
+  GetRunsLast24hWidgetWidgetsRuns24hGetResponses[keyof GetRunsLast24hWidgetWidgetsRuns24hGetResponses];
+
+export type GetScheduledRunsWidgetWidgetsScheduledRunsGetData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Limit
+     *
+     * Максимум элементов
+     */
+    limit?: number;
+  };
+  url: '/widgets/scheduled-runs';
+};
+
+export type GetScheduledRunsWidgetWidgetsScheduledRunsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetScheduledRunsWidgetWidgetsScheduledRunsGetError =
+  GetScheduledRunsWidgetWidgetsScheduledRunsGetErrors[keyof GetScheduledRunsWidgetWidgetsScheduledRunsGetErrors];
+
+export type GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScheduledRunsWidgetSchema;
+};
+
+export type GetScheduledRunsWidgetWidgetsScheduledRunsGetResponse =
+  GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses[keyof GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses];
+
+export type GetServicesWidgetWidgetsServicesGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/widgets/services';
+};
+
+export type GetServicesWidgetWidgetsServicesGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ServicesWidgetSchema;
+};
+
+export type GetServicesWidgetWidgetsServicesGetResponse =
+  GetServicesWidgetWidgetsServicesGetResponses[keyof GetServicesWidgetWidgetsServicesGetResponses];
+
+export type GetFailingProjectsWidgetWidgetsFailingProjectsGetData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Limit
+     *
+     * Максимум элементов
+     */
+    limit?: number;
+  };
+  url: '/widgets/failing-projects';
+};
+
+export type GetFailingProjectsWidgetWidgetsFailingProjectsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetFailingProjectsWidgetWidgetsFailingProjectsGetError =
+  GetFailingProjectsWidgetWidgetsFailingProjectsGetErrors[keyof GetFailingProjectsWidgetWidgetsFailingProjectsGetErrors];
+
+export type GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: FailingProjectsWidgetSchema;
+};
+
+export type GetFailingProjectsWidgetWidgetsFailingProjectsGetResponse =
+  GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses[keyof GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses];
 
 export type SqlCodeMetadataUtilsSqlCodeMetadataPostData = {
   body: BodySqlCodeMetadataUtilsSqlCodeMetadataPost;

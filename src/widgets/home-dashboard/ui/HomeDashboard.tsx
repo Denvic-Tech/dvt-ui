@@ -1,95 +1,92 @@
 import * as React from 'react';
-import { Box, Stack } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 import { useAlert } from '@/app/notifications';
 
 import { CreateProjectModal, useProjects } from '@/entities/project/projects';
+import { useHomeSectionUsesPreference } from '@/entities/ui-preferences';
 import { normalizeRole, useCurrentUser } from '@/entities/user';
 
-import type {
-  ProjectCreateSchema,
-  ProjectReadSchema,
-} from '@/shared/gatewayClient';
+import type { ProjectCreateSchema } from '@/shared/gatewayClient';
 import { isApiError } from '@/shared/lib/errors';
-import { Page } from '@/shared/ui/primitives';
 
-import { HomeBackground } from './components/HomeBackground.tsx';
-import { HomeConnectionsSection } from './components/HomeConnectionsSection.tsx';
-import { HomeHero } from './components/HomeHero.tsx';
-import { HomeLoadErrorAlert } from './components/HomeLoadErrorAlert.tsx';
-import { HomeSectionsGrid } from './components/HomeSectionsGrid.tsx';
-import { RecentProjectsSection } from './components/RecentProjectsSection.tsx';
-import { buildHomeSections } from './config/homeSections.tsx';
-import { loadRecentProjects } from './lib/recent-projects.ts';
-import { getProjectsRoute } from './lib/routes.ts';
-import { getUserDisplayName } from './lib/user.ts';
-import { appearSx } from './styles/animations.ts';
+import type { HomeProject } from '../model/types';
+import { useFavoriteProjects } from '../model/useFavoriteProjects';
+import { useHomeProjects } from '../model/useHomeProjects';
+import { useScheduledProjects } from '../model/useScheduledProjects';
+
+import { HomeHeader } from './components/HomeHeader';
+import { HomeSectionsPanel } from './components/HomeSectionsPanel';
+import { RecentProjectsPanel } from './components/RecentProjectsPanel';
+import {
+  getHomeSections,
+  type HomeSection,
+  rankHomeSections,
+} from './config/sections';
+import { HomeWidgetsSection } from './home-widgets/HomeWidgetsSection';
+import { getUserDisplayName } from './lib/user';
+import { getHomeCssVars, hc, homeSectionTitleSx } from './styles/tokens';
 
 export const HomeDashboard = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const { showAlert } = useAlert();
   const { user: currentUser, loading: userLoading } = useCurrentUser();
   const { createNewProject } = useProjects();
+  const { sectionUses, registerSectionUse } = useHomeSectionUsesPreference();
+  const {
+    error: projectsError,
+    loading: projectsLoading,
+    projects,
+    reload: reloadProjects,
+  } = useHomeProjects();
+  const favoriteProjects = useFavoriteProjects();
+  const { toggleFavorite } = favoriteProjects;
 
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [isCreatingProject, setIsCreatingProject] = React.useState(false);
-  const [recentProjects, setRecentProjects] = React.useState<
-    ProjectReadSchema[]
-  >([]);
-  const [recentProjectsError, setRecentProjectsError] =
-    React.useState<unknown>(null);
-  const [recentProjectsLoading, setRecentProjectsLoading] =
-    React.useState(true);
 
-  const currentUserRole = normalizeRole(currentUser?.role);
-  const isSuperadmin = currentUserRole === 'superadmin';
-  const isAdmin = currentUserRole === 'admin' || isSuperadmin;
-  const canCreateProject = true;
+  const role = normalizeRole(currentUser?.role);
+  // The scheduler route is admin+; wait for the real role before asking.
+  const scheduledProjects = useScheduledProjects(
+    !userLoading && (role === 'admin' || role === 'superadmin')
+  );
+  const displayName = getUserDisplayName(
+    currentUser?.user_name,
+    currentUser?.email
+  );
 
-  React.useEffect(() => {
-    let cancelled = false;
+  const sections = React.useMemo(() => getHomeSections(role), [role]);
+  const rankedSections = React.useMemo(
+    () => rankHomeSections(sections, sectionUses),
+    [sectionUses, sections]
+  );
 
-    setRecentProjectsLoading(true);
-    setRecentProjectsError(null);
+  const recentColumnRef = React.useRef<HTMLDivElement>(null);
+  const recentExpandedRef = React.useRef(false);
+  const [recentColumnHeight, setRecentColumnHeight] = React.useState<
+    number | null
+  >(null);
 
-    loadRecentProjects()
-      .then(projects => {
-        if (!cancelled) {
-          setRecentProjects(projects);
-        }
-      })
-      .catch(error => {
-        if (!cancelled) {
-          setRecentProjectsError(error);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setRecentProjectsLoading(false);
-        }
-      });
+  // The sections card mirrors the collapsed projects card height, so
+  // expanding the projects list does not stretch the sidebar.
+  React.useLayoutEffect(() => {
+    const element = recentColumnRef.current;
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  React.useEffect(() => {
-    if (!recentProjectsError) {
-      return;
+    if (!element || typeof ResizeObserver === 'undefined') {
+      return undefined;
     }
 
-    showAlert({
-      message:
-        (isApiError(recentProjectsError)
-          ? recentProjectsError.payload.message
-          : recentProjectsError instanceof Error
-            ? recentProjectsError.message
-            : undefined) ?? 'Не удалось загрузить последние проекты.',
-      type: 'error',
+    const observer = new ResizeObserver(() => {
+      if (!recentExpandedRef.current) {
+        setRecentColumnHeight(element.offsetHeight);
+      }
     });
-  }, [recentProjectsError, showAlert]);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
 
   React.useEffect(() => {
     document.documentElement.dataset['route'] = 'home';
@@ -105,14 +102,23 @@ export const HomeDashboard = () => {
     };
   }, []);
 
-  const greetingDate = React.useMemo(() => new Date(), []);
-  const targetProjectsUrl = React.useMemo(
-    () => getProjectsRoute(isSuperadmin, null),
-    [isSuperadmin]
+  const handlePickSection = React.useCallback(
+    (section: HomeSection) => registerSectionUse(section.id),
+    [registerSectionUse]
   );
-  const displayName = getUserDisplayName(
-    currentUser?.user_name,
-    currentUser?.email
+
+  const handleToggleFavorite = React.useCallback(
+    (project: HomeProject) => {
+      toggleFavorite(project).catch((error: unknown) => {
+        showAlert({
+          message:
+            (isApiError(error) ? error.payload.message : undefined) ??
+            'Не удалось обновить избранное.',
+          type: 'error',
+        });
+      });
+    },
+    [showAlert, toggleFavorite]
   );
 
   const handleOpenCreateModal = React.useCallback(() => {
@@ -141,75 +147,76 @@ export const HomeDashboard = () => {
     [createNewProject, navigate, showAlert]
   );
 
-  const sections = React.useMemo(
-    () =>
-      buildHomeSections({
-        canCreateProject,
-        isAdmin,
-        isSuperadmin,
-        onCreateProject: handleOpenCreateModal,
-        recentProjects,
-        targetProjectsUrl,
-      }),
-    [
-      canCreateProject,
-      handleOpenCreateModal,
-      isAdmin,
-      isSuperadmin,
-      recentProjects,
-      targetProjectsUrl,
-    ]
-  );
-
   return (
-    <>
-      <HomeBackground />
-      <Page
-        size='narrow'
+    <Box
+      sx={{
+        ...getHomeCssVars(theme.palette.mode),
+        minHeight: '100%',
+        backgroundColor: hc.bg,
+        color: hc.ink,
+        position: 'relative',
+      }}
+    >
+      <Box
         sx={{
           position: 'relative',
-          zIndex: 1,
-          maxWidth: '900px',
+          maxWidth: 1120,
           mx: 'auto',
           px: { xs: 2, md: 4 },
-          pb: 6,
-          pt: { xs: 2.5, md: 3 },
+          pt: '22px',
+          pb: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '26px',
         }}
       >
-        <Stack spacing={1}>
-          <Stack spacing={2} sx={appearSx(0)}>
-            <HomeHero
-              displayName={displayName}
-              greetingDate={greetingDate}
-              userLoading={userLoading}
-            />
-          </Stack>
+        <HomeHeader
+          displayName={displayName}
+          onPickSection={handlePickSection}
+          recentProjects={projects}
+          sections={sections}
+        />
 
-          <Stack spacing={0} sx={{ ...appearSx(60), pt: 1.5, pb: 3.25 }}>
-            <RecentProjectsSection
-              canCreateProject={canCreateProject}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'minmax(0, 1fr)',
+              md: 'minmax(0, 1fr) 248px',
+            },
+            gap: 2,
+            alignItems: 'stretch',
+          }}
+        >
+          <Box ref={recentColumnRef} sx={{ alignSelf: 'start', minWidth: 0 }}>
+            <Box component='h2' sx={{ ...homeSectionTitleSx, mb: 1.25 }}>
+              Продолжить работу
+            </Box>
+            <RecentProjectsPanel
+              favorites={favoriteProjects}
+              error={Boolean(projectsError)}
+              loading={projectsLoading}
               onCreateProject={handleOpenCreateModal}
-              recentProjects={recentProjects}
-              recentProjectsLoading={recentProjectsLoading}
-              targetProjectsUrl={targetProjectsUrl}
-            />
-          </Stack>
-
-          <Stack spacing={0} sx={{ ...appearSx(80), pb: 3.25 }}>
-            <HomeConnectionsSection />
-          </Stack>
-
-          <Box sx={appearSx(100)}>
-            <HomeLoadErrorAlert
-              visible={Boolean(recentProjectsError) && !recentProjectsLoading}
+              onExpandedChange={expanded => {
+                recentExpandedRef.current = expanded;
+              }}
+              onRetry={reloadProjects}
+              onToggleFavorite={handleToggleFavorite}
+              projects={projects}
+              scheduled={scheduledProjects}
             />
           </Box>
 
-          <Stack spacing={1.5} sx={appearSx(140)}>
-            <HomeSectionsGrid sections={sections} />
-          </Stack>
-        </Stack>
-      </Page>
+          <HomeSectionsPanel
+            height={recentColumnHeight}
+            onPick={handlePickSection}
+            rankedSections={rankedSections}
+            sections={sections}
+          />
+        </Box>
+
+        <HomeWidgetsSection role={userLoading ? undefined : role} />
+      </Box>
 
       <CreateProjectModal
         open={isCreateModalOpen}
@@ -217,6 +224,6 @@ export const HomeDashboard = () => {
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={handleCreateProject}
       />
-    </>
+    </Box>
   );
 };

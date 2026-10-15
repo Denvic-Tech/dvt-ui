@@ -55,9 +55,11 @@ describe('app/ui/common/Header', () => {
       </MemoryRouter>
     );
 
-    expect(
-      screen.getByRole('button', { name: 'На главную' })
-    ).toBeInTheDocument();
+    // In-app navigation (no full page reload) to the home route.
+    expect(screen.getByRole('link', { name: 'На главную' })).toHaveAttribute(
+      'href',
+      '/'
+    );
     expect(screen.getByText('v1.19.0rc5')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Profile' })).toHaveAttribute(
       'href',
@@ -77,7 +79,7 @@ describe('app/ui/common/Header', () => {
     );
 
     expect(
-      screen.queryByRole('button', { name: 'На главную' })
+      screen.queryByRole('link', { name: 'На главную' })
     ).not.toBeInTheDocument();
   });
 });

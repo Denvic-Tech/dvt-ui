@@ -101,7 +101,13 @@ import {
   type SubgraphPanelLayoutMap,
   useSubgraphActions,
 } from '@/features/project-editor/subgraph';
-import { useGraphViewport, useNodeDataModalUI } from '@/features/ui-layout';
+import {
+  type GraphViewport,
+  isSameGraphViewport,
+  selectGraphViewportByProjectId,
+  useGraphViewport,
+  useNodeDataModalUI,
+} from '@/features/ui-layout';
 
 import {
   buildInitialInputValues,
@@ -737,8 +743,7 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
 
   const { currentProject } = useCurrentProject();
   const nodeDataModalUI = useNodeDataModalUI();
-  const { viewport: savedViewport, setViewport: saveViewport } =
-    useGraphViewport(currentProject?.id);
+  const { setViewport: saveViewport } = useGraphViewport(currentProject?.id);
   const lastLoadedProjectID = useAppSelector(selectGraphLastLoadedProjectID);
 
   const { graphLoading, graphLoaded, loadGraph } = useGraphLoading();
@@ -4366,12 +4371,21 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
     ]
   );
 
+  // Canvas nodes live in local React Flow state, which starts empty on every
+  // mount. The store may still say the graph of this project is loaded (e.g.
+  // after leaving the editor and coming back without a page reload), so each
+  // mount must fetch the graph at least once to fill the canvas.
+  const graphRequestedOnMountRef = useRef(false);
+
   useEffect(() => {
     if (
       currentProject?.id &&
       !graphLoading &&
-      (!graphLoaded || lastLoadedProjectID !== currentProject.id)
+      (!graphRequestedOnMountRef.current ||
+        !graphLoaded ||
+        lastLoadedProjectID !== currentProject.id)
     ) {
+      graphRequestedOnMountRef.current = true;
       loadGraph(currentProject.id).then(graph => {
         if (!graph) throw Error('No Graph Data');
         setNodes(graph.nodes);
@@ -4389,12 +4403,35 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
     setNodes,
   ]);
 
-  // Restore saved viewport when project is loaded
+  // Last viewport written to the store from this editor. `onMoveEnd` compares
+  // against it by value so a programmatic `setViewport` (xyflow emits `end` for
+  // those too) does not re-dispatch an identical viewport and re-run effects.
+  const lastSavedViewportRef = useRef<GraphViewport | null>(null);
+
+  // Restore the saved viewport once per graph load of a project: the effect
+  // only re-runs when the loaded project or the loaded flag changes, never
+  // when the saved value changes (user pan/zoom, focus-node), so a programmatic
+  // `setViewport` cannot feed back into `onMoveEnd` and re-trigger itself.
+  // The saved value is read from the store at that moment instead of being a
+  // dependency. No "already restored" ref on purpose: under StrictMode the
+  // xyflow pan-zoom instance is re-created between the double effect run, and
+  // the second run must apply the viewport again to the new instance.
   useEffect(() => {
-    if (savedViewport && graphLoaded) {
-      setViewport(savedViewport, { duration: 0 });
+    const projectID = currentProject?.id;
+    if (!projectID || !graphLoaded || lastLoadedProjectID !== projectID) {
+      return;
     }
-  }, [savedViewport, graphLoaded, setViewport]);
+    const saved = selectGraphViewportByProjectId(store.getState(), projectID);
+    if (!saved) return;
+    lastSavedViewportRef.current = saved;
+    void setViewport(saved, { duration: 0 });
+  }, [
+    currentProject?.id,
+    graphLoaded,
+    lastLoadedProjectID,
+    setViewport,
+    store,
+  ]);
 
   const { isValidConnection } = useNodeConnectionValidation();
 
@@ -4766,6 +4803,10 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
 
   const onMoveEnd = useCallback(() => {
     const currentViewport = getViewport();
+    if (isSameGraphViewport(lastSavedViewportRef.current, currentViewport)) {
+      return;
+    }
+    lastSavedViewportRef.current = currentViewport;
     saveViewport(currentViewport);
   }, [getViewport, saveViewport]);
 
@@ -4840,6 +4881,7 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
 
       // Persist the destination before applying it. A pending restore of the
       // previous viewport must not interrupt the camera move after one frame.
+      lastSavedViewportRef.current = nextViewport;
       saveViewport(nextViewport);
       await setViewport(nextViewport, { duration: 0 });
       return true;

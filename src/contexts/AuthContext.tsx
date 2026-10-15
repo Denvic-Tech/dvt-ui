@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAlert } from '@/app/notifications';
 
+import { resetCurrentUserCache } from '@/entities/user';
+
 import { client } from '@/shared/gatewayClient';
 
 interface AuthContextType {
@@ -56,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string, returnUrl?: string) => {
+    resetCurrentUserCache();
     try {
       const resp = await client.auth.signIn.post({
         body: {
@@ -81,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await client.auth.logout.post();
+      resetCurrentUserCache();
       setIsAuthenticated(false);
       navigate('/sign_in');
     } catch (error) {
@@ -110,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
+      resetCurrentUserCache();
       setIsAuthenticated(false);
 
       if (window.location.pathname.startsWith('/sign_in')) {

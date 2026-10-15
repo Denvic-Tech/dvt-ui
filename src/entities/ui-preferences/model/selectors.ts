@@ -2,6 +2,7 @@ import type { RootState } from '@/app/providers/store/types';
 
 import { DEFAULT_NODE_MODAL_WORKSPACE_PREVIEW_WIDTH } from './slice';
 import type {
+  HomeDashboardUIPreferences,
   NodeLibraryUIPreferences,
   NodeModalWorkspaceUIPreferences,
 } from './types';
@@ -18,6 +19,11 @@ const DEFAULT_NODE_MODAL_WORKSPACE_PREFERENCES: NodeModalWorkspaceUIPreferences 
   {
     previewWidth: DEFAULT_NODE_MODAL_WORKSPACE_PREVIEW_WIDTH,
   };
+
+const EMPTY_HOME_SECTION_USES: Partial<Record<string, number>> = {};
+const DEFAULT_HOME_DASHBOARD_PREFERENCES: HomeDashboardUIPreferences = {
+  sectionUses: EMPTY_HOME_SECTION_USES,
+};
 
 export const selectProjectsPagePreferences = (state: RootState) =>
   selectUIPreferences(state).projectsPage;
@@ -63,3 +69,13 @@ export const selectSuppressedPrompts = (state: RootState) =>
 
 export const selectIsPromptSuppressed = (state: RootState, promptId: string) =>
   Boolean(selectSuppressedPrompts(state)[promptId]);
+
+export const selectHomeDashboardPreferences = (state: RootState) =>
+  selectUIPreferences(state).homeDashboard ??
+  DEFAULT_HOME_DASHBOARD_PREFERENCES;
+
+export const selectHomeSectionUses = (state: RootState) =>
+  selectHomeDashboardPreferences(state).sectionUses ?? EMPTY_HOME_SECTION_USES;
+
+export const selectHomeWidgetIds = (state: RootState) =>
+  selectHomeDashboardPreferences(state).widgetIds;

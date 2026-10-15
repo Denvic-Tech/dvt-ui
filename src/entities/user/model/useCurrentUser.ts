@@ -6,6 +6,16 @@ import { client } from '@/shared/gatewayClient';
 let cachedCurrentUser: UserReadSchema | null = null;
 let hasResolvedCurrentUser = false;
 
+/**
+ * Forget the cached profile. Must be called whenever the session changes
+ * (sign in / sign out); otherwise the next account briefly inherits the
+ * previous user's role and role-gated UI fires requests it is not allowed to.
+ */
+export const resetCurrentUserCache = () => {
+  cachedCurrentUser = null;
+  hasResolvedCurrentUser = false;
+};
+
 export const useCurrentUser = () => {
   const [user, setUser] = React.useState<UserReadSchema | null>(
     cachedCurrentUser

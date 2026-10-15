@@ -26,6 +26,7 @@ vi.mock('@/entities/project/projects', () => ({
 }));
 
 vi.mock('@/features/project-editor/sync-graph', () => ({
+  useFlushGraphOnLeave: vi.fn(),
   useGraphUnsavedChangesGuard: vi.fn(),
 }));
 

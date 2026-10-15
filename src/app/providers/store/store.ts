@@ -22,6 +22,7 @@ import { syncGraphMiddleware } from '@/features/project-editor/sync-graph';
 
 import { dataCatalogApi } from '@/entities/data/data-catalog';
 import { dbCatalogApi } from '@/entities/data/db-connection';
+import { homeWidgetsApi } from '@/entities/home-widget';
 import { nodeExecutionStatusListenerMiddleware } from '@/entities/node/node-execution-status';
 import { taskExecutionStatusListenerMiddleware } from '@/entities/project/task-execution-status';
 import { initGatewaySystemUpdatingHandler } from '@/entities/system-availability';
@@ -71,6 +72,7 @@ export const store = configureStore({
     })
       .concat(dbCatalogApi.middleware)
       .concat(dataCatalogApi.middleware)
+      .concat(homeWidgetsApi.middleware)
       .concat(websocketMiddleware)
       .prepend(syncGraphMiddleware)
       .prepend(taskExecutionStatusListenerMiddleware)

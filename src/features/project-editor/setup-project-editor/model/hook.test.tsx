@@ -7,6 +7,7 @@ const {
   connectWs,
   createProjectTask,
   disconnectWs,
+  resetProjectTask,
   graphGetGraph,
   loadNodeDefinitions,
   nodeDefinitionsHook,
@@ -16,6 +17,7 @@ const {
   connectWs: vi.fn(),
   createProjectTask: vi.fn(),
   disconnectWs: vi.fn(),
+  resetProjectTask: vi.fn(),
   graphGetGraph: vi.fn(),
   loadNodeDefinitions: vi.fn(),
   nodeDefinitionsHook: vi.fn(),
@@ -59,6 +61,7 @@ describe('useProjectEditorSetup', () => {
     projectTaskHook.mockReturnValue({
       lastProjectTaskID: null,
       createProjectTask,
+      resetProjectTask,
     });
     websocketHook.mockImplementation(() => ({
       status: websocketStatus,
@@ -90,7 +93,10 @@ describe('useProjectEditorSetup', () => {
     });
     expect(graphGetGraph).toHaveBeenCalledWith('project-1');
 
+    expect(resetProjectTask).not.toHaveBeenCalled();
+
     unmount();
     expect(disconnectWs).toHaveBeenCalledWith('project-1');
+    expect(resetProjectTask).toHaveBeenCalledTimes(1);
   });
 });

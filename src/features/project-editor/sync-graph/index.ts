@@ -1,4 +1,7 @@
-export { useGraphUnsavedChangesGuard } from './model/hooks.ts';
+export {
+  useFlushGraphOnLeave,
+  useGraphUnsavedChangesGuard,
+} from './model/hooks.ts';
 export {
   type GraphSyncStatus,
   selectGraphSyncStatus,

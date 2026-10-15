@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 import type {
+  HomeDashboardUIPreferences,
   NodeLibraryUIPreferences,
   NodeModalWorkspaceUIPreferences,
   ProjectsViewMode,
@@ -23,6 +24,25 @@ const createInitialNodeModalWorkspacePreferences =
   (): NodeModalWorkspaceUIPreferences => ({
     previewWidth: DEFAULT_NODE_MODAL_WORKSPACE_PREVIEW_WIDTH,
   });
+
+const createInitialHomeDashboardPreferences =
+  (): HomeDashboardUIPreferences => ({
+    sectionUses: {},
+  });
+
+const ensureHomeDashboardPreferences = (
+  state: UIPreferencesState
+): HomeDashboardUIPreferences => {
+  if (!state.homeDashboard) {
+    state.homeDashboard = createInitialHomeDashboardPreferences();
+  }
+
+  if (!state.homeDashboard.sectionUses) {
+    state.homeDashboard.sectionUses = {};
+  }
+
+  return state.homeDashboard;
+};
 
 const ensureNodeLibraryPreferences = (
   state: UIPreferencesState
@@ -94,6 +114,7 @@ const initialState: UIPreferencesState = {
   },
   nodeLibrary: createInitialNodeLibraryPreferences(),
   nodeModalWorkspace: createInitialNodeModalWorkspacePreferences(),
+  homeDashboard: createInitialHomeDashboardPreferences(),
   skipHardStopConfirm: false,
   suppressedPrompts: {},
 };
@@ -134,6 +155,18 @@ const uiPreferencesSlice = createSlice({
     setNodeModalWorkspacePreviewWidth(state, action: PayloadAction<number>) {
       const workspace = ensureNodeModalWorkspacePreferences(state);
       workspace.previewWidth = action.payload;
+    },
+    incrementHomeSectionUse(state, action: PayloadAction<string>) {
+      const homeDashboard = ensureHomeDashboardPreferences(state);
+      const sectionId = action.payload;
+      homeDashboard.sectionUses[sectionId] =
+        (homeDashboard.sectionUses[sectionId] ?? 0) + 1;
+    },
+    resetHomeSectionUses(state) {
+      ensureHomeDashboardPreferences(state).sectionUses = {};
+    },
+    setHomeWidgetIds(state, action: PayloadAction<string[]>) {
+      ensureHomeDashboardPreferences(state).widgetIds = [...action.payload];
     },
     setSkipHardStopConfirm(state, action: PayloadAction<boolean>) {
       state.skipHardStopConfirm = action.payload;

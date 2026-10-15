@@ -4,6 +4,9 @@
 import type { Client, Options, RequestResult } from './client';
 import { client } from './client.gen';
 import type {
+  AddFavoriteProjectProjectsProjectIdFavoritePutData,
+  AddFavoriteProjectProjectsProjectIdFavoritePutError,
+  AddFavoriteProjectProjectsProjectIdFavoritePutResponses,
   ApplyColumnActionsUtilsDdlApplyTableColumnActionsPostData,
   ApplyColumnActionsUtilsDdlApplyTableColumnActionsPostError,
   ApplyColumnActionsUtilsDdlApplyTableColumnActionsPostResponses,
@@ -233,6 +236,11 @@ import type {
   GetExtensionStateExtensionsExtensionNameStateGetData,
   GetExtensionStateExtensionsExtensionNameStateGetError,
   GetExtensionStateExtensionsExtensionNameStateGetResponses,
+  GetFailingProjectsWidgetWidgetsFailingProjectsGetData,
+  GetFailingProjectsWidgetWidgetsFailingProjectsGetError,
+  GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses,
+  GetFavoriteProjectsProjectsFavoritesGetData,
+  GetFavoriteProjectsProjectsFavoritesGetResponses,
   GetFixturesPytestMonFixturesGetData,
   GetFixturesPytestMonFixturesGetResponses,
   GetGraphProjectsProjectIdGraphGetData,
@@ -286,12 +294,19 @@ import type {
   GetQueueTopicsQueueTopicsGetData,
   GetQueueTopicsQueueTopicsGetError,
   GetQueueTopicsQueueTopicsGetResponses,
+  GetRunsLast24hWidgetWidgetsRuns24hGetData,
+  GetRunsLast24hWidgetWidgetsRuns24hGetResponses,
   GetRuntimeConfigSystemRuntimeConfigGetData,
   GetRuntimeConfigSystemRuntimeConfigGetResponses,
   GetScheduledProjectsProjectsSchedulerScheduledGetData,
   GetScheduledProjectsProjectsSchedulerScheduledGetResponses,
+  GetScheduledRunsWidgetWidgetsScheduledRunsGetData,
+  GetScheduledRunsWidgetWidgetsScheduledRunsGetError,
+  GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses,
   GetServicesSystemInfoSystemServicesStatsGetData,
   GetServicesSystemInfoSystemServicesStatsGetResponses,
+  GetServicesWidgetWidgetsServicesGetData,
+  GetServicesWidgetWidgetsServicesGetResponses,
   GetSetupStatusSetupStatusGetData,
   GetSetupStatusSetupStatusGetResponses,
   GetSystemInfoSystemStatsGetData,
@@ -422,6 +437,9 @@ import type {
   ReloadExtensionExtensionsExtensionNameReloadPostResponses,
   ReloadInstalledExtensionsExtensionsReloadInstalledPostData,
   ReloadInstalledExtensionsExtensionsReloadInstalledPostResponses,
+  RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData,
+  RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteError,
+  RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses,
   RenamePathStoragePathRenamePostData,
   RenamePathStoragePathRenamePostError,
   RenamePathStoragePathRenamePostResponses,
@@ -539,6 +557,8 @@ import type {
   UserProfileProfileGetResponses,
 } from './types.gen';
 import {
+  zAddFavoriteProjectProjectsProjectIdFavoritePutData,
+  zAddFavoriteProjectProjectsProjectIdFavoritePutResponse,
   zApplyColumnActionsUtilsDdlApplyTableColumnActionsPostData,
   zApplyColumnActionsUtilsDdlApplyTableColumnActionsPostResponse,
   zBulkUpdateProjectVariablesProjectsProjectIdVariablesBulkUpdatePostData,
@@ -686,6 +706,10 @@ import {
   zGetExtensionFrontendExtensionsExtensionNameFrontendGetResponse,
   zGetExtensionStateExtensionsExtensionNameStateGetData,
   zGetExtensionStateExtensionsExtensionNameStateGetResponse,
+  zGetFailingProjectsWidgetWidgetsFailingProjectsGetData,
+  zGetFailingProjectsWidgetWidgetsFailingProjectsGetResponse,
+  zGetFavoriteProjectsProjectsFavoritesGetData,
+  zGetFavoriteProjectsProjectsFavoritesGetResponse,
   zGetFixturesPytestMonFixturesGetData,
   zGetFixturesPytestMonFixturesGetResponse,
   zGetGraphProjectsProjectIdGraphGetData,
@@ -723,12 +747,18 @@ import {
   zGetQueueTopicQueueTopicsTopicIdGetResponse,
   zGetQueueTopicsQueueTopicsGetData,
   zGetQueueTopicsQueueTopicsGetResponse,
+  zGetRunsLast24hWidgetWidgetsRuns24hGetData,
+  zGetRunsLast24hWidgetWidgetsRuns24hGetResponse,
   zGetRuntimeConfigSystemRuntimeConfigGetData,
   zGetRuntimeConfigSystemRuntimeConfigGetResponse,
   zGetScheduledProjectsProjectsSchedulerScheduledGetData,
   zGetScheduledProjectsProjectsSchedulerScheduledGetResponse,
+  zGetScheduledRunsWidgetWidgetsScheduledRunsGetData,
+  zGetScheduledRunsWidgetWidgetsScheduledRunsGetResponse,
   zGetServicesSystemInfoSystemServicesStatsGetData,
   zGetServicesSystemInfoSystemServicesStatsGetResponse,
+  zGetServicesWidgetWidgetsServicesGetData,
+  zGetServicesWidgetWidgetsServicesGetResponse,
   zGetSetupStatusSetupStatusGetData,
   zGetSetupStatusSetupStatusGetResponse,
   zGetSystemInfoSystemStatsGetData,
@@ -825,6 +855,8 @@ import {
   zReloadExtensionExtensionsExtensionNameReloadPostResponse,
   zReloadInstalledExtensionsExtensionsReloadInstalledPostData,
   zReloadInstalledExtensionsExtensionsReloadInstalledPostResponse,
+  zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData,
+  zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponse,
   zRenamePathStoragePathRenamePostData,
   zRenamePathStoragePathRenamePostResponse,
   zResolveWriteColumnsUtilsDdlResolveWriteColumnsPostData,
@@ -2392,26 +2424,26 @@ export const nestedClient = {
     },
   },
   projects: {
-    items: {
+    favorites: {
       /**
-       * Get Project Items
+       * Получить избранные проекты текущего пользователя
        */
       get: async (
-        params?: OperationParams<GetProjectItemsProjectsItemsGetData>,
+        params?: OperationParams<GetFavoriteProjectsProjectsFavoritesGetData>,
         config?: OperationConfig<
-          GetProjectItemsProjectsItemsGetData,
-          GetProjectItemsProjectsItemsGetResponses[keyof GetProjectItemsProjectsItemsGetResponses]
+          GetFavoriteProjectsProjectsFavoritesGetData,
+          GetFavoriteProjectsProjectsFavoritesGetResponses[keyof GetFavoriteProjectsProjectsFavoritesGetResponses]
         >
       ): OperationResult<
-        GetProjectItemsProjectsItemsGetResponses[keyof GetProjectItemsProjectsItemsGetResponses],
-        GetProjectItemsProjectsItemsGetError
+        GetFavoriteProjectsProjectsFavoritesGetResponses[keyof GetFavoriteProjectsProjectsFavoritesGetResponses],
+        never
       > => {
         const requestParams = (params ??
-          {}) as OperationParams<GetProjectItemsProjectsItemsGetData>;
+          {}) as OperationParams<GetFavoriteProjectsProjectsFavoritesGetData>;
         const { client: clientOverride, ...requestConfig } = (config ??
           {}) as OperationConfig<
-          GetProjectItemsProjectsItemsGetData,
-          GetProjectItemsProjectsItemsGetResponses[keyof GetProjectItemsProjectsItemsGetResponses]
+          GetFavoriteProjectsProjectsFavoritesGetData,
+          GetFavoriteProjectsProjectsFavoritesGetResponses[keyof GetFavoriteProjectsProjectsFavoritesGetResponses]
         >;
         const requestClient = clientOverride ?? client;
         const requestOptions = {
@@ -2419,265 +2451,33 @@ export const nestedClient = {
           ...requestParams,
         } satisfies Omit<
           OperationBaseOptions<
-            GetProjectItemsProjectsItemsGetData,
-            GetProjectItemsProjectsItemsGetResponses[keyof GetProjectItemsProjectsItemsGetResponses]
+            GetFavoriteProjectsProjectsFavoritesGetData,
+            GetFavoriteProjectsProjectsFavoritesGetResponses[keyof GetFavoriteProjectsProjectsFavoritesGetResponses]
           >,
           'path'
         >;
         if (requestOptions.requestValidator == null) {
           requestOptions.requestValidator = async data => {
-            return await zGetProjectItemsProjectsItemsGetData.parseAsync(data);
+            return await zGetFavoriteProjectsProjectsFavoritesGetData.parseAsync(
+              data
+            );
           };
         }
         if (requestOptions.responseValidator == null) {
           requestOptions.responseValidator = async data => {
-            return await zGetProjectItemsProjectsItemsGetResponse.parseAsync(
+            return await zGetFavoriteProjectsProjectsFavoritesGetResponse.parseAsync(
               data
             );
           };
         }
         return requestClient.request<
-          GetProjectItemsProjectsItemsGetResponses[keyof GetProjectItemsProjectsItemsGetResponses],
-          GetProjectItemsProjectsItemsGetError,
+          GetFavoriteProjectsProjectsFavoritesGetResponses[keyof GetFavoriteProjectsProjectsFavoritesGetResponses],
+          never,
           true
         >({
           ...requestOptions,
           method: 'GET',
-          url: '/projects/items',
-        });
-      },
-    },
-    folders: {
-      folderId: (folderId: PathParamValue) => {
-        const rootPathContext_folderId: PathContext = {
-          ...rootPathContext,
-          folder_id: folderId,
-        };
-        return {
-          /**
-           * Delete Project Folder
-           */
-          delete: async (
-            params?: OperationParams<DeleteProjectFolderProjectsFoldersFolderIdDeleteData>,
-            config?: OperationConfig<
-              DeleteProjectFolderProjectsFoldersFolderIdDeleteData,
-              DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses[keyof DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses]
-            >
-          ): OperationResult<
-            DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses[keyof DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses],
-            DeleteProjectFolderProjectsFoldersFolderIdDeleteError
-          > => {
-            const requestParams = (params ??
-              {}) as OperationParams<DeleteProjectFolderProjectsFoldersFolderIdDeleteData>;
-            const { client: clientOverride, ...requestConfig } = (config ??
-              {}) as OperationConfig<
-              DeleteProjectFolderProjectsFoldersFolderIdDeleteData,
-              DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses[keyof DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses]
-            >;
-            const requestClient = clientOverride ?? client;
-            const requestOptions = {
-              ...requestConfig,
-              ...requestParams,
-            } satisfies Omit<
-              OperationBaseOptions<
-                DeleteProjectFolderProjectsFoldersFolderIdDeleteData,
-                DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses[keyof DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses]
-              >,
-              'path'
-            >;
-            if (requestOptions.requestValidator == null) {
-              requestOptions.requestValidator = async data => {
-                return await zDeleteProjectFolderProjectsFoldersFolderIdDeleteData.parseAsync(
-                  data
-                );
-              };
-            }
-            if (requestOptions.responseValidator == null) {
-              requestOptions.responseValidator = async data => {
-                return await zDeleteProjectFolderProjectsFoldersFolderIdDeleteResponse.parseAsync(
-                  data
-                );
-              };
-            }
-            const path = { ...rootPathContext_folderId } satisfies PathContext;
-            return requestClient.request<
-              DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses[keyof DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses],
-              DeleteProjectFolderProjectsFoldersFolderIdDeleteError,
-              true
-            >({
-              ...requestOptions,
-              method: 'DELETE',
-              url: '/projects/folders/{folder_id}',
-              path,
-            });
-          },
-          /**
-           * Update Project Folder
-           */
-          patch: async (
-            params?: OperationParams<UpdateProjectFolderProjectsFoldersFolderIdPatchData>,
-            config?: OperationConfig<
-              UpdateProjectFolderProjectsFoldersFolderIdPatchData,
-              UpdateProjectFolderProjectsFoldersFolderIdPatchResponses[keyof UpdateProjectFolderProjectsFoldersFolderIdPatchResponses]
-            >
-          ): OperationResult<
-            UpdateProjectFolderProjectsFoldersFolderIdPatchResponses[keyof UpdateProjectFolderProjectsFoldersFolderIdPatchResponses],
-            UpdateProjectFolderProjectsFoldersFolderIdPatchError
-          > => {
-            const requestParams = (params ??
-              {}) as OperationParams<UpdateProjectFolderProjectsFoldersFolderIdPatchData>;
-            const { client: clientOverride, ...requestConfig } = (config ??
-              {}) as OperationConfig<
-              UpdateProjectFolderProjectsFoldersFolderIdPatchData,
-              UpdateProjectFolderProjectsFoldersFolderIdPatchResponses[keyof UpdateProjectFolderProjectsFoldersFolderIdPatchResponses]
-            >;
-            const requestClient = clientOverride ?? client;
-            const requestOptions = {
-              ...requestConfig,
-              ...requestParams,
-            } satisfies Omit<
-              OperationBaseOptions<
-                UpdateProjectFolderProjectsFoldersFolderIdPatchData,
-                UpdateProjectFolderProjectsFoldersFolderIdPatchResponses[keyof UpdateProjectFolderProjectsFoldersFolderIdPatchResponses]
-              >,
-              'path'
-            >;
-            if (requestOptions.requestValidator == null) {
-              requestOptions.requestValidator = async data => {
-                return await zUpdateProjectFolderProjectsFoldersFolderIdPatchData.parseAsync(
-                  data
-                );
-              };
-            }
-            if (requestOptions.responseValidator == null) {
-              requestOptions.responseValidator = async data => {
-                return await zUpdateProjectFolderProjectsFoldersFolderIdPatchResponse.parseAsync(
-                  data
-                );
-              };
-            }
-            const path = { ...rootPathContext_folderId } satisfies PathContext;
-            return requestClient.request<
-              UpdateProjectFolderProjectsFoldersFolderIdPatchResponses[keyof UpdateProjectFolderProjectsFoldersFolderIdPatchResponses],
-              UpdateProjectFolderProjectsFoldersFolderIdPatchError,
-              true
-            >({
-              ...requestOptions,
-              method: 'PATCH',
-              url: '/projects/folders/{folder_id}',
-              path,
-            });
-          },
-        };
-      },
-      /**
-       * Create Project Folder
-       */
-      post: async (
-        params?: OperationParams<CreateProjectFolderProjectsFoldersPostData>,
-        config?: OperationConfig<
-          CreateProjectFolderProjectsFoldersPostData,
-          CreateProjectFolderProjectsFoldersPostResponses[keyof CreateProjectFolderProjectsFoldersPostResponses]
-        >
-      ): OperationResult<
-        CreateProjectFolderProjectsFoldersPostResponses[keyof CreateProjectFolderProjectsFoldersPostResponses],
-        CreateProjectFolderProjectsFoldersPostError
-      > => {
-        const requestParams = (params ??
-          {}) as OperationParams<CreateProjectFolderProjectsFoldersPostData>;
-        const { client: clientOverride, ...requestConfig } = (config ??
-          {}) as OperationConfig<
-          CreateProjectFolderProjectsFoldersPostData,
-          CreateProjectFolderProjectsFoldersPostResponses[keyof CreateProjectFolderProjectsFoldersPostResponses]
-        >;
-        const requestClient = clientOverride ?? client;
-        const requestOptions = {
-          ...requestConfig,
-          ...requestParams,
-        } satisfies Omit<
-          OperationBaseOptions<
-            CreateProjectFolderProjectsFoldersPostData,
-            CreateProjectFolderProjectsFoldersPostResponses[keyof CreateProjectFolderProjectsFoldersPostResponses]
-          >,
-          'path'
-        >;
-        if (requestOptions.requestValidator == null) {
-          requestOptions.requestValidator = async data => {
-            return await zCreateProjectFolderProjectsFoldersPostData.parseAsync(
-              data
-            );
-          };
-        }
-        if (requestOptions.responseValidator == null) {
-          requestOptions.responseValidator = async data => {
-            return await zCreateProjectFolderProjectsFoldersPostResponse.parseAsync(
-              data
-            );
-          };
-        }
-        return requestClient.request<
-          CreateProjectFolderProjectsFoldersPostResponses[keyof CreateProjectFolderProjectsFoldersPostResponses],
-          CreateProjectFolderProjectsFoldersPostError,
-          true
-        >({
-          ...requestOptions,
-          method: 'POST',
-          url: '/projects/folders',
-        });
-      },
-    },
-    search: {
-      /**
-       * Search Projects
-       */
-      get: async (
-        params?: OperationParams<SearchProjectsProjectsSearchGetData>,
-        config?: OperationConfig<
-          SearchProjectsProjectsSearchGetData,
-          SearchProjectsProjectsSearchGetResponses[keyof SearchProjectsProjectsSearchGetResponses]
-        >
-      ): OperationResult<
-        SearchProjectsProjectsSearchGetResponses[keyof SearchProjectsProjectsSearchGetResponses],
-        SearchProjectsProjectsSearchGetError
-      > => {
-        const requestParams = (params ??
-          {}) as OperationParams<SearchProjectsProjectsSearchGetData>;
-        const { client: clientOverride, ...requestConfig } = (config ??
-          {}) as OperationConfig<
-          SearchProjectsProjectsSearchGetData,
-          SearchProjectsProjectsSearchGetResponses[keyof SearchProjectsProjectsSearchGetResponses]
-        >;
-        const requestClient = clientOverride ?? client;
-        const requestOptions = {
-          ...requestConfig,
-          ...requestParams,
-        } satisfies Omit<
-          OperationBaseOptions<
-            SearchProjectsProjectsSearchGetData,
-            SearchProjectsProjectsSearchGetResponses[keyof SearchProjectsProjectsSearchGetResponses]
-          >,
-          'path'
-        >;
-        if (requestOptions.requestValidator == null) {
-          requestOptions.requestValidator = async data => {
-            return await zSearchProjectsProjectsSearchGetData.parseAsync(data);
-          };
-        }
-        if (requestOptions.responseValidator == null) {
-          requestOptions.responseValidator = async data => {
-            return await zSearchProjectsProjectsSearchGetResponse.parseAsync(
-              data
-            );
-          };
-        }
-        return requestClient.request<
-          SearchProjectsProjectsSearchGetResponses[keyof SearchProjectsProjectsSearchGetResponses],
-          SearchProjectsProjectsSearchGetError,
-          true
-        >({
-          ...requestOptions,
-          method: 'GET',
-          url: '/projects/search',
+          url: '/projects/favorites',
         });
       },
     },
@@ -2687,6 +2487,122 @@ export const nestedClient = {
         project_id: projectId,
       };
       return {
+        favorite: {
+          /**
+           * Убрать проект из избранного
+           */
+          delete: async (
+            params?: OperationParams<RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData>,
+            config?: OperationConfig<
+              RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData,
+              RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses[keyof RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses]
+            >
+          ): OperationResult<
+            RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses[keyof RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses],
+            RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteError
+          > => {
+            const requestParams = (params ??
+              {}) as OperationParams<RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData>;
+            const { client: clientOverride, ...requestConfig } = (config ??
+              {}) as OperationConfig<
+              RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData,
+              RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses[keyof RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses]
+            >;
+            const requestClient = clientOverride ?? client;
+            const requestOptions = {
+              ...requestConfig,
+              ...requestParams,
+            } satisfies Omit<
+              OperationBaseOptions<
+                RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData,
+                RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses[keyof RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses]
+              >,
+              'path'
+            >;
+            if (requestOptions.requestValidator == null) {
+              requestOptions.requestValidator = async data => {
+                return await zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteData.parseAsync(
+                  data
+                );
+              };
+            }
+            if (requestOptions.responseValidator == null) {
+              requestOptions.responseValidator = async data => {
+                return await zRemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponse.parseAsync(
+                  data
+                );
+              };
+            }
+            const path = { ...rootPathContext_projectId } satisfies PathContext;
+            return requestClient.request<
+              RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses[keyof RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteResponses],
+              RemoveFavoriteProjectProjectsProjectIdFavoriteDeleteError,
+              true
+            >({
+              ...requestOptions,
+              method: 'DELETE',
+              url: '/projects/{project_id}/favorite',
+              path,
+            });
+          },
+          /**
+           * Добавить проект в избранное
+           */
+          put: async (
+            params?: OperationParams<AddFavoriteProjectProjectsProjectIdFavoritePutData>,
+            config?: OperationConfig<
+              AddFavoriteProjectProjectsProjectIdFavoritePutData,
+              AddFavoriteProjectProjectsProjectIdFavoritePutResponses[keyof AddFavoriteProjectProjectsProjectIdFavoritePutResponses]
+            >
+          ): OperationResult<
+            AddFavoriteProjectProjectsProjectIdFavoritePutResponses[keyof AddFavoriteProjectProjectsProjectIdFavoritePutResponses],
+            AddFavoriteProjectProjectsProjectIdFavoritePutError
+          > => {
+            const requestParams = (params ??
+              {}) as OperationParams<AddFavoriteProjectProjectsProjectIdFavoritePutData>;
+            const { client: clientOverride, ...requestConfig } = (config ??
+              {}) as OperationConfig<
+              AddFavoriteProjectProjectsProjectIdFavoritePutData,
+              AddFavoriteProjectProjectsProjectIdFavoritePutResponses[keyof AddFavoriteProjectProjectsProjectIdFavoritePutResponses]
+            >;
+            const requestClient = clientOverride ?? client;
+            const requestOptions = {
+              ...requestConfig,
+              ...requestParams,
+            } satisfies Omit<
+              OperationBaseOptions<
+                AddFavoriteProjectProjectsProjectIdFavoritePutData,
+                AddFavoriteProjectProjectsProjectIdFavoritePutResponses[keyof AddFavoriteProjectProjectsProjectIdFavoritePutResponses]
+              >,
+              'path'
+            >;
+            if (requestOptions.requestValidator == null) {
+              requestOptions.requestValidator = async data => {
+                return await zAddFavoriteProjectProjectsProjectIdFavoritePutData.parseAsync(
+                  data
+                );
+              };
+            }
+            if (requestOptions.responseValidator == null) {
+              requestOptions.responseValidator = async data => {
+                return await zAddFavoriteProjectProjectsProjectIdFavoritePutResponse.parseAsync(
+                  data
+                );
+              };
+            }
+            const path = { ...rootPathContext_projectId } satisfies PathContext;
+            return requestClient.request<
+              AddFavoriteProjectProjectsProjectIdFavoritePutResponses[keyof AddFavoriteProjectProjectsProjectIdFavoritePutResponses],
+              AddFavoriteProjectProjectsProjectIdFavoritePutError,
+              true
+            >({
+              ...requestOptions,
+              method: 'PUT',
+              url: '/projects/{project_id}/favorite',
+              path,
+            });
+          },
+        },
         copy: {
           /**
            * Copy Project
@@ -4471,6 +4387,295 @@ export const nestedClient = {
         },
       };
     },
+    items: {
+      /**
+       * Get Project Items
+       */
+      get: async (
+        params?: OperationParams<GetProjectItemsProjectsItemsGetData>,
+        config?: OperationConfig<
+          GetProjectItemsProjectsItemsGetData,
+          GetProjectItemsProjectsItemsGetResponses[keyof GetProjectItemsProjectsItemsGetResponses]
+        >
+      ): OperationResult<
+        GetProjectItemsProjectsItemsGetResponses[keyof GetProjectItemsProjectsItemsGetResponses],
+        GetProjectItemsProjectsItemsGetError
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<GetProjectItemsProjectsItemsGetData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          GetProjectItemsProjectsItemsGetData,
+          GetProjectItemsProjectsItemsGetResponses[keyof GetProjectItemsProjectsItemsGetResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            GetProjectItemsProjectsItemsGetData,
+            GetProjectItemsProjectsItemsGetResponses[keyof GetProjectItemsProjectsItemsGetResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zGetProjectItemsProjectsItemsGetData.parseAsync(data);
+          };
+        }
+        if (requestOptions.responseValidator == null) {
+          requestOptions.responseValidator = async data => {
+            return await zGetProjectItemsProjectsItemsGetResponse.parseAsync(
+              data
+            );
+          };
+        }
+        return requestClient.request<
+          GetProjectItemsProjectsItemsGetResponses[keyof GetProjectItemsProjectsItemsGetResponses],
+          GetProjectItemsProjectsItemsGetError,
+          true
+        >({
+          ...requestOptions,
+          method: 'GET',
+          url: '/projects/items',
+        });
+      },
+    },
+    folders: {
+      folderId: (folderId: PathParamValue) => {
+        const rootPathContext_folderId: PathContext = {
+          ...rootPathContext,
+          folder_id: folderId,
+        };
+        return {
+          /**
+           * Delete Project Folder
+           */
+          delete: async (
+            params?: OperationParams<DeleteProjectFolderProjectsFoldersFolderIdDeleteData>,
+            config?: OperationConfig<
+              DeleteProjectFolderProjectsFoldersFolderIdDeleteData,
+              DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses[keyof DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses]
+            >
+          ): OperationResult<
+            DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses[keyof DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses],
+            DeleteProjectFolderProjectsFoldersFolderIdDeleteError
+          > => {
+            const requestParams = (params ??
+              {}) as OperationParams<DeleteProjectFolderProjectsFoldersFolderIdDeleteData>;
+            const { client: clientOverride, ...requestConfig } = (config ??
+              {}) as OperationConfig<
+              DeleteProjectFolderProjectsFoldersFolderIdDeleteData,
+              DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses[keyof DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses]
+            >;
+            const requestClient = clientOverride ?? client;
+            const requestOptions = {
+              ...requestConfig,
+              ...requestParams,
+            } satisfies Omit<
+              OperationBaseOptions<
+                DeleteProjectFolderProjectsFoldersFolderIdDeleteData,
+                DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses[keyof DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses]
+              >,
+              'path'
+            >;
+            if (requestOptions.requestValidator == null) {
+              requestOptions.requestValidator = async data => {
+                return await zDeleteProjectFolderProjectsFoldersFolderIdDeleteData.parseAsync(
+                  data
+                );
+              };
+            }
+            if (requestOptions.responseValidator == null) {
+              requestOptions.responseValidator = async data => {
+                return await zDeleteProjectFolderProjectsFoldersFolderIdDeleteResponse.parseAsync(
+                  data
+                );
+              };
+            }
+            const path = { ...rootPathContext_folderId } satisfies PathContext;
+            return requestClient.request<
+              DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses[keyof DeleteProjectFolderProjectsFoldersFolderIdDeleteResponses],
+              DeleteProjectFolderProjectsFoldersFolderIdDeleteError,
+              true
+            >({
+              ...requestOptions,
+              method: 'DELETE',
+              url: '/projects/folders/{folder_id}',
+              path,
+            });
+          },
+          /**
+           * Update Project Folder
+           */
+          patch: async (
+            params?: OperationParams<UpdateProjectFolderProjectsFoldersFolderIdPatchData>,
+            config?: OperationConfig<
+              UpdateProjectFolderProjectsFoldersFolderIdPatchData,
+              UpdateProjectFolderProjectsFoldersFolderIdPatchResponses[keyof UpdateProjectFolderProjectsFoldersFolderIdPatchResponses]
+            >
+          ): OperationResult<
+            UpdateProjectFolderProjectsFoldersFolderIdPatchResponses[keyof UpdateProjectFolderProjectsFoldersFolderIdPatchResponses],
+            UpdateProjectFolderProjectsFoldersFolderIdPatchError
+          > => {
+            const requestParams = (params ??
+              {}) as OperationParams<UpdateProjectFolderProjectsFoldersFolderIdPatchData>;
+            const { client: clientOverride, ...requestConfig } = (config ??
+              {}) as OperationConfig<
+              UpdateProjectFolderProjectsFoldersFolderIdPatchData,
+              UpdateProjectFolderProjectsFoldersFolderIdPatchResponses[keyof UpdateProjectFolderProjectsFoldersFolderIdPatchResponses]
+            >;
+            const requestClient = clientOverride ?? client;
+            const requestOptions = {
+              ...requestConfig,
+              ...requestParams,
+            } satisfies Omit<
+              OperationBaseOptions<
+                UpdateProjectFolderProjectsFoldersFolderIdPatchData,
+                UpdateProjectFolderProjectsFoldersFolderIdPatchResponses[keyof UpdateProjectFolderProjectsFoldersFolderIdPatchResponses]
+              >,
+              'path'
+            >;
+            if (requestOptions.requestValidator == null) {
+              requestOptions.requestValidator = async data => {
+                return await zUpdateProjectFolderProjectsFoldersFolderIdPatchData.parseAsync(
+                  data
+                );
+              };
+            }
+            if (requestOptions.responseValidator == null) {
+              requestOptions.responseValidator = async data => {
+                return await zUpdateProjectFolderProjectsFoldersFolderIdPatchResponse.parseAsync(
+                  data
+                );
+              };
+            }
+            const path = { ...rootPathContext_folderId } satisfies PathContext;
+            return requestClient.request<
+              UpdateProjectFolderProjectsFoldersFolderIdPatchResponses[keyof UpdateProjectFolderProjectsFoldersFolderIdPatchResponses],
+              UpdateProjectFolderProjectsFoldersFolderIdPatchError,
+              true
+            >({
+              ...requestOptions,
+              method: 'PATCH',
+              url: '/projects/folders/{folder_id}',
+              path,
+            });
+          },
+        };
+      },
+      /**
+       * Create Project Folder
+       */
+      post: async (
+        params?: OperationParams<CreateProjectFolderProjectsFoldersPostData>,
+        config?: OperationConfig<
+          CreateProjectFolderProjectsFoldersPostData,
+          CreateProjectFolderProjectsFoldersPostResponses[keyof CreateProjectFolderProjectsFoldersPostResponses]
+        >
+      ): OperationResult<
+        CreateProjectFolderProjectsFoldersPostResponses[keyof CreateProjectFolderProjectsFoldersPostResponses],
+        CreateProjectFolderProjectsFoldersPostError
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<CreateProjectFolderProjectsFoldersPostData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          CreateProjectFolderProjectsFoldersPostData,
+          CreateProjectFolderProjectsFoldersPostResponses[keyof CreateProjectFolderProjectsFoldersPostResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            CreateProjectFolderProjectsFoldersPostData,
+            CreateProjectFolderProjectsFoldersPostResponses[keyof CreateProjectFolderProjectsFoldersPostResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zCreateProjectFolderProjectsFoldersPostData.parseAsync(
+              data
+            );
+          };
+        }
+        if (requestOptions.responseValidator == null) {
+          requestOptions.responseValidator = async data => {
+            return await zCreateProjectFolderProjectsFoldersPostResponse.parseAsync(
+              data
+            );
+          };
+        }
+        return requestClient.request<
+          CreateProjectFolderProjectsFoldersPostResponses[keyof CreateProjectFolderProjectsFoldersPostResponses],
+          CreateProjectFolderProjectsFoldersPostError,
+          true
+        >({
+          ...requestOptions,
+          method: 'POST',
+          url: '/projects/folders',
+        });
+      },
+    },
+    search: {
+      /**
+       * Search Projects
+       */
+      get: async (
+        params?: OperationParams<SearchProjectsProjectsSearchGetData>,
+        config?: OperationConfig<
+          SearchProjectsProjectsSearchGetData,
+          SearchProjectsProjectsSearchGetResponses[keyof SearchProjectsProjectsSearchGetResponses]
+        >
+      ): OperationResult<
+        SearchProjectsProjectsSearchGetResponses[keyof SearchProjectsProjectsSearchGetResponses],
+        SearchProjectsProjectsSearchGetError
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<SearchProjectsProjectsSearchGetData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          SearchProjectsProjectsSearchGetData,
+          SearchProjectsProjectsSearchGetResponses[keyof SearchProjectsProjectsSearchGetResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            SearchProjectsProjectsSearchGetData,
+            SearchProjectsProjectsSearchGetResponses[keyof SearchProjectsProjectsSearchGetResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zSearchProjectsProjectsSearchGetData.parseAsync(data);
+          };
+        }
+        if (requestOptions.responseValidator == null) {
+          requestOptions.responseValidator = async data => {
+            return await zSearchProjectsProjectsSearchGetResponse.parseAsync(
+              data
+            );
+          };
+        }
+        return requestClient.request<
+          SearchProjectsProjectsSearchGetResponses[keyof SearchProjectsProjectsSearchGetResponses],
+          SearchProjectsProjectsSearchGetError,
+          true
+        >({
+          ...requestOptions,
+          method: 'GET',
+          url: '/projects/search',
+        });
+      },
+    },
     batch: {
       /**
        * Delete Projects
@@ -6181,6 +6386,236 @@ export const nestedClient = {
           ...requestOptions,
           method: 'GET',
           url: '/data-catalog/datasets',
+        });
+      },
+    },
+  },
+  widgets: {
+    runs24h: {
+      /**
+       * Виджет: запуски за последние 24 часа
+       */
+      get: async (
+        params?: OperationParams<GetRunsLast24hWidgetWidgetsRuns24hGetData>,
+        config?: OperationConfig<
+          GetRunsLast24hWidgetWidgetsRuns24hGetData,
+          GetRunsLast24hWidgetWidgetsRuns24hGetResponses[keyof GetRunsLast24hWidgetWidgetsRuns24hGetResponses]
+        >
+      ): OperationResult<
+        GetRunsLast24hWidgetWidgetsRuns24hGetResponses[keyof GetRunsLast24hWidgetWidgetsRuns24hGetResponses],
+        never
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<GetRunsLast24hWidgetWidgetsRuns24hGetData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          GetRunsLast24hWidgetWidgetsRuns24hGetData,
+          GetRunsLast24hWidgetWidgetsRuns24hGetResponses[keyof GetRunsLast24hWidgetWidgetsRuns24hGetResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            GetRunsLast24hWidgetWidgetsRuns24hGetData,
+            GetRunsLast24hWidgetWidgetsRuns24hGetResponses[keyof GetRunsLast24hWidgetWidgetsRuns24hGetResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zGetRunsLast24hWidgetWidgetsRuns24hGetData.parseAsync(
+              data
+            );
+          };
+        }
+        if (requestOptions.responseValidator == null) {
+          requestOptions.responseValidator = async data => {
+            return await zGetRunsLast24hWidgetWidgetsRuns24hGetResponse.parseAsync(
+              data
+            );
+          };
+        }
+        return requestClient.request<
+          GetRunsLast24hWidgetWidgetsRuns24hGetResponses[keyof GetRunsLast24hWidgetWidgetsRuns24hGetResponses],
+          never,
+          true
+        >({
+          ...requestOptions,
+          method: 'GET',
+          url: '/widgets/runs-24h',
+        });
+      },
+    },
+    scheduledRuns: {
+      /**
+       * Виджет: ближайшие запуски по расписанию
+       */
+      get: async (
+        params?: OperationParams<GetScheduledRunsWidgetWidgetsScheduledRunsGetData>,
+        config?: OperationConfig<
+          GetScheduledRunsWidgetWidgetsScheduledRunsGetData,
+          GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses[keyof GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses]
+        >
+      ): OperationResult<
+        GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses[keyof GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses],
+        GetScheduledRunsWidgetWidgetsScheduledRunsGetError
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<GetScheduledRunsWidgetWidgetsScheduledRunsGetData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          GetScheduledRunsWidgetWidgetsScheduledRunsGetData,
+          GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses[keyof GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            GetScheduledRunsWidgetWidgetsScheduledRunsGetData,
+            GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses[keyof GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zGetScheduledRunsWidgetWidgetsScheduledRunsGetData.parseAsync(
+              data
+            );
+          };
+        }
+        if (requestOptions.responseValidator == null) {
+          requestOptions.responseValidator = async data => {
+            return await zGetScheduledRunsWidgetWidgetsScheduledRunsGetResponse.parseAsync(
+              data
+            );
+          };
+        }
+        return requestClient.request<
+          GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses[keyof GetScheduledRunsWidgetWidgetsScheduledRunsGetResponses],
+          GetScheduledRunsWidgetWidgetsScheduledRunsGetError,
+          true
+        >({
+          ...requestOptions,
+          method: 'GET',
+          url: '/widgets/scheduled-runs',
+        });
+      },
+    },
+    services: {
+      /**
+       * Виджет: состояние сервисов
+       */
+      get: async (
+        params?: OperationParams<GetServicesWidgetWidgetsServicesGetData>,
+        config?: OperationConfig<
+          GetServicesWidgetWidgetsServicesGetData,
+          GetServicesWidgetWidgetsServicesGetResponses[keyof GetServicesWidgetWidgetsServicesGetResponses]
+        >
+      ): OperationResult<
+        GetServicesWidgetWidgetsServicesGetResponses[keyof GetServicesWidgetWidgetsServicesGetResponses],
+        never
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<GetServicesWidgetWidgetsServicesGetData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          GetServicesWidgetWidgetsServicesGetData,
+          GetServicesWidgetWidgetsServicesGetResponses[keyof GetServicesWidgetWidgetsServicesGetResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            GetServicesWidgetWidgetsServicesGetData,
+            GetServicesWidgetWidgetsServicesGetResponses[keyof GetServicesWidgetWidgetsServicesGetResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zGetServicesWidgetWidgetsServicesGetData.parseAsync(
+              data
+            );
+          };
+        }
+        if (requestOptions.responseValidator == null) {
+          requestOptions.responseValidator = async data => {
+            return await zGetServicesWidgetWidgetsServicesGetResponse.parseAsync(
+              data
+            );
+          };
+        }
+        return requestClient.request<
+          GetServicesWidgetWidgetsServicesGetResponses[keyof GetServicesWidgetWidgetsServicesGetResponses],
+          never,
+          true
+        >({
+          ...requestOptions,
+          method: 'GET',
+          url: '/widgets/services',
+        });
+      },
+    },
+    failingProjects: {
+      /**
+       * Виджет: проблемные проекты за 7 дней
+       */
+      get: async (
+        params?: OperationParams<GetFailingProjectsWidgetWidgetsFailingProjectsGetData>,
+        config?: OperationConfig<
+          GetFailingProjectsWidgetWidgetsFailingProjectsGetData,
+          GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses[keyof GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses]
+        >
+      ): OperationResult<
+        GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses[keyof GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses],
+        GetFailingProjectsWidgetWidgetsFailingProjectsGetError
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<GetFailingProjectsWidgetWidgetsFailingProjectsGetData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          GetFailingProjectsWidgetWidgetsFailingProjectsGetData,
+          GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses[keyof GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            GetFailingProjectsWidgetWidgetsFailingProjectsGetData,
+            GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses[keyof GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zGetFailingProjectsWidgetWidgetsFailingProjectsGetData.parseAsync(
+              data
+            );
+          };
+        }
+        if (requestOptions.responseValidator == null) {
+          requestOptions.responseValidator = async data => {
+            return await zGetFailingProjectsWidgetWidgetsFailingProjectsGetResponse.parseAsync(
+              data
+            );
+          };
+        }
+        return requestClient.request<
+          GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses[keyof GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses],
+          GetFailingProjectsWidgetWidgetsFailingProjectsGetError,
+          true
+        >({
+          ...requestOptions,
+          method: 'GET',
+          url: '/widgets/failing-projects',
         });
       },
     },

@@ -7,4 +7,4 @@ export {
   normalizeRole,
   roleOptions,
 } from './lib/roles';
-export { useCurrentUser } from './model/useCurrentUser';
+export { resetCurrentUserCache, useCurrentUser } from './model/useCurrentUser';
