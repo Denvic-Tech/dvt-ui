@@ -181,6 +181,9 @@ import type {
   EnableExtensionExtensionsExtensionNameEnablePostData,
   EnableExtensionExtensionsExtensionNameEnablePostErrors,
   EnableExtensionExtensionsExtensionNameEnablePostResponses,
+  ExportProjectsProjectsExportPostData,
+  ExportProjectsProjectsExportPostErrors,
+  ExportProjectsProjectsExportPostResponses,
   GeneratePresignedDownloadUrlStorageDownloadPresignGetData,
   GeneratePresignedDownloadUrlStorageDownloadPresignGetErrors,
   GeneratePresignedDownloadUrlStorageDownloadPresignGetResponses,
@@ -349,6 +352,9 @@ import type {
   GetUsersPublicAdminUsersGetResponses,
   GetVersionSystemVersionGetData,
   GetVersionSystemVersionGetResponses,
+  ImportProjectsProjectsImportPostData,
+  ImportProjectsProjectsImportPostErrors,
+  ImportProjectsProjectsImportPostResponses,
   InstallExtensionExtensionsExtensionNameInstallPostData,
   InstallExtensionExtensionsExtensionNameInstallPostErrors,
   InstallExtensionExtensionsExtensionNameInstallPostResponses,
@@ -413,6 +419,9 @@ import type {
   PreviewExtensionPackageExtensionsPackagesPreviewPostData,
   PreviewExtensionPackageExtensionsPackagesPreviewPostErrors,
   PreviewExtensionPackageExtensionsPackagesPreviewPostResponses,
+  PreviewImportProjectsImportPreviewPostData,
+  PreviewImportProjectsImportPreviewPostErrors,
+  PreviewImportProjectsImportPreviewPostResponses,
   ProcessGraphOpProjectsProjectIdGraphOpsPostData,
   ProcessGraphOpProjectsProjectIdGraphOpsPostErrors,
   ProcessGraphOpProjectsProjectIdGraphOpsPostResponses,
@@ -673,6 +682,8 @@ import {
   zDownloadFileViaGatewayStorageDownloadFileGetData,
   zEnableExtensionExtensionsExtensionNameEnablePostData,
   zEnableExtensionExtensionsExtensionNameEnablePostResponse,
+  zExportProjectsProjectsExportPostData,
+  zExportProjectsProjectsExportPostResponse,
   zGeneratePresignedDownloadUrlStorageDownloadPresignGetData,
   zGeneratePresignedDownloadUrlStorageDownloadPresignGetResponse,
   zGeneratePresignedUploadUrlPostStorageUploadPresignGetData,
@@ -795,6 +806,8 @@ import {
   zGetUsersPublicAdminUsersGetResponse,
   zGetVersionSystemVersionGetData,
   zGetVersionSystemVersionGetResponse,
+  zImportProjectsProjectsImportPostData,
+  zImportProjectsProjectsImportPostResponse,
   zInstallExtensionExtensionsExtensionNameInstallPostData,
   zInstallExtensionExtensionsExtensionNameInstallPostResponse,
   zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostData,
@@ -842,6 +855,8 @@ import {
   zPostQueueQueuePostResponse,
   zPreviewExtensionPackageExtensionsPackagesPreviewPostData,
   zPreviewExtensionPackageExtensionsPackagesPreviewPostResponse,
+  zPreviewImportProjectsImportPreviewPostData,
+  zPreviewImportProjectsImportPreviewPostResponse,
   zProcessGraphOpProjectsProjectIdGraphOpsPostData,
   zProcessGraphOpProjectsProjectIdGraphOpsPostResponse,
   zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData,
@@ -2124,6 +2139,97 @@ export const copyProjectProjectsProjectIdCopyPost = <
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Экспортировать проекты и папки в архив
+ */
+export const exportProjectsProjectsExportPost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<ExportProjectsProjectsExportPostData, ThrowOnError>
+) => {
+  return (options.client ?? client).post<
+    ExportProjectsProjectsExportPostResponses,
+    ExportProjectsProjectsExportPostErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zExportProjectsProjectsExportPostData.parseAsync(data);
+    },
+    responseType: 'blob',
+    responseValidator: async data => {
+      return await zExportProjectsProjectsExportPostResponse.parseAsync(data);
+    },
+    url: '/projects/export',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Проверить архив перед импортом
+ */
+export const previewImportProjectsImportPreviewPost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PreviewImportProjectsImportPreviewPostData, ThrowOnError>
+) => {
+  return (options.client ?? client).post<
+    PreviewImportProjectsImportPreviewPostResponses,
+    PreviewImportProjectsImportPreviewPostErrors,
+    ThrowOnError
+  >({
+    ...formDataBodySerializer,
+    requestValidator: async data => {
+      return await zPreviewImportProjectsImportPreviewPostData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zPreviewImportProjectsImportPreviewPostResponse.parseAsync(
+        data
+      );
+    },
+    url: '/projects/import/preview',
+    ...options,
+    headers: {
+      'Content-Type': null,
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Импортировать архив проектов
+ */
+export const importProjectsProjectsImportPost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<ImportProjectsProjectsImportPostData, ThrowOnError>
+) => {
+  return (options.client ?? client).post<
+    ImportProjectsProjectsImportPostResponses,
+    ImportProjectsProjectsImportPostErrors,
+    ThrowOnError
+  >({
+    ...formDataBodySerializer,
+    requestValidator: async data => {
+      return await zImportProjectsProjectsImportPostData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zImportProjectsProjectsImportPostResponse.parseAsync(data);
+    },
+    url: '/projects/import',
+    ...options,
+    headers: {
+      'Content-Type': null,
       ...options.headers,
     },
   });

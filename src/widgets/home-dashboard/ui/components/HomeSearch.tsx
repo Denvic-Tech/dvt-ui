@@ -4,6 +4,9 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import { Box, InputBase } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
+// Direct import: the feature barrel would pull the whole projects page.
+import { ProjectsSourceSearchDialog } from '@/features/projects/users-projects/ui/ProjectsSourceSearchDialog';
+
 import type { ProjectReadSchema } from '@/shared/gatewayClient';
 
 import { useProjectSearch } from '../../model/useProjectSearch';
@@ -17,6 +20,24 @@ import {
   homePopoverSx,
 } from '../styles/tokens';
 
+/** Same glyph as the «search by source» action on /projects. */
+const DatabaseIcon = () => (
+  <svg
+    width='15'
+    height='15'
+    viewBox='0 0 24 24'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth='2'
+    strokeLinecap='round'
+    strokeLinejoin='round'
+    aria-hidden
+  >
+    <ellipse cx='12' cy='5.5' rx='7.5' ry='2.8' />
+    <path d='M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8' />
+  </svg>
+);
+
 const RECENT_SUGGESTIONS = 3;
 const SECTION_SUGGESTIONS = 4;
 const SEARCH_SUGGESTIONS = 5;
@@ -24,6 +45,7 @@ const SEARCH_OPTIONS = { limit: SEARCH_SUGGESTIONS };
 
 type SearchResult =
   | { kind: 'project'; project: ProjectReadSchema }
+  | { kind: 'source'; query: string }
   | { kind: 'section'; section: HomeSection };
 
 type HomeSearchProps = {
@@ -43,6 +65,8 @@ export const HomeSearch = ({
   const [query, setQuery] = React.useState('');
   const [open, setOpen] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(0);
+  // Query of the open «search by source» dialog; `null` while it is closed.
+  const [sourceQuery, setSourceQuery] = React.useState<string | null>(null);
   const search = useProjectSearch(query, SEARCH_OPTIONS);
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -74,10 +98,19 @@ export const HomeSearch = ({
         )
         .slice(0, SECTION_SUGGESTIONS)
     : [];
+  const trimmedQuery = query.trim();
+  // Same action as on /projects: look the query up in data sources (tables,
+  // files) and list the projects that use them. Shown after the projects.
+  const sourceResult: SearchResult | null = trimmedQuery
+    ? { kind: 'source', query: trimmedQuery }
+    : null;
   const results: SearchResult[] = [
     ...projectResults.map(project => ({ kind: 'project' as const, project })),
+    ...(sourceResult ? [sourceResult] : []),
     ...sectionResults.map(section => ({ kind: 'section' as const, section })),
   ];
+  const sourceIndex = projectResults.length;
+  const sectionsOffset = projectResults.length + (sourceResult ? 1 : 0);
 
   React.useEffect(() => {
     setActiveIndex(0);
@@ -89,6 +122,11 @@ export const HomeSearch = ({
 
     if (result.kind === 'project') {
       navigate(`/project-editor/${result.project.id}`);
+      return;
+    }
+
+    if (result.kind === 'source') {
+      setSourceQuery(result.query);
       return;
     }
 
@@ -167,9 +205,9 @@ export const HomeSearch = ({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder='Проект или раздел'
+          placeholder='Проект, раздел или поиск по источнику'
           inputProps={{
-            'aria-label': 'Поиск по проектам и разделам',
+            'aria-label': 'Поиск по проектам, разделам и источникам данных',
             'aria-expanded': open,
             role: 'combobox',
           }}
@@ -225,11 +263,31 @@ export const HomeSearch = ({
               {projectsEmptyText}
             </Box>
           )}
+          {sourceResult ? (
+            <>
+              <Box sx={homeCaptionSx}>Источники</Box>
+              <SearchRow
+                active={activeIndex === sourceIndex}
+                icon={<DatabaseIcon />}
+                label={
+                  <>
+                    Найти проекты по источнику{' '}
+                    <Box component='span' sx={{ color: hc.brand }}>
+                      «{trimmedQuery}»
+                    </Box>
+                  </>
+                }
+                title={`Найти проекты по источнику «${trimmedQuery}»`}
+                onHover={() => setActiveIndex(sourceIndex)}
+                onSelect={() => openResult(sourceResult)}
+              />
+            </>
+          ) : null}
           {sectionResults.length ? (
             <>
               <Box sx={homeCaptionSx}>Разделы</Box>
               {sectionResults.map((section, index) => {
-                const resultIndex = projectResults.length + index;
+                const resultIndex = sectionsOffset + index;
                 const Icon = section.icon;
 
                 return (
@@ -248,6 +306,16 @@ export const HomeSearch = ({
           ) : null}
         </Box>
       ) : null}
+
+      <ProjectsSourceSearchDialog
+        open={sourceQuery != null}
+        initialQuery={sourceQuery ?? ''}
+        onClose={() => setSourceQuery(null)}
+        onOpenProject={projectId => {
+          setSourceQuery(null);
+          navigate(`/project-editor/${projectId}`);
+        }}
+      />
     </Box>
   );
 };
@@ -255,10 +323,11 @@ export const HomeSearch = ({
 type SearchRowProps = {
   active: boolean;
   icon: React.ReactNode;
-  label: string;
+  label: React.ReactNode;
   meta?: string | undefined;
   onHover: () => void;
   onSelect: () => void;
+  title?: string;
 };
 
 const SearchRow = ({
@@ -268,6 +337,7 @@ const SearchRow = ({
   meta,
   onHover,
   onSelect,
+  title,
 }: SearchRowProps) => (
   <Box
     role='option'
@@ -293,6 +363,7 @@ const SearchRow = ({
     {icon}
     <Box
       component='span'
+      title={title ?? (typeof label === 'string' ? label : undefined)}
       sx={{
         ...homeEllipsisSx,
         minWidth: 0,

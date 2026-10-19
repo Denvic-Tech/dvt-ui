@@ -153,12 +153,6 @@ interface GraphEditorProps {
   edgeTypes: EdgeTypes;
 }
 
-type OnCreate = (payload: {
-  nodes?: CustomNodeType[];
-  edges?: Edge[];
-  subgraphs?: SubgraphUiSchema[];
-}) => Promise<void>;
-
 type ScreenPoint = { x: number; y: number };
 type SelectionRect = {
   left: number;
@@ -1581,13 +1575,6 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
   useOnSelectionChange<GraphEditorNode, GraphEdgeWithSubgraph>({
     onChange: onSelectionChange,
   });
-
-  const onCreate: OnCreate = useCallback(
-    async ({ nodes = [], edges = [], subgraphs = [] }) => {
-      await createGraphEntities(nodes, edges, subgraphs);
-    },
-    [createGraphEntities]
-  );
 
   const resolveEdgeSubgraphId = useCallback(
     (
@@ -4403,6 +4390,35 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
     setNodes,
   ]);
 
+  // After a server-side import into this project the canvas is refilled the
+  // same way as on project open (fetch graph → local xyflow state), then the
+  // viewport is fitted to the imported nodes.
+  const handleReloadGraph = useCallback(async () => {
+    const projectID = currentProject?.id;
+    if (!projectID) {
+      return;
+    }
+
+    const graph = await loadGraph(projectID);
+    if (!graph) {
+      throw new Error('No Graph Data');
+    }
+
+    setNodes(graph.nodes);
+    setEdges(graph.edges);
+    setSubgraphs(graph.subgraphs ?? []);
+
+    await new Promise<void>(resolve => {
+      window.requestAnimationFrame(() => resolve());
+    });
+    await new Promise<void>(resolve => {
+      window.requestAnimationFrame(() => resolve());
+    });
+    void fitView({ padding: 0.15, duration: 320, maxZoom: 1 }).catch(error => {
+      console.error('Failed to fit view after import', error);
+    });
+  }, [currentProject?.id, fitView, loadGraph, setEdges, setNodes]);
+
   // Last viewport written to the store from this editor. `onMoveEnd` compares
   // against it by value so a programmatic `setViewport` (xyflow emits `end` for
   // those too) does not re-dispatch an identical viewport and re-run effects.
@@ -5366,7 +5382,7 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
               onClick={() => void handleAutoLayout()}
             />
           </Controls>
-          <FloatingActionPanel onCreate={onCreate} />
+          <FloatingActionPanel onReloadGraph={handleReloadGraph} />
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
         </ReactFlow>
 

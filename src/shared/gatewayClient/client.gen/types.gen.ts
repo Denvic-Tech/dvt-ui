@@ -896,6 +896,24 @@ export type BodyGetColumnsUtilsCsvGetColumnsPost = {
 };
 
 /**
+ * Body_import_projects_projects_import_post
+ */
+export type BodyImportProjectsProjectsImportPost = {
+  /**
+   * File
+   *
+   * Архив проекта (.dvtpkg)
+   */
+  file: Blob | File;
+  /**
+   * Payload
+   *
+   * JSON по схеме ImportRequestSchema: режим, цель и решения по импорту
+   */
+  payload?: string | null;
+};
+
+/**
  * Body_preview_extension_package_extensions_packages_preview_post
  */
 export type BodyPreviewExtensionPackageExtensionsPackagesPreviewPost = {
@@ -903,6 +921,24 @@ export type BodyPreviewExtensionPackageExtensionsPackagesPreviewPost = {
    * File
    */
   file: Blob | File;
+};
+
+/**
+ * Body_preview_import_projects_import_preview_post
+ */
+export type BodyPreviewImportProjectsImportPreviewPost = {
+  /**
+   * File
+   *
+   * Архив проекта (.dvtpkg)
+   */
+  file: Blob | File;
+  /**
+   * Payload
+   *
+   * JSON по схеме ImportRequestSchema: режим, цель и решения по импорту
+   */
+  payload?: string | null;
 };
 
 /**
@@ -1042,6 +1078,24 @@ export type BrokenConnectionReadResponse = {
     | unknown
     | null
     | undefined;
+};
+
+/**
+ * BundleFolderDoc
+ */
+export type BundleFolderDoc = {
+  /**
+   * Ref
+   */
+  ref: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Parent Ref
+   */
+  parent_ref?: string | null;
 };
 
 /**
@@ -2131,6 +2185,40 @@ export type ConnectionKindInfoResponse = {
    * Capabilities
    */
   capabilities?: Array<string> | null;
+};
+
+/**
+ * ConnectionPreviewSchema
+ */
+export type ConnectionPreviewSchema = {
+  /**
+   * Ref
+   */
+  ref: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Kind
+   */
+  kind: string;
+  /**
+   * Type
+   */
+  type: string;
+  /**
+   * Inaccessible
+   */
+  inaccessible: boolean;
+  /**
+   * Has Secrets In Bundle
+   */
+  has_secrets_in_bundle: boolean;
+  /**
+   * Candidates
+   */
+  candidates?: Array<ExistingConnectionSchema>;
 };
 
 /**
@@ -3553,6 +3641,88 @@ export type ExceptionCategory =
   | 'CRUD_SUBGRAPH';
 
 /**
+ * ExistingConnectionSchema
+ */
+export type ExistingConnectionSchema = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Kind
+   */
+  kind: string;
+  /**
+   * Type
+   */
+  type: string;
+};
+
+/**
+ * ExportRequestSchema
+ */
+export type ExportRequestSchema = {
+  /**
+   * Project Ids
+   *
+   * ID проектов для экспорта
+   */
+  project_ids?: Array<string>;
+  /**
+   * Folder Ids
+   *
+   * ID папок для экспорта вместе со всеми вложенными папками и проектами
+   */
+  folder_ids?: Array<string>;
+  /**
+   * Include Variables
+   *
+   * Экспортировать переменные проекта со значениями
+   */
+  include_variables?: boolean;
+  /**
+   * Include Connections
+   *
+   * Экспортировать описания подключений без секретов
+   */
+  include_connections?: boolean;
+  /**
+   * Include Secrets
+   *
+   * Экспортировать секреты подключений, защищённые паролем
+   */
+  include_secrets?: boolean;
+  /**
+   * Passphrase
+   *
+   * Пароль для защиты секретов (обязателен при include_secrets)
+   */
+  passphrase?: string | null;
+  /**
+   * Include Files
+   *
+   * Экспортировать файлы, загруженные в ноды
+   */
+  include_files?: boolean;
+  /**
+   * Include Schedule
+   *
+   * Экспортировать настройки расписания
+   */
+  include_schedule?: boolean;
+  /**
+   * Disable Schedule After Export
+   *
+   * Выключить расписание экспортированных проектов после экспорта (только администраторы)
+   */
+  disable_schedule_after_export?: boolean;
+};
+
+/**
  * ExpressionPolicy
  */
 export type ExpressionPolicy = {
@@ -4893,6 +5063,83 @@ export type Io =
   | 'PRIMITIVE';
 
 /**
+ * ImportPreviewSchema
+ */
+export type ImportPreviewSchema = {
+  manifest: ManifestInfoSchema;
+  /**
+   * Folders
+   */
+  folders: Array<BundleFolderDoc>;
+  /**
+   * Projects
+   */
+  projects: Array<ProjectPreviewSchema>;
+  /**
+   * Connections
+   */
+  connections: Array<ConnectionPreviewSchema>;
+  /**
+   * Unknown Node Names
+   */
+  unknown_node_names: Array<string>;
+  /**
+   * Unavailable Extensions
+   */
+  unavailable_extensions: Array<string>;
+  /**
+   * Target Has Graph
+   */
+  target_has_graph: boolean;
+  /**
+   * Can Manage Schedules
+   */
+  can_manage_schedules: boolean;
+  /**
+   * Warnings
+   */
+  warnings: Array<TransferWarningSchema>;
+};
+
+/**
+ * ImportResultSchema
+ */
+export type ImportResultSchema = {
+  /**
+   * Folder Ids
+   *
+   * ref папки -> ID созданной папки
+   */
+  folder_ids?: {
+    [key: string]: string;
+  };
+  /**
+   * Project Ids
+   *
+   * ref проекта -> ID проекта
+   */
+  project_ids?: {
+    [key: string]: string;
+  };
+  /**
+   * Connection Ids
+   *
+   * ref подключения -> ID подключения
+   */
+  connection_ids?: {
+    [key: string]: string;
+  };
+  /**
+   * Skipped Connection Refs
+   */
+  skipped_connection_refs?: Array<string>;
+  /**
+   * Warnings
+   */
+  warnings?: Array<TransferWarningSchema>;
+};
+
+/**
  * IndexSpec
  */
 export type IndexSpec = {
@@ -5663,6 +5910,38 @@ export type MssqltcpProperties = {
    * Verify
    */
   verify?: boolean;
+};
+
+/**
+ * ManifestInfoSchema
+ */
+export type ManifestInfoSchema = {
+  /**
+   * Format Version
+   */
+  format_version: number;
+  /**
+   * Dvt Version
+   */
+  dvt_version: string;
+  /**
+   * Exported At
+   */
+  exported_at: string;
+  /**
+   * Source Instance Id
+   */
+  source_instance_id: string;
+  /**
+   * Options
+   */
+  options: {
+    [key: string]: boolean;
+  };
+  /**
+   * Has Secrets
+   */
+  has_secrets: boolean;
 };
 
 /**
@@ -8475,6 +8754,52 @@ export type ProjectLastRunSchema = {
 };
 
 /**
+ * ProjectPreviewSchema
+ */
+export type ProjectPreviewSchema = {
+  /**
+   * Ref
+   */
+  ref: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Folder Ref
+   */
+  folder_ref: string | null;
+  /**
+   * Node Count
+   */
+  node_count: number;
+  /**
+   * Edge Count
+   */
+  edge_count: number;
+  /**
+   * Subgraph Count
+   */
+  subgraph_count: number;
+  /**
+   * Files Total Size
+   */
+  files_total_size: number;
+  /**
+   * Variables
+   */
+  variables: Array<VariablePreviewSchema>;
+  /**
+   * Has Schedule In Bundle
+   */
+  has_schedule_in_bundle: boolean;
+  /**
+   * Has Existing Schedule
+   */
+  has_existing_schedule: boolean;
+};
+
+/**
  * ProjectReadSchema
  *
  * Схема для чтения проекта с БД
@@ -8682,6 +9007,12 @@ export type ProjectScheduleRequest = {
    * Максимальная задержка exponential backoff
    */
   retry_max_delay_seconds?: number;
+  /**
+   * Disabled
+   *
+   * Создать расписание выключенным, без регистрации задания в планировщике
+   */
+  disabled?: boolean;
 };
 
 /**
@@ -8735,17 +9066,17 @@ export type ProjectScheduleResponse = {
    */
   retry_max_delay_seconds?: number;
   /**
-   * Project Name
-   *
-   * Название проекта
-   */
-  project_name?: string | null;
-  /**
    * Disabled
    *
    * Отключено ли расписание
    */
   disabled?: boolean;
+  /**
+   * Project Name
+   *
+   * Название проекта
+   */
+  project_name?: string | null;
   /**
    * Scheduled By User Id
    *
@@ -11468,6 +11799,45 @@ export type TaskResponse = {
 export type TaskSource = 'UI' | 'API' | 'SCHEDULER' | 'NODE' | 'MCP';
 
 /**
+ * TransferWarningCode
+ */
+export type TransferWarningCode =
+  | 'unknown_node'
+  | 'extension_unavailable'
+  | 'connection_inaccessible'
+  | 'connection_skipped'
+  | 'connection_not_found'
+  | 'connection_create_failed'
+  | 'secrets_unavailable'
+  | 'schedule_forbidden'
+  | 'schedule_disable_failed'
+  | 'schedule_import_failed'
+  | 'schedule_exists'
+  | 'variable_conflict'
+  | 'catalog_rebuild_failed';
+
+/**
+ * TransferWarningSchema
+ */
+export type TransferWarningSchema = {
+  code: TransferWarningCode;
+  /**
+   * Message
+   */
+  message: string;
+  /**
+   * Project Ref
+   */
+  project_ref?: string | null;
+  /**
+   * Details
+   */
+  details?: {
+    [key: string]: unknown;
+  };
+};
+
+/**
  * TruncateTableRequest
  */
 export type TruncateTableRequest = {
@@ -11672,6 +12042,21 @@ export type ValidationError = {
    * Error Type
    */
   type: string;
+};
+
+/**
+ * VariablePreviewSchema
+ */
+export type VariablePreviewSchema = {
+  /**
+   * Key
+   */
+  key: string;
+  value?: ProjectVariableBase | null;
+  /**
+   * Conflicts With Existing
+   */
+  conflicts_with_existing?: boolean;
 };
 
 /**
@@ -14339,7 +14724,21 @@ export type RegisteredException =
   | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104
   | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105
   | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106
-  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107;
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel108
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel109
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel110
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel111
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel112
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel113
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel114
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel115
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel116
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel117
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel118
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel119
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121;
 
 /**
  * BadPipelineException
@@ -14369,7 +14768,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SubgraphNotFoundException
+ * WeakPassphraseError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel100 =
   {
@@ -14396,7 +14795,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * GraphNotFoundException
+ * InvalidPassphraseError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel101 =
   {
@@ -14423,7 +14822,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * TaskExecutionFlowError
+ * UnsupportedBundleFormatError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102 =
   {
@@ -14450,7 +14849,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidReconciliationTerminationReason
+ * InvalidBundleError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103 =
   {
@@ -14477,7 +14876,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidPendingExecutionFailureReason
+ * BundleTooLargeError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104 =
   {
@@ -14504,7 +14903,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * QueueTopicNotFoundException
+ * InvalidImportTargetError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105 =
   {
@@ -14531,7 +14930,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * QueueTopicAlreadyExistsException
+ * FolderDepthExceededError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106 =
   {
@@ -14558,9 +14957,63 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * AIMCPHTTPError
+ * InvalidConnectionDecisionError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * ConnectionNotFound
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel108 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * GraphNodeNotFoundException
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel109 =
   {
     /**
      * Name
@@ -14612,9 +15065,333 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
+ * GraphEdgeNotFoundException
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel110 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * SubgraphNotFoundException
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel111 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * GraphNotFoundException
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel112 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * ProjectTransferFlowError
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel113 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * ExportSelectionNotFoundError
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel114 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * ImportTargetNotFoundError
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel115 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * TaskExecutionFlowError
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel116 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * InvalidReconciliationTerminationReason
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel117 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * InvalidPendingExecutionFailureReason
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel118 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * QueueTopicNotFoundException
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel119 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
  * ProjectNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel12 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * QueueTopicAlreadyExistsException
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * AIMCPHTTPError
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121 =
   {
     /**
      * Name
@@ -17096,7 +17873,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ConnectionNotFound
+ * ProjectTransferDomainError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel97 =
   {
@@ -17123,7 +17900,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * GraphNodeNotFoundException
+ * EmptyExportSelectionError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel98 =
   {
@@ -17150,7 +17927,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * GraphEdgeNotFoundException
+ * SecretsPassphraseRequiredError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel99 =
   {
@@ -17237,6 +18014,137 @@ export type GraphNodeUiSchema = {
    */
   selected?: boolean;
   data: GraphNodeData;
+};
+
+/**
+ * ImportRequestSchema
+ */
+export type ImportRequestSchema = {
+  /**
+   * create: новые проекты, merge: в существующий проект
+   */
+  mode?: ImportMode;
+  /**
+   * Folder Id
+   *
+   * Целевая папка для create, null означает корень
+   */
+  folder_id?: string | null;
+  /**
+   * Project Id
+   *
+   * Целевой проект для merge
+   */
+  project_id?: string | null;
+  /**
+   * replace: удалить текущий граф перед импортом, append: добавить рядом
+   */
+  merge_strategy?: MergeStrategy;
+  /**
+   * Passphrase
+   *
+   * Пароль от секретов бандла
+   */
+  passphrase?: string | null;
+  /**
+   * Connections
+   *
+   * Решения по подключениям бандла по их ref
+   */
+  connections?: {
+    [key: string]: ConnectionDecisionSchema;
+  };
+  /**
+   * Variables
+   *
+   * Решения по переменным: project_ref -> ключ -> решение
+   */
+  variables?: {
+    [key: string]: {
+      [key: string]: VariableDecisionSchema;
+    };
+  };
+  schedule?: ScheduleDecisionSchema;
+};
+
+/**
+ * ConflictDecision
+ */
+export type ConflictDecision = 'keep' | 'overwrite';
+
+/**
+ * ConnectionDecisionAction
+ */
+export type ConnectionDecisionAction = 'use_existing' | 'create' | 'skip';
+
+/**
+ * ConnectionDecisionSchema
+ */
+export type ConnectionDecisionSchema = {
+  /**
+   * Что сделать с подключением из бандла
+   */
+  action: ConnectionDecisionAction;
+  /**
+   * Connection Id
+   *
+   * ID существующего подключения для use_existing
+   */
+  connection_id?: string | null;
+  /**
+   * Secrets
+   *
+   * Секреты для create, если они не берутся из бандла
+   */
+  secrets?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
+ * ImportMode
+ */
+export type ImportMode = 'create' | 'merge';
+
+/**
+ * MergeStrategy
+ */
+export type MergeStrategy = 'replace' | 'append';
+
+/**
+ * ScheduleDecisionSchema
+ */
+export type ScheduleDecisionSchema = {
+  /**
+   * Import Schedule
+   *
+   * Импортировать расписание из бандла
+   */
+  import_schedule?: boolean;
+  /**
+   * Enable
+   *
+   * Включить расписание после импорта
+   */
+  enable?: boolean;
+  /**
+   * Что делать, если у целевого проекта уже есть расписание (merge)
+   */
+  conflict?: ConflictDecision;
+};
+
+/**
+ * VariableDecisionSchema
+ */
+export type VariableDecisionSchema = {
+  /**
+   * Значение, заменяющее значение из бандла
+   */
+  value?: ProjectVariableBase | null;
+  /**
+   * Что делать при совпадении ключа с существующей переменной (merge)
+   */
+  conflict?: ConflictDecision;
 };
 
 export type DbConnectionCreateV1 =
@@ -18598,6 +19506,87 @@ export type CopyProjectProjectsProjectIdCopyPostResponses = {
 
 export type CopyProjectProjectsProjectIdCopyPostResponse =
   CopyProjectProjectsProjectIdCopyPostResponses[keyof CopyProjectProjectsProjectIdCopyPostResponses];
+
+export type ExportProjectsProjectsExportPostData = {
+  body: ExportRequestSchema;
+  path?: never;
+  query?: never;
+  url: '/projects/export';
+};
+
+export type ExportProjectsProjectsExportPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExportProjectsProjectsExportPostError =
+  ExportProjectsProjectsExportPostErrors[keyof ExportProjectsProjectsExportPostErrors];
+
+export type ExportProjectsProjectsExportPostResponses = {
+  /**
+   * Архив .dvtpkg
+   */
+  200: Blob | File;
+};
+
+export type ExportProjectsProjectsExportPostResponse =
+  ExportProjectsProjectsExportPostResponses[keyof ExportProjectsProjectsExportPostResponses];
+
+export type PreviewImportProjectsImportPreviewPostData = {
+  body: BodyPreviewImportProjectsImportPreviewPost;
+  path?: never;
+  query?: never;
+  url: '/projects/import/preview';
+};
+
+export type PreviewImportProjectsImportPreviewPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type PreviewImportProjectsImportPreviewPostError =
+  PreviewImportProjectsImportPreviewPostErrors[keyof PreviewImportProjectsImportPreviewPostErrors];
+
+export type PreviewImportProjectsImportPreviewPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ImportPreviewSchema;
+};
+
+export type PreviewImportProjectsImportPreviewPostResponse =
+  PreviewImportProjectsImportPreviewPostResponses[keyof PreviewImportProjectsImportPreviewPostResponses];
+
+export type ImportProjectsProjectsImportPostData = {
+  body: BodyImportProjectsProjectsImportPost;
+  path?: never;
+  query?: never;
+  url: '/projects/import';
+};
+
+export type ImportProjectsProjectsImportPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ImportProjectsProjectsImportPostError =
+  ImportProjectsProjectsImportPostErrors[keyof ImportProjectsProjectsImportPostErrors];
+
+export type ImportProjectsProjectsImportPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: ImportResultSchema;
+};
+
+export type ImportProjectsProjectsImportPostResponse =
+  ImportProjectsProjectsImportPostResponses[keyof ImportProjectsProjectsImportPostResponses];
 
 export type ScheduleProjectsSchedulerSchedulePostData = {
   body: ProjectScheduleRequest;
