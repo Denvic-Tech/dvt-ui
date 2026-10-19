@@ -128,3 +128,15 @@
 - Быстрая диагностика таких «залипаний»: временный middleware в начале цепочки, который пишет `action.type` и `performance.now()` в `window.__actionLog` (плюс `new Error().stack` для источника), и `React.Profiler` на корне — частота и виновник видны за минуту без DevTools.
 - StrictMode и xyflow: между двойным запуском эффектов в dev `ZoomPane` уничтожает и создаёт заново `XYPanZoom` (viewport снова `{0,0,1}`). Если «восстановить viewport один раз» реализовать через ref-флаг «уже восстановлено», второй запуск эффекта пропустится и viewport потеряется при SPA-возврате в редактор (а отложенный `onMoveEnd` первого инстанса ещё и сохранит `{0,0,1}`). Делайте эффект идемпотентным и завязанным на зависимости загрузки, а не на ref.
 - Правило для xyflow: не вызывайте `setViewport` из эффекта на каждое изменение сохранённого значения и не кладите объект viewport в store без сравнения по значению — программный `setViewport`/`fitView` сам вызывает `onMoveEnd`.
+
+### 2026-10-16 — Multipart и blob-ответы через gatewayClient
+
+- Сгенерированные SDK-функции для multipart (`previewImportProjectsImportPreviewPost`, `uploadNodeFileInput...`) валидируют `body.file` zod-схемой `z.string()`, поэтому передать `File` через них нельзя. Рабочий паттерн — собрать `FormData` вручную и вызвать `client.post({ url, body: formData, throwOnError: true, silent: true })` (см. `nodeFileInputApi`, `projectTransferApi`).
+- Для бинарных ответов (`responseType: 'blob'`) тело ошибки тоже приходит `Blob`, и общий interceptor не может достать `description`: он попадает в `payload.meta.raw`. Разбирайте его локально (`await raw.text()` → JSON) и выбрасывайте новый `ApiError`, иначе пользователь увидит только «Request failed with status code 400».
+- Заголовки ответа доступны только при генерике `client.post<TData, TError, true>` (ThrowOnError = true): без него тип результата — union с `AxiosError`, и `response.headers` не типизируется.
+
+### 2026-10-19 — Визуальная проверка диалогов без логина
+
+- Если встроенный браузер не авторизован в приложении, диалог можно проверить изолированно: временная страница `tmp/<name>/index.html` + `main.tsx` (папка `tmp/` в .gitignore) раздаётся тем же Vite dev-сервером по `http://localhost:5173/tmp/<name>/index.html` с алиасами `@/`. Внутри — `ThemeProvider` с `lightTheme`, `Provider` с реальным `store` из `@/app/providers/store/store` (или пустым `configureStore`) и импорт `@/index.css` + `@fontsource/inter/*`.
+- API-обёртки вида `export const fooApi = { method: async () => ... }` можно подменить прямо на странице присваиванием (`projectTransferApi.previewImport = async () => mock`) — модуль один и тот же для страницы и компонента.
+- Скриншоты в фоне иногда возвращают кадр до перерисовки (MUI Popover/Dialog): проверяйте состояние через `javascript_tool`/`find` и делайте повторный скриншот. Страницу после проверки удаляйте.
