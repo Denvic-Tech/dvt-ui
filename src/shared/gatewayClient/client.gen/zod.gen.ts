@@ -874,6 +874,18 @@ export type BodyGetColumnsUtilsCsvGetColumnsPostZodType = z.infer<
 >;
 
 /**
+ * Body_import_projects_projects_import_post
+ */
+export const zBodyImportProjectsProjectsImportPost = z.object({
+  file: z.string(),
+  payload: z.optional(z.union([z.string(), z.null()])),
+});
+
+export type BodyImportProjectsProjectsImportPostZodType = z.infer<
+  typeof zBodyImportProjectsProjectsImportPost
+>;
+
+/**
  * Body_preview_extension_package_extensions_packages_preview_post
  */
 export const zBodyPreviewExtensionPackageExtensionsPackagesPreviewPost =
@@ -883,6 +895,18 @@ export const zBodyPreviewExtensionPackageExtensionsPackagesPreviewPost =
 
 export type BodyPreviewExtensionPackageExtensionsPackagesPreviewPostZodType =
   z.infer<typeof zBodyPreviewExtensionPackageExtensionsPackagesPreviewPost>;
+
+/**
+ * Body_preview_import_projects_import_preview_post
+ */
+export const zBodyPreviewImportProjectsImportPreviewPost = z.object({
+  file: z.string(),
+  payload: z.optional(z.union([z.string(), z.null()])),
+});
+
+export type BodyPreviewImportProjectsImportPreviewPostZodType = z.infer<
+  typeof zBodyPreviewImportProjectsImportPreviewPost
+>;
 
 /**
  * Body_sql_code_metadata_utils_sql_code_metadata_post
@@ -971,6 +995,17 @@ export const zBrokenConnectionReadResponse = z.object({
 export type BrokenConnectionReadResponseZodType = z.infer<
   typeof zBrokenConnectionReadResponse
 >;
+
+/**
+ * BundleFolderDoc
+ */
+export const zBundleFolderDoc = z.object({
+  ref: z.string(),
+  name: z.string(),
+  parent_ref: z.optional(z.union([z.string(), z.null()])),
+});
+
+export type BundleFolderDocZodType = z.infer<typeof zBundleFolderDoc>;
 
 /**
  * CatalogColumnSchema
@@ -1556,6 +1591,37 @@ export const zConnectionKindInfoResponse = z.object({
 
 export type ConnectionKindInfoResponseZodType = z.infer<
   typeof zConnectionKindInfoResponse
+>;
+
+/**
+ * ExistingConnectionSchema
+ */
+export const zExistingConnectionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  kind: z.string(),
+  type: z.string(),
+});
+
+export type ExistingConnectionSchemaZodType = z.infer<
+  typeof zExistingConnectionSchema
+>;
+
+/**
+ * ConnectionPreviewSchema
+ */
+export const zConnectionPreviewSchema = z.object({
+  ref: z.string(),
+  name: z.string(),
+  kind: z.string(),
+  type: z.string(),
+  inaccessible: z.boolean(),
+  has_secrets_in_bundle: z.boolean(),
+  candidates: z.optional(z.array(zExistingConnectionSchema)),
+});
+
+export type ConnectionPreviewSchemaZodType = z.infer<
+  typeof zConnectionPreviewSchema
 >;
 
 /**
@@ -2216,6 +2282,23 @@ export const zExceptionCategory = z.enum([
 ]);
 
 export type ExceptionCategoryZodType = z.infer<typeof zExceptionCategory>;
+
+/**
+ * ExportRequestSchema
+ */
+export const zExportRequestSchema = z.object({
+  project_ids: z.optional(z.array(z.string())),
+  folder_ids: z.optional(z.array(z.string())),
+  include_variables: z.optional(z.boolean()).default(false),
+  include_connections: z.optional(z.boolean()).default(true),
+  include_secrets: z.optional(z.boolean()).default(false),
+  passphrase: z.optional(z.union([z.string(), z.null()])),
+  include_files: z.optional(z.boolean()).default(true),
+  include_schedule: z.optional(z.boolean()).default(false),
+  disable_schedule_after_export: z.optional(z.boolean()).default(false),
+});
+
+export type ExportRequestSchemaZodType = z.infer<typeof zExportRequestSchema>;
 
 /**
  * ExpressionPolicy
@@ -3029,6 +3112,139 @@ export const zHttpValidationError = z.object({
 });
 
 export type HttpValidationErrorZodType = z.infer<typeof zHttpValidationError>;
+
+/**
+ * ManifestInfoSchema
+ */
+export const zManifestInfoSchema = z.object({
+  format_version: z.int(),
+  dvt_version: z.string(),
+  exported_at: z.iso.datetime({
+    offset: true,
+  }),
+  source_instance_id: z.string(),
+  options: z.record(z.string(), z.boolean()),
+  has_secrets: z.boolean(),
+});
+
+export type ManifestInfoSchemaZodType = z.infer<typeof zManifestInfoSchema>;
+
+/**
+ * ProjectVariableBase
+ *
+ * Typed project variable payload used by the HTTP API.
+ */
+export const zProjectVariableBase = z.object({
+  type: z.enum([
+    'STRING',
+    'BOOLEAN',
+    'INT',
+    'FLOAT',
+    'DATETIME',
+    'TIMEDELTA',
+    'JSON',
+  ]),
+  value: z.unknown(),
+  is_list_type: z.optional(z.boolean()).default(false),
+});
+
+export type ProjectVariableBaseZodType = z.infer<typeof zProjectVariableBase>;
+
+/**
+ * VariablePreviewSchema
+ */
+export const zVariablePreviewSchema = z.object({
+  key: z.string(),
+  value: z.optional(z.union([zProjectVariableBase, z.null()])),
+  conflicts_with_existing: z.optional(z.boolean()).default(false),
+});
+
+export type VariablePreviewSchemaZodType = z.infer<
+  typeof zVariablePreviewSchema
+>;
+
+/**
+ * ProjectPreviewSchema
+ */
+export const zProjectPreviewSchema = z.object({
+  ref: z.string(),
+  name: z.string(),
+  folder_ref: z.union([z.string(), z.null()]),
+  node_count: z.int(),
+  edge_count: z.int(),
+  subgraph_count: z.int(),
+  files_total_size: z.int(),
+  variables: z.array(zVariablePreviewSchema),
+  has_schedule_in_bundle: z.boolean(),
+  has_existing_schedule: z.boolean(),
+});
+
+export type ProjectPreviewSchemaZodType = z.infer<typeof zProjectPreviewSchema>;
+
+/**
+ * TransferWarningCode
+ */
+export const zTransferWarningCode = z.enum([
+  'unknown_node',
+  'extension_unavailable',
+  'connection_inaccessible',
+  'connection_skipped',
+  'connection_not_found',
+  'connection_create_failed',
+  'secrets_unavailable',
+  'schedule_forbidden',
+  'schedule_disable_failed',
+  'schedule_import_failed',
+  'schedule_exists',
+  'variable_conflict',
+  'catalog_rebuild_failed',
+]);
+
+export type TransferWarningCodeZodType = z.infer<typeof zTransferWarningCode>;
+
+/**
+ * TransferWarningSchema
+ */
+export const zTransferWarningSchema = z.object({
+  code: zTransferWarningCode,
+  message: z.string(),
+  project_ref: z.optional(z.union([z.string(), z.null()])),
+  details: z.optional(z.record(z.string(), z.unknown())),
+});
+
+export type TransferWarningSchemaZodType = z.infer<
+  typeof zTransferWarningSchema
+>;
+
+/**
+ * ImportPreviewSchema
+ */
+export const zImportPreviewSchema = z.object({
+  manifest: zManifestInfoSchema,
+  folders: z.array(zBundleFolderDoc),
+  projects: z.array(zProjectPreviewSchema),
+  connections: z.array(zConnectionPreviewSchema),
+  unknown_node_names: z.array(z.string()),
+  unavailable_extensions: z.array(z.string()),
+  target_has_graph: z.boolean(),
+  can_manage_schedules: z.boolean(),
+  warnings: z.array(zTransferWarningSchema),
+});
+
+export type ImportPreviewSchemaZodType = z.infer<typeof zImportPreviewSchema>;
+
+/**
+ * ImportResultSchema
+ */
+export const zImportResultSchema = z.object({
+  folder_ids: z.optional(z.record(z.string(), z.string())),
+  project_ids: z.optional(z.record(z.string(), z.string())),
+  connection_ids: z.optional(z.record(z.string(), z.string())),
+  skipped_connection_refs: z.optional(z.array(z.string())),
+  warnings: z.optional(z.array(zTransferWarningSchema)),
+});
+
+export type ImportResultSchemaZodType = z.infer<typeof zImportResultSchema>;
 
 /**
  * InputDefinitionModel
@@ -4277,27 +4493,6 @@ export const zPresignedPostOut = z.object({
 export type PresignedPostOutZodType = z.infer<typeof zPresignedPostOut>;
 
 /**
- * ProjectVariableBase
- *
- * Typed project variable payload used by the HTTP API.
- */
-export const zProjectVariableBase = z.object({
-  type: z.enum([
-    'STRING',
-    'BOOLEAN',
-    'INT',
-    'FLOAT',
-    'DATETIME',
-    'TIMEDELTA',
-    'JSON',
-  ]),
-  value: z.unknown(),
-  is_list_type: z.optional(z.boolean()).default(false),
-});
-
-export type ProjectVariableBaseZodType = z.infer<typeof zProjectVariableBase>;
-
-/**
  * ProjectCreateSchema
  *
  * Схема для создания проекта в БД
@@ -4519,6 +4714,7 @@ export const zProjectScheduleRequest = z.object({
   retry_delay_seconds: z.optional(z.int().gte(1).lte(86400)).default(60),
   retry_backoff: z.optional(zRetryBackoff),
   retry_max_delay_seconds: z.optional(z.int().gte(1).lte(86400)).default(3600),
+  disabled: z.optional(z.boolean()).default(false),
 });
 
 export type ProjectScheduleRequestZodType = z.infer<
@@ -4627,8 +4823,8 @@ export const zProjectScheduleResponse = z.object({
   retry_delay_seconds: z.optional(z.int().gte(1).lte(86400)).default(60),
   retry_backoff: z.optional(zRetryBackoff),
   retry_max_delay_seconds: z.optional(z.int().gte(1).lte(86400)).default(3600),
-  project_name: z.optional(z.union([z.string(), z.null()])),
   disabled: z.optional(z.boolean()).default(false),
+  project_name: z.optional(z.union([z.string(), z.null()])),
   scheduled_by_user_id: z.optional(z.union([z.string(), z.null()])),
   task_id: z.optional(z.union([z.string(), z.null()])),
   next_run_time: z.optional(
@@ -9111,15 +9307,17 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * ConnectionNotFound
+ * ProjectTransferDomainError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel97 =
   z.object({
-    name: z.optional(z.string()).default('CONNECTION_NOT_FOUND'),
-    code: z.optional(z.string()).default('CONNECTION_404'),
-    description: z.optional(z.string()).default('Connection not found'),
-    category: z.optional(z.string()).default('GATEWAY_STORAGE'),
-    type: z.optional(z.string()).default('HTTP_GENERATED'),
+    name: z.optional(z.string()).default('PROJECT_TRANSFER_DOMAIN_ERROR'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_001'),
+    description: z
+      .optional(z.string())
+      .default('Project transfer domain error'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
+    type: z.optional(z.string()).default('CUSTOM'),
   });
 
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel97ZodType =
@@ -9128,14 +9326,14 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * GraphNodeNotFoundException
+ * EmptyExportSelectionError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel98 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_GRAPH_NODE_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_GRAPH_NODE_404'),
-    description: z.optional(z.string()).default('Узел графа не найден'),
-    category: z.optional(z.string()).default('CRUD_GRAPH_NODE'),
+    name: z.optional(z.string()).default('PROJECT_TRANSFER_EMPTY_SELECTION'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_002'),
+    description: z.optional(z.string()).default('Nothing selected for export'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
@@ -9145,14 +9343,18 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * GraphEdgeNotFoundException
+ * SecretsPassphraseRequiredError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel99 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_GRAPH_EDGE_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_GRAPH_EDGE_404'),
-    description: z.optional(z.string()).default('Ребро графа не найдено'),
-    category: z.optional(z.string()).default('CRUD_GRAPH_EDGE'),
+    name: z
+      .optional(z.string())
+      .default('PROJECT_TRANSFER_PASSPHRASE_REQUIRED'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_003'),
+    description: z
+      .optional(z.string())
+      .default('A passphrase is required to protect exported secrets'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
@@ -9162,14 +9364,14 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * SubgraphNotFoundException
+ * WeakPassphraseError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel100 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_SUBGRAPH_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_SUBGRAPH_404'),
-    description: z.optional(z.string()).default('Подграф не найден'),
-    category: z.optional(z.string()).default('CRUD_SUBGRAPH'),
+    name: z.optional(z.string()).default('PROJECT_TRANSFER_WEAK_PASSPHRASE'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_004'),
+    description: z.optional(z.string()).default('Passphrase is too short'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
@@ -9179,14 +9381,16 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * GraphNotFoundException
+ * InvalidPassphraseError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel101 =
   z.object({
-    name: z.optional(z.string()).default('CRUD_GRAPH_NOT_FOUND'),
-    code: z.optional(z.string()).default('CRUD_GRAPH_404'),
-    description: z.optional(z.string()).default('Граф не найден'),
-    category: z.optional(z.string()).default('CRUD_GRAPH'),
+    name: z.optional(z.string()).default('PROJECT_TRANSFER_INVALID_PASSPHRASE'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_005'),
+    description: z
+      .optional(z.string())
+      .default('Bundle secrets cannot be decrypted with this passphrase'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
@@ -9196,9 +9400,271 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * TaskExecutionFlowError
+ * UnsupportedBundleFormatError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102 =
+  z.object({
+    name: z.optional(z.string()).default('PROJECT_TRANSFER_UNSUPPORTED_FORMAT'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_006'),
+    description: z
+      .optional(z.string())
+      .default('Bundle format version is not supported'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102
+  >;
+
+/**
+ * InvalidBundleError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103 =
+  z.object({
+    name: z.optional(z.string()).default('PROJECT_TRANSFER_INVALID_BUNDLE'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_007'),
+    description: z.optional(z.string()).default('Bundle is malformed'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103
+  >;
+
+/**
+ * BundleTooLargeError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104 =
+  z.object({
+    name: z.optional(z.string()).default('PROJECT_TRANSFER_BUNDLE_TOO_LARGE'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_008'),
+    description: z
+      .optional(z.string())
+      .default('Bundle exceeds the allowed size'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104
+  >;
+
+/**
+ * InvalidImportTargetError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105 =
+  z.object({
+    name: z.optional(z.string()).default('PROJECT_TRANSFER_INVALID_TARGET'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_009'),
+    description: z
+      .optional(z.string())
+      .default('Import target is invalid for this bundle'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105
+  >;
+
+/**
+ * FolderDepthExceededError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106 =
+  z.object({
+    name: z
+      .optional(z.string())
+      .default('PROJECT_TRANSFER_FOLDER_DEPTH_EXCEEDED'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_010'),
+    description: z
+      .optional(z.string())
+      .default(
+        'Importing the bundle would exceed the maximum project folder depth'
+      ),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106
+  >;
+
+/**
+ * InvalidConnectionDecisionError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107 =
+  z.object({
+    name: z
+      .optional(z.string())
+      .default('PROJECT_TRANSFER_INVALID_CONNECTION_DECISION'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_011'),
+    description: z
+      .optional(z.string())
+      .default(
+        'Connection decision is incomplete or refers to an unknown connection'
+      ),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107
+  >;
+
+/**
+ * ConnectionNotFound
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel108 =
+  z.object({
+    name: z.optional(z.string()).default('CONNECTION_NOT_FOUND'),
+    code: z.optional(z.string()).default('CONNECTION_404'),
+    description: z.optional(z.string()).default('Connection not found'),
+    category: z.optional(z.string()).default('GATEWAY_STORAGE'),
+    type: z.optional(z.string()).default('HTTP_GENERATED'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel108ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel108
+  >;
+
+/**
+ * GraphNodeNotFoundException
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel109 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_GRAPH_NODE_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_GRAPH_NODE_404'),
+    description: z.optional(z.string()).default('Узел графа не найден'),
+    category: z.optional(z.string()).default('CRUD_GRAPH_NODE'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel109ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel109
+  >;
+
+/**
+ * GraphEdgeNotFoundException
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel110 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_GRAPH_EDGE_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_GRAPH_EDGE_404'),
+    description: z.optional(z.string()).default('Ребро графа не найдено'),
+    category: z.optional(z.string()).default('CRUD_GRAPH_EDGE'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel110ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel110
+  >;
+
+/**
+ * SubgraphNotFoundException
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel111 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_SUBGRAPH_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_SUBGRAPH_404'),
+    description: z.optional(z.string()).default('Подграф не найден'),
+    category: z.optional(z.string()).default('CRUD_SUBGRAPH'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel111ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel111
+  >;
+
+/**
+ * GraphNotFoundException
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel112 =
+  z.object({
+    name: z.optional(z.string()).default('CRUD_GRAPH_NOT_FOUND'),
+    code: z.optional(z.string()).default('CRUD_GRAPH_404'),
+    description: z.optional(z.string()).default('Граф не найден'),
+    category: z.optional(z.string()).default('CRUD_GRAPH'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel112ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel112
+  >;
+
+/**
+ * ProjectTransferFlowError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel113 =
+  z.object({
+    name: z.optional(z.string()).default('PROJECT_TRANSFER_FLOW_ERROR'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_100'),
+    description: z.optional(z.string()).default('Project transfer flow error'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel113ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel113
+  >;
+
+/**
+ * ExportSelectionNotFoundError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel114 =
+  z.object({
+    name: z
+      .optional(z.string())
+      .default('PROJECT_TRANSFER_SELECTION_NOT_FOUND'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_101'),
+    description: z
+      .optional(z.string())
+      .default('None of the selected projects or folders is accessible'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel114ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel114
+  >;
+
+/**
+ * ImportTargetNotFoundError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel115 =
+  z.object({
+    name: z.optional(z.string()).default('PROJECT_TRANSFER_TARGET_NOT_FOUND'),
+    code: z.optional(z.string()).default('PROJECT_TRANSFER_102'),
+    description: z
+      .optional(z.string())
+      .default('Import target folder or project was not found'),
+    category: z.optional(z.string()).default('PROJECT_TRANSFER'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel115ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel115
+  >;
+
+/**
+ * TaskExecutionFlowError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel116 =
   z.object({
     name: z.optional(z.string()).default('TASK_EXECUTION_FLOW_ERROR'),
     code: z.optional(z.string()).default('TASK_EXECUTION_FLOW_001'),
@@ -9209,15 +9675,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel116ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel116
   >;
 
 /**
  * InvalidReconciliationTerminationReason
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel117 =
   z.object({
     name: z
       .optional(z.string())
@@ -9230,15 +9696,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel117ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel117
   >;
 
 /**
  * InvalidPendingExecutionFailureReason
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel118 =
   z.object({
     name: z
       .optional(z.string())
@@ -9251,15 +9717,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel118ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel118
   >;
 
 /**
  * QueueTopicNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel119 =
   z.object({
     name: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_404'),
@@ -9268,15 +9734,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel119ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel119
   >;
 
 /**
  * QueueTopicAlreadyExistsException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120 =
   z.object({
     name: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_ALREADY_EXISTS'),
     code: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_409'),
@@ -9285,15 +9751,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120
   >;
 
 /**
  * AIMCPHTTPError
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121 =
   z.object({
     name: z.optional(z.string()).default('AI_MCP_ERROR'),
     code: z.optional(z.string()).default('AI_MCP_ERROR'),
@@ -9302,9 +9768,9 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('HTTP_GENERATED'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121
   >;
 
 export const zRegisteredException = z.union([
@@ -9415,6 +9881,20 @@ export const zRegisteredException = z.union([
   zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105,
   zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106,
   zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel108,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel109,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel110,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel111,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel112,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel113,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel114,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel115,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel116,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel117,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel118,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel119,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121,
 ]);
 
 export type RegisteredExceptionZodType = z.infer<typeof zRegisteredException>;
@@ -9508,6 +9988,96 @@ export const zGraphNodeUiSchema = z.object({
 });
 
 export type GraphNodeUiSchemaZodType = z.infer<typeof zGraphNodeUiSchema>;
+
+/**
+ * ImportMode
+ */
+export const zImportMode = z.enum(['create', 'merge']);
+
+export type ImportModeZodType = z.infer<typeof zImportMode>;
+
+/**
+ * MergeStrategy
+ */
+export const zMergeStrategy = z.enum(['replace', 'append']);
+
+export type MergeStrategyZodType = z.infer<typeof zMergeStrategy>;
+
+/**
+ * ConnectionDecisionAction
+ */
+export const zConnectionDecisionAction = z.enum([
+  'use_existing',
+  'create',
+  'skip',
+]);
+
+export type ConnectionDecisionActionZodType = z.infer<
+  typeof zConnectionDecisionAction
+>;
+
+/**
+ * ConnectionDecisionSchema
+ */
+export const zConnectionDecisionSchema = z.object({
+  action: zConnectionDecisionAction,
+  connection_id: z.optional(z.union([z.string(), z.null()])),
+  secrets: z.optional(z.union([z.record(z.string(), z.unknown()), z.null()])),
+});
+
+export type ConnectionDecisionSchemaZodType = z.infer<
+  typeof zConnectionDecisionSchema
+>;
+
+/**
+ * ConflictDecision
+ */
+export const zConflictDecision = z.enum(['keep', 'overwrite']);
+
+export type ConflictDecisionZodType = z.infer<typeof zConflictDecision>;
+
+/**
+ * VariableDecisionSchema
+ */
+export const zVariableDecisionSchema = z.object({
+  value: z.optional(z.union([zProjectVariableBase, z.null()])),
+  conflict: z.optional(zConflictDecision),
+});
+
+export type VariableDecisionSchemaZodType = z.infer<
+  typeof zVariableDecisionSchema
+>;
+
+/**
+ * ScheduleDecisionSchema
+ */
+export const zScheduleDecisionSchema = z.object({
+  import_schedule: z.optional(z.boolean()).default(false),
+  enable: z.optional(z.boolean()).default(false),
+  conflict: z.optional(zConflictDecision),
+});
+
+export type ScheduleDecisionSchemaZodType = z.infer<
+  typeof zScheduleDecisionSchema
+>;
+
+/**
+ * ImportRequestSchema
+ */
+export const zImportRequestSchema = z.object({
+  mode: z.optional(zImportMode),
+  folder_id: z.optional(z.union([z.string(), z.null()])),
+  project_id: z.optional(z.union([z.string(), z.null()])),
+  merge_strategy: z.optional(zMergeStrategy),
+  passphrase: z.optional(z.union([z.string(), z.null()])),
+  connections: z.optional(z.record(z.string(), zConnectionDecisionSchema)),
+  variables: z.optional(
+    z.record(z.string(), z.record(z.string(), zVariableDecisionSchema))
+  ),
+  schedule: z.optional(zScheduleDecisionSchema),
+});
+
+export type ImportRequestSchemaZodType = z.infer<typeof zImportRequestSchema>;
 
 export const zDbConnectionCreateV1 = z.union([
   zClickhouseSqlNativeDefaultDriverConnectionCreateRequest,
@@ -10487,6 +11057,64 @@ export const zCopyProjectProjectsProjectIdCopyPostResponse = zProjectReadSchema;
 
 export type CopyProjectProjectsProjectIdCopyPostResponseZodType = z.infer<
   typeof zCopyProjectProjectsProjectIdCopyPostResponse
+>;
+
+export const zExportProjectsProjectsExportPostData = z.object({
+  body: zExportRequestSchema,
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type ExportProjectsProjectsExportPostDataZodType = z.infer<
+  typeof zExportProjectsProjectsExportPostData
+>;
+
+/**
+ * Архив .dvtpkg
+ */
+export const zExportProjectsProjectsExportPostResponse = z.string();
+
+export type ExportProjectsProjectsExportPostResponseZodType = z.infer<
+  typeof zExportProjectsProjectsExportPostResponse
+>;
+
+export const zPreviewImportProjectsImportPreviewPostData = z.object({
+  body: zBodyPreviewImportProjectsImportPreviewPost,
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type PreviewImportProjectsImportPreviewPostDataZodType = z.infer<
+  typeof zPreviewImportProjectsImportPreviewPostData
+>;
+
+/**
+ * Successful Response
+ */
+export const zPreviewImportProjectsImportPreviewPostResponse =
+  zImportPreviewSchema;
+
+export type PreviewImportProjectsImportPreviewPostResponseZodType = z.infer<
+  typeof zPreviewImportProjectsImportPreviewPostResponse
+>;
+
+export const zImportProjectsProjectsImportPostData = z.object({
+  body: zBodyImportProjectsProjectsImportPost,
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type ImportProjectsProjectsImportPostDataZodType = z.infer<
+  typeof zImportProjectsProjectsImportPostData
+>;
+
+/**
+ * Successful Response
+ */
+export const zImportProjectsProjectsImportPostResponse = zImportResultSchema;
+
+export type ImportProjectsProjectsImportPostResponseZodType = z.infer<
+  typeof zImportProjectsProjectsImportPostResponse
 >;
 
 export const zScheduleProjectsSchedulerSchedulePostData = z.object({

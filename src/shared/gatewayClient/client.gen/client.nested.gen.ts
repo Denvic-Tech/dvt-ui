@@ -177,6 +177,9 @@ import type {
   EnableExtensionExtensionsExtensionNameEnablePostData,
   EnableExtensionExtensionsExtensionNameEnablePostError,
   EnableExtensionExtensionsExtensionNameEnablePostResponses,
+  ExportProjectsProjectsExportPostData,
+  ExportProjectsProjectsExportPostError,
+  ExportProjectsProjectsExportPostResponses,
   GeneratePresignedDownloadUrlStorageDownloadPresignGetData,
   GeneratePresignedDownloadUrlStorageDownloadPresignGetError,
   GeneratePresignedDownloadUrlStorageDownloadPresignGetResponses,
@@ -345,6 +348,9 @@ import type {
   GetUsersPublicAdminUsersGetResponses,
   GetVersionSystemVersionGetData,
   GetVersionSystemVersionGetResponses,
+  ImportProjectsProjectsImportPostData,
+  ImportProjectsProjectsImportPostError,
+  ImportProjectsProjectsImportPostResponses,
   InstallExtensionExtensionsExtensionNameInstallPostData,
   InstallExtensionExtensionsExtensionNameInstallPostError,
   InstallExtensionExtensionsExtensionNameInstallPostResponses,
@@ -409,6 +415,9 @@ import type {
   PreviewExtensionPackageExtensionsPackagesPreviewPostData,
   PreviewExtensionPackageExtensionsPackagesPreviewPostError,
   PreviewExtensionPackageExtensionsPackagesPreviewPostResponses,
+  PreviewImportProjectsImportPreviewPostData,
+  PreviewImportProjectsImportPreviewPostError,
+  PreviewImportProjectsImportPreviewPostResponses,
   ProcessGraphOpProjectsProjectIdGraphOpsPostData,
   ProcessGraphOpProjectsProjectIdGraphOpsPostError,
   ProcessGraphOpProjectsProjectIdGraphOpsPostResponses,
@@ -667,6 +676,7 @@ import {
   zDownloadFileViaGatewayStorageDownloadFileGetData,
   zEnableExtensionExtensionsExtensionNameEnablePostData,
   zEnableExtensionExtensionsExtensionNameEnablePostResponse,
+  zExportProjectsProjectsExportPostData,
   zGeneratePresignedDownloadUrlStorageDownloadPresignGetData,
   zGeneratePresignedDownloadUrlStorageDownloadPresignGetResponse,
   zGeneratePresignedUploadUrlPostStorageUploadPresignGetData,
@@ -789,6 +799,8 @@ import {
   zGetUsersPublicAdminUsersGetResponse,
   zGetVersionSystemVersionGetData,
   zGetVersionSystemVersionGetResponse,
+  zImportProjectsProjectsImportPostData,
+  zImportProjectsProjectsImportPostResponse,
   zInstallExtensionExtensionsExtensionNameInstallPostData,
   zInstallExtensionExtensionsExtensionNameInstallPostResponse,
   zInstallExtensionPackageExtensionsPackagesPackageIdInstallPostData,
@@ -836,6 +848,8 @@ import {
   zPostQueueQueuePostResponse,
   zPreviewExtensionPackageExtensionsPackagesPreviewPostData,
   zPreviewExtensionPackageExtensionsPackagesPreviewPostResponse,
+  zPreviewImportProjectsImportPreviewPostData,
+  zPreviewImportProjectsImportPreviewPostResponse,
   zProcessGraphOpProjectsProjectIdGraphOpsPostData,
   zProcessGraphOpProjectsProjectIdGraphOpsPostResponse,
   zReadExcelColumnsProjectsProjectIdGraphNodesNodeIdExcelColumnsPostData,
@@ -4730,6 +4744,166 @@ export const nestedClient = {
           ...requestOptions,
           method: 'DELETE',
           url: '/projects/batch',
+        });
+      },
+    },
+    export: {
+      /**
+       * Экспортировать проекты и папки в архив
+       */
+      post: async (
+        params?: OperationParams<ExportProjectsProjectsExportPostData>,
+        config?: OperationConfig<
+          ExportProjectsProjectsExportPostData,
+          ExportProjectsProjectsExportPostResponses[keyof ExportProjectsProjectsExportPostResponses]
+        >
+      ): OperationResult<
+        ExportProjectsProjectsExportPostResponses[keyof ExportProjectsProjectsExportPostResponses],
+        ExportProjectsProjectsExportPostError
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<ExportProjectsProjectsExportPostData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          ExportProjectsProjectsExportPostData,
+          ExportProjectsProjectsExportPostResponses[keyof ExportProjectsProjectsExportPostResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            ExportProjectsProjectsExportPostData,
+            ExportProjectsProjectsExportPostResponses[keyof ExportProjectsProjectsExportPostResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zExportProjectsProjectsExportPostData.parseAsync(data);
+          };
+        }
+        return requestClient.request<
+          ExportProjectsProjectsExportPostResponses[keyof ExportProjectsProjectsExportPostResponses],
+          ExportProjectsProjectsExportPostError,
+          true
+        >({
+          ...requestOptions,
+          method: 'POST',
+          url: '/projects/export',
+        });
+      },
+    },
+    import: {
+      preview: {
+        /**
+         * Проверить архив перед импортом
+         */
+        post: async (
+          params?: OperationParams<PreviewImportProjectsImportPreviewPostData>,
+          config?: OperationConfig<
+            PreviewImportProjectsImportPreviewPostData,
+            PreviewImportProjectsImportPreviewPostResponses[keyof PreviewImportProjectsImportPreviewPostResponses]
+          >
+        ): OperationResult<
+          PreviewImportProjectsImportPreviewPostResponses[keyof PreviewImportProjectsImportPreviewPostResponses],
+          PreviewImportProjectsImportPreviewPostError
+        > => {
+          const requestParams = (params ??
+            {}) as OperationParams<PreviewImportProjectsImportPreviewPostData>;
+          const { client: clientOverride, ...requestConfig } = (config ??
+            {}) as OperationConfig<
+            PreviewImportProjectsImportPreviewPostData,
+            PreviewImportProjectsImportPreviewPostResponses[keyof PreviewImportProjectsImportPreviewPostResponses]
+          >;
+          const requestClient = clientOverride ?? client;
+          const requestOptions = {
+            ...requestConfig,
+            ...requestParams,
+          } satisfies Omit<
+            OperationBaseOptions<
+              PreviewImportProjectsImportPreviewPostData,
+              PreviewImportProjectsImportPreviewPostResponses[keyof PreviewImportProjectsImportPreviewPostResponses]
+            >,
+            'path'
+          >;
+          if (requestOptions.requestValidator == null) {
+            requestOptions.requestValidator = async data => {
+              return await zPreviewImportProjectsImportPreviewPostData.parseAsync(
+                data
+              );
+            };
+          }
+          if (requestOptions.responseValidator == null) {
+            requestOptions.responseValidator = async data => {
+              return await zPreviewImportProjectsImportPreviewPostResponse.parseAsync(
+                data
+              );
+            };
+          }
+          return requestClient.request<
+            PreviewImportProjectsImportPreviewPostResponses[keyof PreviewImportProjectsImportPreviewPostResponses],
+            PreviewImportProjectsImportPreviewPostError,
+            true
+          >({
+            ...requestOptions,
+            method: 'POST',
+            url: '/projects/import/preview',
+          });
+        },
+      },
+      /**
+       * Импортировать архив проектов
+       */
+      post: async (
+        params?: OperationParams<ImportProjectsProjectsImportPostData>,
+        config?: OperationConfig<
+          ImportProjectsProjectsImportPostData,
+          ImportProjectsProjectsImportPostResponses[keyof ImportProjectsProjectsImportPostResponses]
+        >
+      ): OperationResult<
+        ImportProjectsProjectsImportPostResponses[keyof ImportProjectsProjectsImportPostResponses],
+        ImportProjectsProjectsImportPostError
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<ImportProjectsProjectsImportPostData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          ImportProjectsProjectsImportPostData,
+          ImportProjectsProjectsImportPostResponses[keyof ImportProjectsProjectsImportPostResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            ImportProjectsProjectsImportPostData,
+            ImportProjectsProjectsImportPostResponses[keyof ImportProjectsProjectsImportPostResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zImportProjectsProjectsImportPostData.parseAsync(data);
+          };
+        }
+        if (requestOptions.responseValidator == null) {
+          requestOptions.responseValidator = async data => {
+            return await zImportProjectsProjectsImportPostResponse.parseAsync(
+              data
+            );
+          };
+        }
+        return requestClient.request<
+          ImportProjectsProjectsImportPostResponses[keyof ImportProjectsProjectsImportPostResponses],
+          ImportProjectsProjectsImportPostError,
+          true
+        >({
+          ...requestOptions,
+          method: 'POST',
+          url: '/projects/import',
         });
       },
     },
