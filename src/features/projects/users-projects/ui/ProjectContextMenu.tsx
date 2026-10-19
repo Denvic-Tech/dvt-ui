@@ -17,9 +17,11 @@ interface ProjectContextMenuProps {
   onClose: () => void;
   onRename: () => void;
   onCopy?: () => void;
+  onExport?: () => void;
   onDelete: () => void;
   renameDescription?: string;
   copyDescription?: string;
+  exportDescription?: string;
   deleteDescription?: string;
 }
 
@@ -29,9 +31,11 @@ export const ProjectContextMenu: React.FC<ProjectContextMenuProps> = ({
   onClose,
   onRename,
   onCopy,
+  onExport,
   onDelete,
   renameDescription = 'Изменить название проекта',
   copyDescription = 'Создать копию проекта',
+  exportDescription = 'Скачать проект архивом .dvtpkg',
   deleteDescription = 'Удалить проект навсегда',
 }) => {
   return (
@@ -103,6 +107,34 @@ export const ProjectContextMenu: React.FC<ProjectContextMenuProps> = ({
               </MenuItemContent>
             </MenuActionButton>
           </>
+        ) : null}
+
+        {onExport ? (
+          <MenuActionButton
+            type='button'
+            data-testid='features/projects/users-projects/project-export-menu-item'
+            onClick={onExport}
+          >
+            <MenuIconContainer className='menu-icon-container'>
+              <svg
+                className='menu-icon'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4'
+                />
+              </svg>
+            </MenuIconContainer>
+            <MenuItemContent>
+              <MenuItemTitle>Экспортировать</MenuItemTitle>
+              <MenuItemDescription>{exportDescription}</MenuItemDescription>
+            </MenuItemContent>
+          </MenuActionButton>
         ) : null}
 
         <MenuDivider />

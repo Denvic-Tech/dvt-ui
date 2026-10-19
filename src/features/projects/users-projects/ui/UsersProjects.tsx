@@ -24,6 +24,13 @@ import { useAlert } from '@/app/notifications';
 
 import { TextInputDialog } from '@/widgets/dialog/text-input-dialog';
 
+import {
+  ExportProjectsDialog,
+  type ExportTarget,
+  ImportProjectsDialog,
+  type ImportTarget,
+} from '@/features/project-transfer';
+
 import { useOrganizations } from '@/entities/admin/organizations';
 import { CreateProjectModal, useProjects } from '@/entities/project/projects';
 import { projectsApi } from '@/entities/project/projects/api/projectsApi';
@@ -59,6 +66,7 @@ import {
   EmptyStateIcon,
   EmptyStateText,
   FloatingBar,
+  FloatingBarButton,
   FloatingBarCloseButton,
   FloatingBarCount,
   FloatingBarDeleteButton,
@@ -494,6 +502,40 @@ const FolderPlusSvg = () => (
   >
     <path d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z' />
     <path d='M12 10v6M9 13h6' />
+  </svg>
+);
+
+const ImportSvg = () => (
+  <svg
+    width='14'
+    height='14'
+    viewBox='0 0 24 24'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth='2'
+    strokeLinecap='round'
+    strokeLinejoin='round'
+  >
+    <path d='M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2' />
+    <path d='M7 11l5 5 5-5' />
+    <path d='M12 4v12' />
+  </svg>
+);
+
+const ExportSvg = () => (
+  <svg
+    width='14'
+    height='14'
+    viewBox='0 0 24 24'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth='2'
+    strokeLinecap='round'
+    strokeLinejoin='round'
+  >
+    <path d='M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2' />
+    <path d='M7 9l5-5 5 5' />
+    <path d='M12 4v12' />
   </svg>
 );
 
@@ -1125,6 +1167,8 @@ export const UsersProjects: React.FC = () => {
     useState<null | HTMLElement>(null);
   const [actionsFolder, setActionsFolder] =
     useState<ProjectFolderReadSchema | null>(null);
+  const [exportTarget, setExportTarget] = useState<ExportTarget | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const [dragOverBreadcrumbId, setDragOverBreadcrumbId] = useState<
     string | null
@@ -1707,6 +1751,59 @@ export const UsersProjects: React.FC = () => {
     handleActionsMenuClose();
   };
 
+  const handleExportFromMenu = () => {
+    if (!actionsProject) {
+      return;
+    }
+
+    setExportTarget({
+      projectIds: [actionsProject.id],
+      folderIds: [],
+      name: actionsProject.name,
+    });
+    handleActionsMenuClose();
+  };
+
+  const handleExportFolderFromMenu = () => {
+    if (!actionsFolder) {
+      return;
+    }
+
+    setExportTarget({
+      projectIds: [],
+      folderIds: [actionsFolder.id],
+      name: actionsFolder.name,
+    });
+    handleFolderActionsMenuClose();
+  };
+
+  const handleExportSelected = () => {
+    const selectedItems = selectedKeys
+      .map(parseSelectedKey)
+      .filter((item): item is SelectedItem => item != null);
+    const projectIds = selectedItems
+      .filter(item => item.type === 'project')
+      .map(item => item.id);
+    const folderIds = selectedItems
+      .filter(item => item.type === 'folder')
+      .map(item => item.id);
+
+    if (projectIds.length === 0 && folderIds.length === 0) {
+      return;
+    }
+
+    setExportTarget({ projectIds, folderIds });
+  };
+
+  const importTarget = useMemo<ImportTarget>(
+    () => ({ mode: 'create', folderId }),
+    [folderId]
+  );
+
+  const handleImported = () => {
+    refreshVisibleData();
+  };
+
   const handleDuplicateFromMenu = async () => {
     if (!actionsProject) {
       return;
@@ -1986,6 +2083,21 @@ export const UsersProjects: React.FC = () => {
               >
                 <FolderPlusSvg />
                 Новая папка
+              </ToolbarGhostBtn>
+            </ActionGate>
+
+            <ActionGate
+              disabled={createActionsDisabled}
+              title={createActionsDisabledTitle}
+            >
+              <ToolbarGhostBtn
+                type='button'
+                data-testid='features/projects/users-projects/project-import-button'
+                disabled={createActionsDisabled}
+                onClick={() => setImportOpen(true)}
+              >
+                <ImportSvg />
+                Импортировать
               </ToolbarGhostBtn>
             </ActionGate>
 
@@ -2470,6 +2582,7 @@ export const UsersProjects: React.FC = () => {
         onClose={handleActionsMenuClose}
         onRename={handleRenameFromMenu}
         onCopy={handleDuplicateFromMenu}
+        onExport={handleExportFromMenu}
         onDelete={handleDeleteFromMenu}
       />
 
@@ -2478,14 +2591,24 @@ export const UsersProjects: React.FC = () => {
         open={Boolean(folderActionsAnchorEl)}
         onClose={handleFolderActionsMenuClose}
         onRename={handleRenameFolderFromMenu}
+        onExport={handleExportFolderFromMenu}
         onDelete={handleDeleteFolderFromMenu}
         renameDescription='Изменить название папки'
+        exportDescription='Экспортировать папку с проектами'
         deleteDescription='Удалить папку'
       />
 
       {hasSelection && (
         <FloatingBar>
           <FloatingBarCount>{selectedKeys.length} выбрано</FloatingBarCount>
+          <FloatingBarButton
+            type='button'
+            data-testid='features/projects/users-projects/export-selected-button'
+            onClick={handleExportSelected}
+          >
+            <ExportSvg />
+            Экспортировать
+          </FloatingBarButton>
           <FloatingBarDeleteButton type='button' onClick={handleBulkDelete}>
             <DeleteOutlineRoundedIcon />
             Удалить
@@ -2503,6 +2626,19 @@ export const UsersProjects: React.FC = () => {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onCreate={handleCreateProject}
+      />
+
+      <ExportProjectsDialog
+        open={exportTarget != null}
+        target={exportTarget}
+        onClose={() => setExportTarget(null)}
+      />
+
+      <ImportProjectsDialog
+        open={importOpen}
+        target={importTarget}
+        onClose={() => setImportOpen(false)}
+        onImported={handleImported}
       />
 
       <TextInputDialog
