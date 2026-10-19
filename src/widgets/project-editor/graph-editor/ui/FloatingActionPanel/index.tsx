@@ -1,20 +1,26 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import UploadIcon from '@mui/icons-material/Upload';
 import { Box, Tooltip } from '@mui/material';
-import { Edge } from '@xyflow/react';
-import { FaDownload } from 'react-icons/fa';
+import { FaRegSave } from 'react-icons/fa';
+import { MdOutlineDriveFolderUpload } from 'react-icons/md';
 
 import { useAlert } from '@/app/notifications';
-import { useAppSelector } from '@/app/providers/store';
+import { useAppDispatch, useAppSelector } from '@/app/providers/store';
 
-import { useExportGraph } from '@/features/project-editor/export-graph';
-import { useImportGraph } from '@/features/project-editor/import-graph';
+import {
+  flushGraphOperations,
+  selectHasPendingGraphChanges,
+} from '@/features/project-editor/sync-graph';
+import {
+  ExportProjectsDialog,
+  type ExportTarget,
+  ImportProjectsDialog,
+  type ImportTarget,
+} from '@/features/project-transfer';
 import { selectConsoleUILayout } from '@/features/ui-layout';
 
 import { useProjectTask } from '@/entities/project/project-task';
 import { useCurrentProject } from '@/entities/project/projects';
 import { useTaskExecutionStatus } from '@/entities/project/task-execution-status';
-import { CustomNodeType } from '@/entities/project-editor/graph';
 import { useUiPreferences } from '@/entities/ui-preferences';
 
 import { TaskExecutionStatus } from '@/shared/gatewayClient';
@@ -43,15 +49,17 @@ const ACTION_CONTAINER_SX = Object.freeze({
 });
 
 export interface FloatingActionPanelProps {
-  onCreate: (payload: {
-    nodes?: CustomNodeType[];
-    edges?: Edge[];
-  }) => Promise<void>;
+  /**
+   * Перезагружает граф текущего проекта с сервера (как при открытии проекта)
+   * и подгоняет viewport. Вызывается после импорта архива в проект.
+   */
+  onReloadGraph: () => Promise<void>;
 }
 
 const FloatingActionPanel_: React.FC<FloatingActionPanelProps> = ({
-  onCreate,
+  onReloadGraph,
 }) => {
+  const dispatch = useAppDispatch();
   const { currentProject } = useCurrentProject();
   const { showNotification } = useAlert();
   const { skipHardStopConfirm } = useUiPreferences();
@@ -62,11 +70,14 @@ const FloatingActionPanel_: React.FC<FloatingActionPanelProps> = ({
     cancelProjectTask,
   } = useProjectTask();
   const taskExecutionStatus = useTaskExecutionStatus();
+  const hasPendingGraphChanges = useAppSelector(selectHasPendingGraphChanges);
 
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [runRequested, setRunRequested] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [hardStopConfirmOpen, setHardStopConfirmOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const consoleUILayout = useAppSelector(selectConsoleUILayout);
 
@@ -76,8 +87,23 @@ const FloatingActionPanel_: React.FC<FloatingActionPanelProps> = ({
     ? consoleUILayout.height + CONSOLE_SAFE_GAP
     : 32;
 
-  const { handleImport } = useImportGraph({ onCreate });
-  const { handleExport } = useExportGraph();
+  const projectId = currentProject?.id ?? null;
+
+  const exportTarget = useMemo<ExportTarget | null>(() => {
+    if (!projectId) {
+      return null;
+    }
+    const target: ExportTarget = { projectIds: [projectId], folderIds: [] };
+    if (currentProject?.name) {
+      target.name = currentProject.name;
+    }
+    return target;
+  }, [currentProject?.name, projectId]);
+
+  const importTarget = useMemo<ImportTarget | null>(
+    () => (projectId ? { mode: 'merge', projectId } : null),
+    [projectId]
+  );
 
   const isTerminal = TERMINAL_STATUSES.includes(taskExecutionStatus.status);
   const activeTaskId = taskExecutionStatus.taskId ?? currentTaskId;
@@ -134,6 +160,48 @@ const FloatingActionPanel_: React.FC<FloatingActionPanelProps> = ({
     setHardStopConfirmOpen(false);
   }, []);
 
+  // Незавершённые операции графа должны уйти на сервер до импорта, иначе
+  // они применятся поверх уже импортированного (или удалённого) графа.
+  const handleBeforeImport = useCallback(async () => {
+    if (!hasPendingGraphChanges) {
+      return;
+    }
+
+    try {
+      await dispatch(flushGraphOperations());
+    } catch (error) {
+      console.error('Failed to flush graph operations before import', error);
+    }
+  }, [dispatch, hasPendingGraphChanges]);
+
+  const handleImported = useCallback(async () => {
+    try {
+      await onReloadGraph();
+    } catch (error) {
+      console.error('Failed to reload graph after import', error);
+      showNotification({
+        type: 'error',
+        title: 'Граф импортирован, но не удалось перезагрузить редактор',
+        description: 'Обновите страницу, чтобы увидеть изменения.',
+        group: 'project-transfer',
+      });
+      return;
+    }
+
+    // Как при открытии проекта: метаданные для импортированных нод.
+    if (projectId) {
+      try {
+        await createProjectTask(projectId, 'metadata_only', true);
+      } catch (error) {
+        console.error('Failed to create metadata task after import', error);
+      }
+    }
+  }, [createProjectTask, onReloadGraph, projectId, showNotification]);
+
+  const handleImportedEvent = useCallback(() => {
+    void handleImported();
+  }, [handleImported]);
+
   useEffect(() => {
     if (isTerminal) {
       setCurrentTaskId(null);
@@ -149,38 +217,40 @@ const FloatingActionPanel_: React.FC<FloatingActionPanelProps> = ({
 
   const uploadButton = useMemo(
     () => (
-      <Tooltip {...TOOLTIP_BASE_PROPS} title='Загрузить пайплайн'>
+      <Tooltip {...TOOLTIP_BASE_PROPS} title='Загрузить проект'>
         <span>
           <ActionButton
             variant='default'
             aria-label='load'
             type='button'
-            onClick={handleImport}
+            disabled={!importTarget}
+            onClick={() => setImportOpen(true)}
           >
-            <UploadIcon />
+            <MdOutlineDriveFolderUpload />
           </ActionButton>
         </span>
       </Tooltip>
     ),
-    [handleImport]
+    [importTarget]
   );
 
   const exportButton = useMemo(
     () => (
-      <Tooltip {...TOOLTIP_BASE_PROPS} title='Сохранить пайплайн'>
+      <Tooltip {...TOOLTIP_BASE_PROPS} title='Сохранить проект'>
         <span>
           <ActionButton
             variant='default'
             aria-label='save'
             type='button'
-            onClick={handleExport}
+            disabled={!exportTarget}
+            onClick={() => setExportOpen(true)}
           >
-            <FaDownload />
+            <FaRegSave style={{ width: 18, height: 18 }} />
           </ActionButton>
         </span>
       </Tooltip>
     ),
-    [handleExport]
+    [exportTarget]
   );
 
   return (
@@ -213,6 +283,22 @@ const FloatingActionPanel_: React.FC<FloatingActionPanelProps> = ({
         onConfirm={handleHardStopConfirm}
         onCancel={handleHardStopCancel}
       />
+
+      <ExportProjectsDialog
+        open={exportOpen}
+        target={exportTarget}
+        onClose={() => setExportOpen(false)}
+      />
+
+      {importTarget ? (
+        <ImportProjectsDialog
+          open={importOpen}
+          target={importTarget}
+          onClose={() => setImportOpen(false)}
+          onBeforeImport={handleBeforeImport}
+          onImported={handleImportedEvent}
+        />
+      ) : null}
     </PanelContainer>
   );
 };
