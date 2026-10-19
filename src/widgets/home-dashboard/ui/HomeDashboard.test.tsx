@@ -66,6 +66,13 @@ vi.mock('@/entities/ui-preferences', () => ({
   }),
 }));
 
+// The real dialog pulls db-connection UI (@mui/x-tree-view), which Vitest
+// cannot resolve as ESM; it is covered by HomeSearch.test.tsx with a stub.
+vi.mock(
+  '@/features/projects/users-projects/ui/ProjectsSourceSearchDialog',
+  () => ({ ProjectsSourceSearchDialog: () => null })
+);
+
 vi.mock('./home-widgets/HomeWidgetsSection', () => ({
   HomeWidgetsSection: () => null,
 }));
