@@ -75,7 +75,7 @@ export const ExecuteButton: React.FC<ExecuteButtonProps> = ({
       taskStatus === 'CANCEL_REQUESTED';
 
     const _ctx: ExecuteButtonCtx = {
-      title: 'Выполнить',
+      title: 'Запустить проект',
       variant: 'primary',
       disabled: false,
       icon: <PlayArrowIcon />,

@@ -98,11 +98,11 @@ export const ActionButton = styled('button', {
   ...(variant === 'default' &&
     !loadingTone && {
       backgroundColor: '#f3f4f6',
-      color: '#9ca3af',
+      color: '#6b7280',
 
       '&:hover': {
         backgroundColor: '#e5e7eb',
-        color: '#4b5563',
+        color: '#374151',
       },
     }),
 
