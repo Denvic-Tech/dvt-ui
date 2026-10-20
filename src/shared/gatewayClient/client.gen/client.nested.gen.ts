@@ -177,6 +177,9 @@ import type {
   EnableExtensionExtensionsExtensionNameEnablePostData,
   EnableExtensionExtensionsExtensionNameEnablePostError,
   EnableExtensionExtensionsExtensionNameEnablePostResponses,
+  ExplainFieldProjectsProjectIdLineageExplainGetData,
+  ExplainFieldProjectsProjectIdLineageExplainGetError,
+  ExplainFieldProjectsProjectIdLineageExplainGetResponses,
   ExportProjectsProjectsExportPostData,
   ExportProjectsProjectsExportPostError,
   ExportProjectsProjectsExportPostResponses,
@@ -244,6 +247,9 @@ import type {
   GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses,
   GetFavoriteProjectsProjectsFavoritesGetData,
   GetFavoriteProjectsProjectsFavoritesGetResponses,
+  GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData,
+  GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetError,
+  GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses,
   GetFixturesPytestMonFixturesGetData,
   GetFixturesPytestMonFixturesGetResponses,
   GetGraphProjectsProjectIdGraphGetData,
@@ -260,6 +266,9 @@ import type {
   GetNodeDocumentationNodesNodeNameDocumentationGetData,
   GetNodeDocumentationNodesNodeNameDocumentationGetError,
   GetNodeDocumentationNodesNodeNameDocumentationGetResponses,
+  GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData,
+  GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetError,
+  GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses,
   GetOrganizationOrganizationsOrganizationIdGetData,
   GetOrganizationOrganizationsOrganizationIdGetError,
   GetOrganizationOrganizationsOrganizationIdGetResponses,
@@ -676,6 +685,8 @@ import {
   zDownloadFileViaGatewayStorageDownloadFileGetData,
   zEnableExtensionExtensionsExtensionNameEnablePostData,
   zEnableExtensionExtensionsExtensionNameEnablePostResponse,
+  zExplainFieldProjectsProjectIdLineageExplainGetData,
+  zExplainFieldProjectsProjectIdLineageExplainGetResponse,
   zExportProjectsProjectsExportPostData,
   zGeneratePresignedDownloadUrlStorageDownloadPresignGetData,
   zGeneratePresignedDownloadUrlStorageDownloadPresignGetResponse,
@@ -720,6 +731,8 @@ import {
   zGetFailingProjectsWidgetWidgetsFailingProjectsGetResponse,
   zGetFavoriteProjectsProjectsFavoritesGetData,
   zGetFavoriteProjectsProjectsFavoritesGetResponse,
+  zGetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData,
+  zGetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponse,
   zGetFixturesPytestMonFixturesGetData,
   zGetFixturesPytestMonFixturesGetResponse,
   zGetGraphProjectsProjectIdGraphGetData,
@@ -731,6 +744,8 @@ import {
   zGetNodeDefinitionsNodesGetResponse,
   zGetNodeDocumentationNodesNodeNameDocumentationGetData,
   zGetNodeDocumentationNodesNodeNameDocumentationGetResponse,
+  zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData,
+  zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponse,
   zGetOrganizationOrganizationsOrganizationIdGetData,
   zGetOrganizationOrganizationsOrganizationIdGetResponse,
   zGetOrganizationPublicOrganizationsOrganizationIdGetData,
@@ -4228,6 +4243,140 @@ export const nestedClient = {
             },
           },
         },
+        lineage: {
+          nodes: {
+            nodeId: (nodeId: PathParamValue) => {
+              const rootPathContext_projectId_nodeId: PathContext = {
+                ...rootPathContext_projectId,
+                node_id: nodeId,
+              };
+              return {
+                fields: {
+                  /**
+                   * Get Node Fields
+                   */
+                  get: async (
+                    params?: OperationParams<GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData>,
+                    config?: OperationConfig<
+                      GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData,
+                      GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses[keyof GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses]
+                    >
+                  ): OperationResult<
+                    GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses[keyof GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses],
+                    GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetError
+                  > => {
+                    const requestParams = (params ??
+                      {}) as OperationParams<GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData>;
+                    const { client: clientOverride, ...requestConfig } =
+                      (config ?? {}) as OperationConfig<
+                        GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData,
+                        GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses[keyof GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses]
+                      >;
+                    const requestClient = clientOverride ?? client;
+                    const requestOptions = {
+                      ...requestConfig,
+                      ...requestParams,
+                    } satisfies Omit<
+                      OperationBaseOptions<
+                        GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData,
+                        GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses[keyof GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses]
+                      >,
+                      'path'
+                    >;
+                    if (requestOptions.requestValidator == null) {
+                      requestOptions.requestValidator = async data => {
+                        return await zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData.parseAsync(
+                          data
+                        );
+                      };
+                    }
+                    if (requestOptions.responseValidator == null) {
+                      requestOptions.responseValidator = async data => {
+                        return await zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponse.parseAsync(
+                          data
+                        );
+                      };
+                    }
+                    const path = {
+                      ...rootPathContext_projectId_nodeId,
+                    } satisfies PathContext;
+                    return requestClient.request<
+                      GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses[keyof GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses],
+                      GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetError,
+                      true
+                    >({
+                      ...requestOptions,
+                      method: 'GET',
+                      url: '/projects/{project_id}/lineage/nodes/{node_id}/fields',
+                      path,
+                    });
+                  },
+                },
+              };
+            },
+          },
+          explain: {
+            /**
+             * Explain Field
+             */
+            get: async (
+              params?: OperationParams<ExplainFieldProjectsProjectIdLineageExplainGetData>,
+              config?: OperationConfig<
+                ExplainFieldProjectsProjectIdLineageExplainGetData,
+                ExplainFieldProjectsProjectIdLineageExplainGetResponses[keyof ExplainFieldProjectsProjectIdLineageExplainGetResponses]
+              >
+            ): OperationResult<
+              ExplainFieldProjectsProjectIdLineageExplainGetResponses[keyof ExplainFieldProjectsProjectIdLineageExplainGetResponses],
+              ExplainFieldProjectsProjectIdLineageExplainGetError
+            > => {
+              const requestParams = (params ??
+                {}) as OperationParams<ExplainFieldProjectsProjectIdLineageExplainGetData>;
+              const { client: clientOverride, ...requestConfig } = (config ??
+                {}) as OperationConfig<
+                ExplainFieldProjectsProjectIdLineageExplainGetData,
+                ExplainFieldProjectsProjectIdLineageExplainGetResponses[keyof ExplainFieldProjectsProjectIdLineageExplainGetResponses]
+              >;
+              const requestClient = clientOverride ?? client;
+              const requestOptions = {
+                ...requestConfig,
+                ...requestParams,
+              } satisfies Omit<
+                OperationBaseOptions<
+                  ExplainFieldProjectsProjectIdLineageExplainGetData,
+                  ExplainFieldProjectsProjectIdLineageExplainGetResponses[keyof ExplainFieldProjectsProjectIdLineageExplainGetResponses]
+                >,
+                'path'
+              >;
+              if (requestOptions.requestValidator == null) {
+                requestOptions.requestValidator = async data => {
+                  return await zExplainFieldProjectsProjectIdLineageExplainGetData.parseAsync(
+                    data
+                  );
+                };
+              }
+              if (requestOptions.responseValidator == null) {
+                requestOptions.responseValidator = async data => {
+                  return await zExplainFieldProjectsProjectIdLineageExplainGetResponse.parseAsync(
+                    data
+                  );
+                };
+              }
+              const path = {
+                ...rootPathContext_projectId,
+              } satisfies PathContext;
+              return requestClient.request<
+                ExplainFieldProjectsProjectIdLineageExplainGetResponses[keyof ExplainFieldProjectsProjectIdLineageExplainGetResponses],
+                ExplainFieldProjectsProjectIdLineageExplainGetError,
+                true
+              >({
+                ...requestOptions,
+                method: 'GET',
+                url: '/projects/{project_id}/lineage/explain',
+                path,
+              });
+            },
+          },
+        },
         /**
          * Delete Project
          */
@@ -6267,68 +6416,76 @@ export const nestedClient = {
               });
             },
           },
-          refresh: {
-            /**
-             * Refresh Dataset
-             */
-            post: async (
-              params?: OperationParams<RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData>,
-              config?: OperationConfig<
-                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData,
-                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses[keyof RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses]
-              >
-            ): OperationResult<
-              RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses[keyof RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses],
-              RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostError
-            > => {
-              const requestParams = (params ??
-                {}) as OperationParams<RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData>;
-              const { client: clientOverride, ...requestConfig } = (config ??
-                {}) as OperationConfig<
-                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData,
-                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses[keyof RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses]
-              >;
-              const requestClient = clientOverride ?? client;
-              const requestOptions = {
-                ...requestConfig,
-                ...requestParams,
-              } satisfies Omit<
-                OperationBaseOptions<
-                  RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData,
-                  RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses[keyof RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses]
-                >,
-                'path'
-              >;
-              if (requestOptions.requestValidator == null) {
-                requestOptions.requestValidator = async data => {
-                  return await zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData.parseAsync(
-                    data
-                  );
-                };
-              }
-              if (requestOptions.responseValidator == null) {
-                requestOptions.responseValidator = async data => {
-                  return await zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponse.parseAsync(
-                    data
-                  );
-                };
-              }
-              const path = {
-                ...rootPathContext_datasetId,
-              } satisfies PathContext;
-              return requestClient.request<
-                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses[keyof RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses],
-                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostError,
-                true
-              >({
-                ...requestOptions,
-                method: 'POST',
-                url: '/data-catalog/datasets/{dataset_id}/refresh',
-                path,
-              });
-            },
-          },
           fields: {
+            fieldId: (fieldId: PathParamValue) => {
+              const rootPathContext_datasetId_fieldId: PathContext = {
+                ...rootPathContext_datasetId,
+                field_id: fieldId,
+              };
+              return {
+                dependents: {
+                  /**
+                   * Get Field Dependents
+                   */
+                  get: async (
+                    params?: OperationParams<GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData>,
+                    config?: OperationConfig<
+                      GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData,
+                      GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses[keyof GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses]
+                    >
+                  ): OperationResult<
+                    GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses[keyof GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses],
+                    GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetError
+                  > => {
+                    const requestParams = (params ??
+                      {}) as OperationParams<GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData>;
+                    const { client: clientOverride, ...requestConfig } =
+                      (config ?? {}) as OperationConfig<
+                        GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData,
+                        GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses[keyof GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses]
+                      >;
+                    const requestClient = clientOverride ?? client;
+                    const requestOptions = {
+                      ...requestConfig,
+                      ...requestParams,
+                    } satisfies Omit<
+                      OperationBaseOptions<
+                        GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData,
+                        GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses[keyof GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses]
+                      >,
+                      'path'
+                    >;
+                    if (requestOptions.requestValidator == null) {
+                      requestOptions.requestValidator = async data => {
+                        return await zGetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData.parseAsync(
+                          data
+                        );
+                      };
+                    }
+                    if (requestOptions.responseValidator == null) {
+                      requestOptions.responseValidator = async data => {
+                        return await zGetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponse.parseAsync(
+                          data
+                        );
+                      };
+                    }
+                    const path = {
+                      ...rootPathContext_datasetId_fieldId,
+                    } satisfies PathContext;
+                    return requestClient.request<
+                      GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses[keyof GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses],
+                      GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetError,
+                      true
+                    >({
+                      ...requestOptions,
+                      method: 'GET',
+                      url: '/data-catalog/datasets/{dataset_id}/fields/{field_id}/dependents',
+                      path,
+                    });
+                  },
+                },
+              };
+            },
             renameConfirm: {
               /**
                * Confirm Field Rename
@@ -6389,6 +6546,67 @@ export const nestedClient = {
                   path,
                 });
               },
+            },
+          },
+          refresh: {
+            /**
+             * Refresh Dataset
+             */
+            post: async (
+              params?: OperationParams<RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData>,
+              config?: OperationConfig<
+                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData,
+                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses[keyof RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses]
+              >
+            ): OperationResult<
+              RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses[keyof RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses],
+              RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostError
+            > => {
+              const requestParams = (params ??
+                {}) as OperationParams<RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData>;
+              const { client: clientOverride, ...requestConfig } = (config ??
+                {}) as OperationConfig<
+                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData,
+                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses[keyof RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses]
+              >;
+              const requestClient = clientOverride ?? client;
+              const requestOptions = {
+                ...requestConfig,
+                ...requestParams,
+              } satisfies Omit<
+                OperationBaseOptions<
+                  RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData,
+                  RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses[keyof RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses]
+                >,
+                'path'
+              >;
+              if (requestOptions.requestValidator == null) {
+                requestOptions.requestValidator = async data => {
+                  return await zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData.parseAsync(
+                    data
+                  );
+                };
+              }
+              if (requestOptions.responseValidator == null) {
+                requestOptions.responseValidator = async data => {
+                  return await zRefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponse.parseAsync(
+                    data
+                  );
+                };
+              }
+              const path = {
+                ...rootPathContext_datasetId,
+              } satisfies PathContext;
+              return requestClient.request<
+                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses[keyof RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostResponses],
+                RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostError,
+                true
+              >({
+                ...requestOptions,
+                method: 'POST',
+                url: '/data-catalog/datasets/{dataset_id}/refresh',
+                path,
+              });
             },
           },
           /**

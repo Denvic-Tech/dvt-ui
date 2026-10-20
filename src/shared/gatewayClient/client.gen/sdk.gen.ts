@@ -181,6 +181,9 @@ import type {
   EnableExtensionExtensionsExtensionNameEnablePostData,
   EnableExtensionExtensionsExtensionNameEnablePostErrors,
   EnableExtensionExtensionsExtensionNameEnablePostResponses,
+  ExplainFieldProjectsProjectIdLineageExplainGetData,
+  ExplainFieldProjectsProjectIdLineageExplainGetErrors,
+  ExplainFieldProjectsProjectIdLineageExplainGetResponses,
   ExportProjectsProjectsExportPostData,
   ExportProjectsProjectsExportPostErrors,
   ExportProjectsProjectsExportPostResponses,
@@ -248,6 +251,9 @@ import type {
   GetFailingProjectsWidgetWidgetsFailingProjectsGetResponses,
   GetFavoriteProjectsProjectsFavoritesGetData,
   GetFavoriteProjectsProjectsFavoritesGetResponses,
+  GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData,
+  GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetErrors,
+  GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses,
   GetFixturesPytestMonFixturesGetData,
   GetFixturesPytestMonFixturesGetResponses,
   GetGraphProjectsProjectIdGraphGetData,
@@ -264,6 +270,9 @@ import type {
   GetNodeDocumentationNodesNodeNameDocumentationGetData,
   GetNodeDocumentationNodesNodeNameDocumentationGetErrors,
   GetNodeDocumentationNodesNodeNameDocumentationGetResponses,
+  GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData,
+  GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetErrors,
+  GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses,
   GetOrganizationOrganizationsOrganizationIdGetData,
   GetOrganizationOrganizationsOrganizationIdGetErrors,
   GetOrganizationOrganizationsOrganizationIdGetResponses,
@@ -682,6 +691,8 @@ import {
   zDownloadFileViaGatewayStorageDownloadFileGetData,
   zEnableExtensionExtensionsExtensionNameEnablePostData,
   zEnableExtensionExtensionsExtensionNameEnablePostResponse,
+  zExplainFieldProjectsProjectIdLineageExplainGetData,
+  zExplainFieldProjectsProjectIdLineageExplainGetResponse,
   zExportProjectsProjectsExportPostData,
   zExportProjectsProjectsExportPostResponse,
   zGeneratePresignedDownloadUrlStorageDownloadPresignGetData,
@@ -727,6 +738,8 @@ import {
   zGetFailingProjectsWidgetWidgetsFailingProjectsGetResponse,
   zGetFavoriteProjectsProjectsFavoritesGetData,
   zGetFavoriteProjectsProjectsFavoritesGetResponse,
+  zGetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData,
+  zGetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponse,
   zGetFixturesPytestMonFixturesGetData,
   zGetFixturesPytestMonFixturesGetResponse,
   zGetGraphProjectsProjectIdGraphGetData,
@@ -738,6 +751,8 @@ import {
   zGetNodeDefinitionsNodesGetResponse,
   zGetNodeDocumentationNodesNodeNameDocumentationGetData,
   zGetNodeDocumentationNodesNodeNameDocumentationGetResponse,
+  zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData,
+  zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponse,
   zGetOrganizationOrganizationsOrganizationIdGetData,
   zGetOrganizationOrganizationsOrganizationIdGetResponse,
   zGetOrganizationPublicOrganizationsOrganizationIdGetData,
@@ -3815,6 +3830,39 @@ export const getDatasetUsageDataCatalogDatasetsDatasetIdUsageGet = <
 };
 
 /**
+ * Get Field Dependents
+ *
+ * Колонки нод во всех видимых проектах, зависящие от поля сущности прямо или транзитивно.
+ */
+export const getFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGet =
+  <ThrowOnError extends boolean = false>(
+    options: Options<
+      GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData,
+      ThrowOnError
+    >
+  ) => {
+    return (options.client ?? client).get<
+      GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses,
+      GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetErrors,
+      ThrowOnError
+    >({
+      requestValidator: async data => {
+        return await zGetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData.parseAsync(
+          data
+        );
+      },
+      responseType: 'json',
+      responseValidator: async data => {
+        return await zGetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponse.parseAsync(
+          data
+        );
+      },
+      url: '/data-catalog/datasets/{dataset_id}/fields/{field_id}/dependents',
+      ...options,
+    });
+  };
+
+/**
  * Refresh Dataset
  *
  * Принудительно перечитывает схему из источника; неудача возвращается статусом, не ошибкой.
@@ -3882,6 +3930,74 @@ export const confirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPo
       },
     });
   };
+
+/**
+ * Get Node Fields
+ *
+ * Колонки DataFrame-порта ноды с происхождением и наследованными описаниями.
+ */
+export const getNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).get<
+    GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses,
+    GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/projects/{project_id}/lineage/nodes/{node_id}/fields',
+    ...options,
+  });
+};
+
+/**
+ * Explain Field
+ *
+ * Путь колонки к источникам (upstream) или к потребителям внутри проекта (downstream).
+ */
+export const explainFieldProjectsProjectIdLineageExplainGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    ExplainFieldProjectsProjectIdLineageExplainGetData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).get<
+    ExplainFieldProjectsProjectIdLineageExplainGetResponses,
+    ExplainFieldProjectsProjectIdLineageExplainGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zExplainFieldProjectsProjectIdLineageExplainGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zExplainFieldProjectsProjectIdLineageExplainGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/projects/{project_id}/lineage/explain',
+    ...options,
+  });
+};
 
 /**
  * Виджет: запуски за последние 24 часа

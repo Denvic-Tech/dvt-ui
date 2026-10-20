@@ -3663,6 +3663,64 @@ export type ExistingConnectionSchema = {
 };
 
 /**
+ * ExplainStepSchema
+ */
+export type ExplainStepSchema = {
+  ref: LineageRefSchema;
+  /**
+   * Depth
+   */
+  depth: number;
+  /**
+   * Op
+   */
+  op:
+    | 'source'
+    | 'pass'
+    | 'rename'
+    | 'compute'
+    | 'aggregate'
+    | 'merge'
+    | 'unknown';
+  /**
+   * Text
+   */
+  text?: string | null;
+  /**
+   * Node Id
+   */
+  node_id?: string | null;
+  /**
+   * Node Name
+   */
+  node_name?: string | null;
+  /**
+   * Port
+   */
+  port?: string | null;
+  /**
+   * Column
+   */
+  column?: string | null;
+  /**
+   * Deps Unknown
+   */
+  deps_unknown?: boolean;
+  /**
+   * Dataset Id
+   */
+  dataset_id?: string | null;
+  /**
+   * Field Id
+   */
+  field_id?: string | null;
+  /**
+   * Field Name
+   */
+  field_name?: string | null;
+};
+
+/**
  * ExportRequestSchema
  */
 export type ExportRequestSchema = {
@@ -4321,6 +4379,66 @@ export type FailingProjectsWidgetSchema = {
 };
 
 /**
+ * FieldDependentSchema
+ */
+export type FieldDependentSchema = {
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Node Id
+   */
+  node_id: string;
+  /**
+   * Node Name
+   */
+  node_name: string;
+  /**
+   * Port
+   */
+  port: string;
+  /**
+   * Column
+   */
+  column: string;
+  /**
+   * Op
+   */
+  op:
+    | 'source'
+    | 'pass'
+    | 'rename'
+    | 'compute'
+    | 'aggregate'
+    | 'merge'
+    | 'unknown';
+  /**
+   * Depth
+   */
+  depth: number;
+  ref: LineageRefSchema;
+};
+
+/**
+ * FieldDependentsResponseSchema
+ */
+export type FieldDependentsResponseSchema = {
+  /**
+   * Dataset Id
+   */
+  dataset_id: string;
+  /**
+   * Field Id
+   */
+  field_id: string;
+  /**
+   * Items
+   */
+  items?: Array<FieldDependentSchema>;
+};
+
+/**
  * FieldDescriptionPatchSchema
  *
  * Ключ description обязателен: null означает очистку, пропуск недопустим.
@@ -4338,6 +4456,43 @@ export type FieldDescriptionPatchSchema = {
    * Description
    */
   description: string | null;
+};
+
+/**
+ * FieldExplanationSchema
+ */
+export type FieldExplanationSchema = {
+  root: LineageRefSchema;
+  /**
+   * Direction
+   */
+  direction: 'upstream' | 'downstream';
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Description Provenance
+   */
+  description_provenance?:
+    | 'declared'
+    | 'source'
+    | 'inherited'
+    | 'derived'
+    | 'unknown';
+  description_source?: LineageRefSchema | null;
+  /**
+   * Truncated
+   */
+  truncated?: boolean;
+  /**
+   * Steps
+   */
+  steps?: Array<ExplainStepSchema>;
+  /**
+   * Gaps
+   */
+  gaps?: Array<LineageGapSchema>;
 };
 
 /**
@@ -5607,6 +5762,57 @@ export type KafkaSecrets = {
    * Sasl Plain Password
    */
   sasl_plain_password?: string | null;
+};
+
+/**
+ * LineageGapSchema
+ */
+export type LineageGapSchema = {
+  ref: LineageRefSchema;
+  /**
+   * Reason
+   */
+  reason: string;
+  /**
+   * Detail
+   */
+  detail?: string | null;
+};
+
+/**
+ * LineageRefSchema
+ */
+export type LineageRefSchema = {
+  /**
+   * Key
+   *
+   * `ds:<dataset_id>:<field_id>` или `node:<node_id>:<port>:<column>`.
+   */
+  key: string;
+  /**
+   * Kind
+   */
+  kind: 'ds' | 'node';
+  /**
+   * Dataset Id
+   */
+  dataset_id?: string | null;
+  /**
+   * Field Id
+   */
+  field_id?: string | null;
+  /**
+   * Node Id
+   */
+  node_id?: string | null;
+  /**
+   * Port
+   */
+  port?: string | null;
+  /**
+   * Column
+   */
+  column?: string | null;
 };
 
 /**
@@ -7217,6 +7423,101 @@ export type NodeDefinition = {
    * Версия пакета-расширения
    */
   extension_version?: string | null;
+};
+
+/**
+ * NodeFieldSchema
+ */
+export type NodeFieldSchema = {
+  /**
+   * Name
+   */
+  name: string;
+  ref: LineageRefSchema;
+  /**
+   * Op
+   */
+  op:
+    | 'source'
+    | 'pass'
+    | 'rename'
+    | 'compute'
+    | 'aggregate'
+    | 'merge'
+    | 'unknown';
+  origin: LineageRefSchema;
+  /**
+   * Deps
+   */
+  deps?: Array<LineageRefSchema>;
+  /**
+   * Deps Unknown
+   */
+  deps_unknown?: boolean;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Description Provenance
+   */
+  description_provenance?:
+    | 'declared'
+    | 'source'
+    | 'inherited'
+    | 'derived'
+    | 'unknown';
+  description_source?: LineageRefSchema | null;
+  /**
+   * Explanation
+   */
+  explanation?: string | null;
+};
+
+/**
+ * NodeFieldsResponseSchema
+ */
+export type NodeFieldsResponseSchema = {
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Node Id
+   */
+  node_id: string;
+  /**
+   * Node Name
+   */
+  node_name: string;
+  /**
+   * Port
+   */
+  port: string;
+  /**
+   * Role
+   */
+  role: 'output' | 'input';
+  /**
+   * Status
+   */
+  status: 'resolved' | 'partially_resolved' | 'unresolved';
+  /**
+   * Reason
+   */
+  reason?: string | null;
+  /**
+   * Detail
+   */
+  detail?: string | null;
+  /**
+   * Available Ports
+   */
+  available_ports?: Array<string>;
+  /**
+   * Fields
+   */
+  fields?: Array<NodeFieldSchema>;
 };
 
 /**
@@ -9007,12 +9308,6 @@ export type ProjectScheduleRequest = {
    * Максимальная задержка exponential backoff
    */
   retry_max_delay_seconds?: number;
-  /**
-   * Disabled
-   *
-   * Создать расписание выключенным, без регистрации задания в планировщике
-   */
-  disabled?: boolean;
 };
 
 /**
@@ -9066,17 +9361,17 @@ export type ProjectScheduleResponse = {
    */
   retry_max_delay_seconds?: number;
   /**
-   * Disabled
-   *
-   * Отключено ли расписание
-   */
-  disabled?: boolean;
-  /**
    * Project Name
    *
    * Название проекта
    */
   project_name?: string | null;
+  /**
+   * Disabled
+   *
+   * Отключено ли расписание
+   */
+  disabled?: boolean;
   /**
    * Scheduled By User Id
    *
@@ -14738,7 +15033,10 @@ export type RegisteredException =
   | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel118
   | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel119
   | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120
-  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121;
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124;
 
 /**
  * BadPipelineException
@@ -14768,7 +15066,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * WeakPassphraseError
+ * ProjectTransferDomainError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel100 =
   {
@@ -14795,7 +15093,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidPassphraseError
+ * EmptyExportSelectionError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel101 =
   {
@@ -14822,7 +15120,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UnsupportedBundleFormatError
+ * SecretsPassphraseRequiredError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102 =
   {
@@ -14849,7 +15147,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidBundleError
+ * WeakPassphraseError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103 =
   {
@@ -14876,7 +15174,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * BundleTooLargeError
+ * InvalidPassphraseError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104 =
   {
@@ -14903,7 +15201,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidImportTargetError
+ * UnsupportedBundleFormatError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105 =
   {
@@ -14930,7 +15228,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * FolderDepthExceededError
+ * InvalidBundleError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106 =
   {
@@ -14957,7 +15255,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidConnectionDecisionError
+ * BundleTooLargeError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107 =
   {
@@ -14984,7 +15282,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ConnectionNotFound
+ * InvalidImportTargetError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel108 =
   {
@@ -15011,7 +15309,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * GraphNodeNotFoundException
+ * FolderDepthExceededError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel109 =
   {
@@ -15065,7 +15363,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * GraphEdgeNotFoundException
+ * InvalidConnectionDecisionError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel110 =
   {
@@ -15092,7 +15390,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SubgraphNotFoundException
+ * ConnectionNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel111 =
   {
@@ -15119,7 +15417,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * GraphNotFoundException
+ * GraphNodeNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel112 =
   {
@@ -15146,7 +15444,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectTransferFlowError
+ * GraphEdgeNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel113 =
   {
@@ -15173,7 +15471,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ExportSelectionNotFoundError
+ * SubgraphNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel114 =
   {
@@ -15200,7 +15498,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ImportTargetNotFoundError
+ * GraphNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel115 =
   {
@@ -15227,7 +15525,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * TaskExecutionFlowError
+ * ProjectTransferFlowError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel116 =
   {
@@ -15254,7 +15552,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidReconciliationTerminationReason
+ * ExportSelectionNotFoundError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel117 =
   {
@@ -15281,7 +15579,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidPendingExecutionFailureReason
+ * ImportTargetNotFoundError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel118 =
   {
@@ -15308,7 +15606,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * QueueTopicNotFoundException
+ * TaskExecutionFlowError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel119 =
   {
@@ -15362,7 +15660,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * QueueTopicAlreadyExistsException
+ * InvalidReconciliationTerminationReason
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120 =
   {
@@ -15389,9 +15687,90 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * AIMCPHTTPError
+ * InvalidPendingExecutionFailureReason
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * QueueTopicNotFoundException
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * QueueTopicAlreadyExistsException
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * AIMCPHTTPError
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124 =
   {
     /**
      * Name
@@ -16712,7 +17091,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrchestratorRPCError
+ * InvalidLineageRefError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel58 =
   {
@@ -16739,7 +17118,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrchestratorTaskRejected
+ * LineageNodePortNotFoundError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel59 =
   {
@@ -16793,7 +17172,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrchestratorInvalidStats
+ * LineageColumnNotFoundError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel60 =
   {
@@ -16820,7 +17199,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectNotFoundException
+ * OrchestratorRPCError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel61 =
   {
@@ -16847,7 +17226,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectAccessForbiddenException
+ * OrchestratorTaskRejected
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel62 =
   {
@@ -16874,7 +17253,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableNotFoundException
+ * OrchestratorInvalidStats
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel63 =
   {
@@ -16901,7 +17280,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableAlreadyExistsException
+ * ProjectNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel64 =
   {
@@ -16928,7 +17307,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableAlreadyExists
+ * ProjectAccessForbiddenException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel65 =
   {
@@ -16955,7 +17334,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableNotFound
+ * ProjectVariableNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel66 =
   {
@@ -16982,7 +17361,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectAccessForbidden
+ * ProjectVariableAlreadyExistsException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel67 =
   {
@@ -17009,7 +17388,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectNotFound
+ * ProjectVariableAlreadyExists
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel68 =
   {
@@ -17036,7 +17415,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * DataFrameMetaNotFound
+ * ProjectVariableNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel69 =
   {
@@ -17090,7 +17469,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * DataFrameNotFound
+ * ProjectAccessForbidden
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel70 =
   {
@@ -17117,7 +17496,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * JSONNotFound
+ * ProjectNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel71 =
   {
@@ -17144,7 +17523,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectNotFoundHTTPError
+ * DataFrameMetaNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel72 =
   {
@@ -17171,7 +17550,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectAccessForbiddenHTTPError
+ * DataFrameNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel73 =
   {
@@ -17198,7 +17577,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableNotFoundHTTPError
+ * JSONNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel74 =
   {
@@ -17225,7 +17604,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectVariableAlreadyExistsHTTPError
+ * ProjectNotFoundHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel75 =
   {
@@ -17252,7 +17631,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * AppSettingsDomainError
+ * ProjectAccessForbiddenHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel76 =
   {
@@ -17279,7 +17658,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SettingNotFoundError
+ * ProjectVariableNotFoundHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel77 =
   {
@@ -17306,7 +17685,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SettingValidationError
+ * ProjectVariableAlreadyExistsHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel78 =
   {
@@ -17333,7 +17712,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SettingReadOnlyError
+ * AppSettingsDomainError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel79 =
   {
@@ -17387,7 +17766,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserNotFoundException
+ * SettingNotFoundError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel80 =
   {
@@ -17414,7 +17793,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserAlreadyExistsException
+ * SettingValidationError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel81 =
   {
@@ -17441,7 +17820,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserActionForbiddenException
+ * SettingReadOnlyError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel82 =
   {
@@ -17468,7 +17847,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserAlreadyExistsHTTPError
+ * UserNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel83 =
   {
@@ -17495,7 +17874,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserNotFoundHTTPError
+ * UserAlreadyExistsException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel84 =
   {
@@ -17522,7 +17901,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UserActionForbiddenHTTPError
+ * UserActionForbiddenException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel85 =
   {
@@ -17549,7 +17928,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationNotFoundException
+ * UserAlreadyExistsHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel86 =
   {
@@ -17576,7 +17955,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationINNConflictException
+ * UserNotFoundHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel87 =
   {
@@ -17603,7 +17982,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationNotFoundHTTPError
+ * UserActionForbiddenHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel88 =
   {
@@ -17630,7 +18009,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationINNConflictHTTPError
+ * OrganizationNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel89 =
   {
@@ -17684,7 +18063,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationForbiddenHttpError
+ * OrganizationINNConflictException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel90 =
   {
@@ -17711,7 +18090,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * OrganizationInvalidINNHTTPError
+ * OrganizationNotFoundHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel91 =
   {
@@ -17738,7 +18117,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectionRebuildFailedError
+ * OrganizationINNConflictHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel92 =
   {
@@ -17765,7 +18144,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * DataFrameSchemaMappingError
+ * OrganizationForbiddenHttpError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel93 =
   {
@@ -17792,7 +18171,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * DataCatalogPersistenceError
+ * OrganizationInvalidINNHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel94 =
   {
@@ -17819,7 +18198,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ExceptionRegistryNotFound
+ * ProjectionRebuildFailedError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel95 =
   {
@@ -17846,7 +18225,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ExceptionRegistryValidationError
+ * DataFrameSchemaMappingError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel96 =
   {
@@ -17873,7 +18252,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectTransferDomainError
+ * DataCatalogPersistenceError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel97 =
   {
@@ -17900,7 +18279,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * EmptyExportSelectionError
+ * ExceptionRegistryNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel98 =
   {
@@ -17927,7 +18306,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SecretsPassphraseRequiredError
+ * ExceptionRegistryValidationError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel99 =
   {
@@ -21675,6 +22054,50 @@ export type GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponses = {
 export type GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponse =
   GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponses[keyof GetDatasetUsageDataCatalogDatasetsDatasetIdUsageGetResponses];
 
+export type GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetData =
+  {
+    body?: never;
+    path: {
+      /**
+       * Dataset Id
+       */
+      dataset_id: string;
+      /**
+       * Field Id
+       */
+      field_id: string;
+    };
+    query?: {
+      /**
+       * Max Depth
+       */
+      max_depth?: number;
+    };
+    url: '/data-catalog/datasets/{dataset_id}/fields/{field_id}/dependents';
+  };
+
+export type GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetErrors =
+  {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+  };
+
+export type GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetError =
+  GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetErrors[keyof GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetErrors];
+
+export type GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses =
+  {
+    /**
+     * Successful Response
+     */
+    200: FieldDependentsResponseSchema;
+  };
+
+export type GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponse =
+  GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses[keyof GetFieldDependentsDataCatalogDatasetsDatasetIdFieldsFieldIdDependentsGetResponses];
+
 export type RefreshDatasetDataCatalogDatasetsDatasetIdRefreshPostData = {
   body?: never;
   path: {
@@ -21741,6 +22164,125 @@ export type ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPos
 
 export type ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponse =
   ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponses[keyof ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponses];
+
+export type GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData = {
+  body?: never;
+  headers?: {
+    /**
+     * X-Language
+     */
+    'X-Language'?: string | null;
+    /**
+     * Accept-Language
+     */
+    'Accept-Language'?: string | null;
+  };
+  path: {
+    /**
+     * Node Id
+     */
+    node_id: string;
+    /**
+     * Project Id
+     *
+     * Project ID
+     */
+    project_id: string;
+  };
+  query?: {
+    /**
+     * Port
+     */
+    port?: string | null;
+  };
+  url: '/projects/{project_id}/lineage/nodes/{node_id}/fields';
+};
+
+export type GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetError =
+  GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetErrors[keyof GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetErrors];
+
+export type GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses =
+  {
+    /**
+     * Successful Response
+     */
+    200: NodeFieldsResponseSchema;
+  };
+
+export type GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponse =
+  GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses[keyof GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses];
+
+export type ExplainFieldProjectsProjectIdLineageExplainGetData = {
+  body?: never;
+  headers?: {
+    /**
+     * X-Language
+     */
+    'X-Language'?: string | null;
+    /**
+     * Accept-Language
+     */
+    'Accept-Language'?: string | null;
+  };
+  path: {
+    /**
+     * Project Id
+     *
+     * Project ID
+     */
+    project_id: string;
+  };
+  query: {
+    /**
+     * Node Id
+     */
+    node_id: string;
+    /**
+     * Column
+     */
+    column: string;
+    /**
+     * Port
+     */
+    port?: string | null;
+    /**
+     * Direction
+     */
+    direction?: 'upstream' | 'downstream';
+    /**
+     * Max Depth
+     */
+    max_depth?: number;
+  };
+  url: '/projects/{project_id}/lineage/explain';
+};
+
+export type ExplainFieldProjectsProjectIdLineageExplainGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ExplainFieldProjectsProjectIdLineageExplainGetError =
+  ExplainFieldProjectsProjectIdLineageExplainGetErrors[keyof ExplainFieldProjectsProjectIdLineageExplainGetErrors];
+
+export type ExplainFieldProjectsProjectIdLineageExplainGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: FieldExplanationSchema;
+};
+
+export type ExplainFieldProjectsProjectIdLineageExplainGetResponse =
+  ExplainFieldProjectsProjectIdLineageExplainGetResponses[keyof ExplainFieldProjectsProjectIdLineageExplainGetResponses];
 
 export type GetRunsLast24hWidgetWidgetsRuns24hGetData = {
   body?: never;
