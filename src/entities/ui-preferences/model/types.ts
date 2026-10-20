@@ -18,6 +18,11 @@ export interface HomeDashboardUIPreferences {
   widgetIds?: string[] | undefined;
 }
 
+export interface NodeFieldsViewerUIPreferences {
+  /** Показывать в пути колонки и шаги без изменений («Весь путь»). */
+  showFullPath: boolean;
+}
+
 export interface UIPreferencesState {
   themeMode: ThemeMode;
   projectsPage: {
@@ -26,6 +31,7 @@ export interface UIPreferencesState {
   nodeLibrary: NodeLibraryUIPreferences;
   nodeModalWorkspace: NodeModalWorkspaceUIPreferences;
   homeDashboard: HomeDashboardUIPreferences;
+  nodeFieldsViewer: NodeFieldsViewerUIPreferences;
   skipHardStopConfirm: boolean;
   suppressedPrompts: Partial<Record<SuppressiblePromptId, true>>;
 }
