@@ -13,11 +13,13 @@ import {
   filterNodeFields,
   isFieldChanged,
   lineageApi,
+  type LineageChain,
   NODE_FIELDS_STATUS_APPEARANCE,
   type NodeField,
   useGetNodeFieldsQuery,
 } from '@/entities/data/lineage';
 import { useNodeFieldsViewer } from '@/entities/node/node-fields-viewer';
+import { lineageHighlightActions } from '@/entities/project-editor/lineage-highlight';
 
 import { useDelayedLoading } from '@/shared/lib/hooks/useDelayedLoading';
 import { Button, Dialog, Tooltip } from '@/shared/ui/primitives';
@@ -56,15 +58,25 @@ const plural = (count: number, forms: [string, string, string]) => {
 const pickInitialColumn = (fields: NodeField[]) =>
   (fields.find(isFieldChanged) ?? fields[0])?.name ?? null;
 
-interface NodeFieldsViewerContentProps {
+export interface NodeFieldsPanelProps {
   nodeID: string;
+  /**
+   * Закрыть окно, в котором показана панель. Вызывается и при переходе на
+   * холст («Показать на холсте», «На холсте»).
+   */
   onClose: () => void;
+  /**
+   * Панель встроена в другое окно (каталог данных): без кнопки закрытия и
+   * обработки Esc (её берёт на себя окно), высота — по контейнеру.
+   */
+  embedded?: boolean;
 }
 
-const NodeFieldsViewerContent = ({
+export const NodeFieldsPanel = ({
   nodeID,
   onClose,
-}: NodeFieldsViewerContentProps) => {
+  embedded = false,
+}: NodeFieldsPanelProps) => {
   const projectId = useAppSelector(
     state => state.projects.selectedProject?.id ?? null
   );
@@ -173,6 +185,24 @@ const NodeFieldsViewerContent = ({
     );
   }, [dispatch]);
 
+  const showChainOnCanvas = useCallback(
+    (chain: LineageChain, column: string) => {
+      dispatch(
+        lineageHighlightActions.show({
+          ...chain,
+          column,
+          nodeName:
+            nodeData?.displayName ||
+            currentData?.node_name ||
+            nodeData?.name ||
+            'Нода',
+        })
+      );
+      onClose();
+    },
+    [currentData?.node_name, dispatch, nodeData, onClose]
+  );
+
   const showOnCanvas = useCallback(
     (targetNodeId: string) => {
       onClose();
@@ -184,6 +214,9 @@ const NodeFieldsViewerContent = ({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (embedded) {
+          return;
+        }
         event.preventDefault();
         if (query) {
           setQuery('');
@@ -230,7 +263,7 @@ const NodeFieldsViewerContent = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, query, scrollToColumn, selected, visibleFields]);
+  }, [embedded, onClose, query, scrollToColumn, selected, visibleFields]);
 
   // Порты берём из последнего успешного ответа, чтобы переключатель не
   // пропадал, пока грузится ответ для другого порта.
@@ -326,6 +359,7 @@ const NodeFieldsViewerContent = ({
             columnNames={columnNames}
             onJump={jumpToColumn}
             onShowOnCanvas={showOnCanvas}
+            onShowChainOnCanvas={showChainOnCanvas}
           />
         ) : null}
       </ViewerBody>
@@ -333,7 +367,10 @@ const NodeFieldsViewerContent = ({
   };
 
   return (
-    <ViewerRoot>
+    <ViewerRoot
+      sx={embedded ? { height: '100%', maxHeight: 'none' } : {}}
+      data-testid='widgets/node-fields-viewer/panel'
+    >
       <ViewerHeader>
         <div style={{ flex: 1, minWidth: 0 }}>
           <HeaderTitle id='node-fields-viewer-title'>
@@ -398,9 +435,11 @@ const NodeFieldsViewerContent = ({
             </GhostIconButton>
           </span>
         </Tooltip>
-        <GhostIconButton type='button' aria-label='Закрыть' onClick={onClose}>
-          <CloseRoundedIcon sx={{ fontSize: 18 }} />
-        </GhostIconButton>
+        {embedded ? null : (
+          <GhostIconButton type='button' aria-label='Закрыть' onClick={onClose}>
+            <CloseRoundedIcon sx={{ fontSize: 18 }} />
+          </GhostIconButton>
+        )}
       </ViewerHeader>
       {renderBody()}
     </ViewerRoot>
@@ -439,11 +478,7 @@ const NodeFieldsViewerComponent = () => {
       }}
       onClose={closeViewer}
     >
-      <NodeFieldsViewerContent
-        key={nodeID}
-        nodeID={nodeID}
-        onClose={closeViewer}
-      />
+      <NodeFieldsPanel key={nodeID} nodeID={nodeID} onClose={closeViewer} />
     </Dialog>
   );
 };

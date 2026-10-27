@@ -1,5 +1,6 @@
 import { Fragment, memo, useEffect, useMemo, useState } from 'react';
 import CenterFocusStrongOutlinedIcon from '@mui/icons-material/CenterFocusStrongOutlined';
+import RouteRoundedIcon from '@mui/icons-material/RouteRounded';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 import ViewColumnOutlinedIcon from '@mui/icons-material/ViewColumnOutlined';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
@@ -10,16 +11,20 @@ import { useAppSelector } from '@/app/providers/store';
 import {
   buildExplainTree,
   buildLineagePath,
+  collectLineageChain,
   type ExplainStep,
-  LINEAGE_DESCRIPTION_PROVENANCE_APPEARANCE,
   LINEAGE_OP_APPEARANCE,
+  type LineageChain,
   type LineagePathRow,
   type LineageRef,
   type NodeField,
   useGetFieldExplanationQuery,
 } from '@/entities/data/lineage';
 import { selectNodeDefinitionsMap } from '@/entities/node/node-definition';
-import { selectNodeDataMap } from '@/entities/project-editor/graph';
+import {
+  selectGraphEdgesRaw,
+  selectNodeDataMap,
+} from '@/entities/project-editor/graph';
 import { getNodeCategoryColor } from '@/entities/project-editor/node-library';
 import { useNodeFieldsViewerPreferences } from '@/entities/ui-preferences';
 
@@ -29,9 +34,12 @@ import { Button, Tooltip } from '@/shared/ui/primitives';
 
 import { useLineageRefLabel } from '../lib/useLineageRefLabel';
 
+import { ColumnDescriptionEditor } from './ColumnDescriptionEditor';
+import { DescriptionProvenance } from './DescriptionProvenance';
 import { LineagePathSkeleton } from './NodeFieldsSkeletons';
 import {
   AccentTile,
+  ChainButton,
   Code,
   DetailFootnote,
   DetailPane,
@@ -52,6 +60,7 @@ import {
   Tile,
   viewerTokens,
 } from './NodeFieldsViewer.styles';
+import { TruncatedLineText } from './TruncatedLineText';
 
 const GAP_REASON_LABEL: Record<string, string> = {
   deps_unknown: 'Часть источников колонки не определена',
@@ -276,17 +285,13 @@ const NodeStepRow = ({
             <LineColumnNote>{step.column}</LineColumnNote>
           ) : null}
         </LineTitle>
-        <LineText>
-          {step.op === 'pass' ? (
+        {step.op === 'pass' ? (
+          <LineText>
             <MutedText>Без изменений</MutedText>
-          ) : step.text ? (
-            <Tooltip placement='top-start' title={step.text}>
-              <span>{text}</span>
-            </Tooltip>
-          ) : (
-            text
-          )}
-        </LineText>
+          </LineText>
+        ) : (
+          <TruncatedLineText hint={step.text || null}>{text}</TruncatedLineText>
+        )}
       </div>
       {node.nodeId && !isCurrent ? (
         <Tooltip placement='top' title='Показать на холсте'>
@@ -325,32 +330,6 @@ const DatasetStepRow = ({ row }: { row: LineagePathRow }) => {
   );
 };
 
-const ColumnDescription = ({ field }: { field: NodeField }) => {
-  const sourceLabel = useLineageRefLabel(
-    field.description_source && field.description_source.key !== field.ref.key
-      ? field.description_source
-      : null
-  );
-  const description = field.description?.trim();
-  const provenance = field.description_provenance;
-
-  if (!description) {
-    return <LineText style={{ color: 'inherit' }}>Без описания</LineText>;
-  }
-
-  return (
-    <>
-      <LineText>{description}</LineText>
-      {provenance && provenance !== 'unknown' ? (
-        <LineNote as='div' style={{ lineHeight: '17px', marginTop: 1 }}>
-          {LINEAGE_DESCRIPTION_PROVENANCE_APPEARANCE[provenance].label}
-          {sourceLabel ? <> · {sourceLabel.text}</> : null}
-        </LineNote>
-      ) : null}
-    </>
-  );
-};
-
 interface ColumnLineageProps {
   projectId: string;
   nodeId: string;
@@ -360,6 +339,7 @@ interface ColumnLineageProps {
   columnNames: ReadonlySet<string>;
   onJump: (name: string) => void;
   onShowOnCanvas: (nodeId: string) => void;
+  onShowChainOnCanvas: (chain: LineageChain, column: string) => void;
 }
 
 const ColumnLineageComponent = ({
@@ -371,7 +351,9 @@ const ColumnLineageComponent = ({
   columnNames,
   onJump,
   onShowOnCanvas,
+  onShowChainOnCanvas,
 }: ColumnLineageProps) => {
+  const graphEdges = useAppSelector(selectGraphEdgesRaw);
   const { showFullPath, setShowFullPath } = useNodeFieldsViewerPreferences();
   const { data, currentData, error, isFetching, refetch } =
     useGetFieldExplanationQuery({
@@ -414,6 +396,19 @@ const ColumnLineageComponent = ({
   const isPathLoaded = Boolean(shownData);
   const isFullPathActive = !isPathLoaded || hasHidden ? showFullPath : true;
   const gaps = shownData?.gaps ?? [];
+
+  // Цепочку строим только по пути выбранной колонки, не по оставшемуся на
+  // экране пути предыдущей.
+  const canShowChain = Boolean(currentData) && !showPathSkeleton;
+  const showChain = () => {
+    if (!currentData) {
+      return;
+    }
+    const chain = collectLineageChain(tree, graphEdges);
+    if (chain.nodeIDs.length) {
+      onShowChainOnCanvas(chain, field.name);
+    }
+  };
 
   const renderPath = () => {
     if (showPathSkeleton) {
@@ -492,29 +487,53 @@ const ColumnLineageComponent = ({
   return (
     <DetailPane data-testid='widgets/node-fields-viewer/lineage'>
       <DetailSticky>
-        <Segmented role='tablist' aria-label='Режим пути' sx={{ mb: 2 }}>
-          <SegmentButton
-            type='button'
-            role='tab'
-            active={!isFullPathActive}
-            aria-selected={!isFullPathActive}
-            disabled={isPathLoaded && !hasHidden}
-            onClick={() => setShowFullPath(false)}
+        <div
+          style={{
+            alignItems: 'center',
+            display: 'flex',
+            gap: 8,
+            marginBottom: 16,
+          }}
+        >
+          <Segmented role='tablist' aria-label='Режим пути' sx={{ flex: 1 }}>
+            <SegmentButton
+              type='button'
+              role='tab'
+              active={!isFullPathActive}
+              aria-selected={!isFullPathActive}
+              disabled={isPathLoaded && !hasHidden}
+              onClick={() => setShowFullPath(false)}
+            >
+              Только изменения
+              <i>{shownData ? path.changesCount : ''}</i>
+            </SegmentButton>
+            <SegmentButton
+              type='button'
+              role='tab'
+              active={isFullPathActive}
+              aria-selected={isFullPathActive}
+              onClick={() => setShowFullPath(true)}
+            >
+              Весь путь
+              <i>{shownData ? path.totalCount : ''}</i>
+            </SegmentButton>
+          </Segmented>
+          <Tooltip
+            placement='top'
+            title='Подсветить на холсте все ноды и связи, через которые прошла колонка'
           >
-            Только изменения
-            <i>{shownData ? path.changesCount : ''}</i>
-          </SegmentButton>
-          <SegmentButton
-            type='button'
-            role='tab'
-            active={isFullPathActive}
-            aria-selected={isFullPathActive}
-            onClick={() => setShowFullPath(true)}
-          >
-            Весь путь
-            <i>{shownData ? path.totalCount : ''}</i>
-          </SegmentButton>
-        </Segmented>
+            <span style={{ display: 'flex', flexShrink: 0 }}>
+              <ChainButton
+                type='button'
+                disabled={!canShowChain}
+                onClick={showChain}
+              >
+                <RouteRoundedIcon sx={{ fontSize: 16 }} />
+                На холсте
+              </ChainButton>
+            </span>
+          </Tooltip>
+        </div>
         <StepLine>
           <AccentTile>
             <ViewColumnOutlinedIcon sx={{ fontSize: 17 }} />
@@ -523,10 +542,16 @@ const ColumnLineageComponent = ({
             <LineTitle>
               <LineName>{shownField.name}</LineName>
               {columnType ? <LineNote>{columnType}</LineNote> : null}
+              <DescriptionProvenance field={shownField} />
             </LineTitle>
-            <LineNote as='div' style={{ fontSize: 12.5, lineHeight: '17px' }}>
-              <ColumnDescription field={shownField} />
-            </LineNote>
+            <ColumnDescriptionEditor
+              key={`${nodeId}:${port ?? ''}:${shownField.name}`}
+              projectId={projectId}
+              nodeId={nodeId}
+              port={port}
+              field={shownField}
+              columnType={columnType ?? null}
+            />
           </div>
         </StepLine>
       </DetailSticky>

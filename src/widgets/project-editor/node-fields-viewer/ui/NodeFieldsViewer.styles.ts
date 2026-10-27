@@ -101,6 +101,9 @@ export const ViewerRoot = styled('div')(({ theme }) => ({
   },
   maxHeight: 'calc(100vh - 64px)',
   minHeight: 0,
+  // Dialog оборачивает содержимое в grid: без minWidth однострочный текст
+  // с многоточием растягивает панель шире окна вместо обрезки.
+  minWidth: 0,
 }));
 
 export const ViewerHeader = styled('div')(({ theme }) => ({
@@ -441,6 +444,40 @@ export const NodeTile = styled(Tile)(({ theme, dim = false, tint = null }) => {
   };
 });
 
+/** Кнопка «Показать цепочку на холсте» в шапке колонки. */
+export const ChainButton = styled('button')(({ theme }) => {
+  const t = viewerTokens(theme);
+  return {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    background: 'transparent',
+    border: `1px solid ${t.border}`,
+    borderRadius: 8,
+    color: t.text2,
+    cursor: 'pointer',
+    display: 'flex',
+    flexShrink: 0,
+    font: 'inherit',
+    fontSize: 12.5,
+    fontWeight: 500,
+    gap: 6,
+    height: 30,
+    padding: '0 10px',
+    transition: 'background-color .12s, border-color .12s, color .12s',
+    whiteSpace: 'nowrap',
+    '&:hover:not(:disabled)': {
+      backgroundColor: t.accentSoft,
+      borderColor: alpha(t.accent, 0.4),
+      color: t.accent,
+    },
+    '&:disabled': { color: t.text4, cursor: 'default' },
+    '&:focus-visible': {
+      outline: `2px solid ${alpha(t.accent, 0.4)}`,
+      outlineOffset: 1,
+    },
+  };
+});
+
 export const AccentTile = styled(Tile)(({ theme }) => {
   const t = viewerTokens(theme);
   return { backgroundColor: t.accentSoft, color: t.accent };
@@ -551,4 +588,22 @@ export const CenteredState = styled('div')(({ theme }) => {
     '& > strong': { color: t.text, fontSize: 14, fontWeight: 600 },
     '& > p': { margin: 0, maxWidth: 420 },
   };
+});
+
+/** Текст шага/описания в одну строку; полный текст — в тултипе. */
+export const LineTextSingle = styled(LineText)({
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  wordBreak: 'normal',
+});
+
+/** Полный текст в тёмном тултипе: имена колонок не должны темнеть. */
+export const TooltipFullText = styled('span')({
+  display: 'block',
+  maxWidth: 420,
+  whiteSpace: 'normal',
+  wordBreak: 'break-word',
+  '& *': { color: 'inherit !important' },
+  '& + &': { marginTop: 4, opacity: 0.8 },
 });

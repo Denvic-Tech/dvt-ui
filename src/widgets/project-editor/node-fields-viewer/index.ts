@@ -1,1 +1,5 @@
-export { NodeFieldsViewer } from './ui/NodeFieldsViewer';
+export {
+  NodeFieldsPanel,
+  type NodeFieldsPanelProps,
+  NodeFieldsViewer,
+} from './ui/NodeFieldsViewer';
