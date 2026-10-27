@@ -19,6 +19,7 @@ import { alpha, styled, useTheme } from '@mui/material/styles';
 import { useAppDispatch, useAppSelector } from '@/app/providers/store';
 
 import { AIAnalysisHistoryList } from '@/widgets/ai-analysis-history';
+import { DataCatalogModal } from '@/widgets/project-editor/data-catalog';
 import { useSidebar } from '@/widgets/project-editor/sidebar';
 
 import { uiLayoutActions } from '@/features/ui-layout';
@@ -41,9 +42,8 @@ import { usePointerResize } from '@/shared/lib/hooks/usePointerResize';
 import { getRadius } from '@/shared/ui/primitives/components/theme-style-helpers';
 
 import { ActiveNodesSection } from './ActiveNodesSection';
-import { DataCatalogSection } from './DataCatalog';
 import { FileManagerSection } from './FileManagerSection';
-import { categoryItems, hiddenCategoryKeys } from './items';
+import { categoryItems, getCategoryKind, hiddenCategoryKeys } from './items';
 import { ProjectSettings } from './ProjectSettings';
 import { ProjectVariables } from './ProjectVariables';
 import { QueueTaskList } from './QueueTaskList';
@@ -170,14 +170,6 @@ const SidebarCategoryContent = memo<SidebarCategoryContentProps>(
           />
         );
 
-      case 'dataCatalog':
-        return (
-          <DataCatalogSection
-            projectId={currentProjectID}
-            searchTerm={searchTerm}
-          />
-        );
-
       case 'queueTaskList':
         return (
           <QueueTaskList projectId={currentProjectID} searchTerm={searchTerm} />
@@ -206,6 +198,14 @@ export const Sidebar: React.FC = () => {
 
   const [activeCategory, setActiveCategory] = useState<Category>('nodes');
   const [searchTerm, setSearchTerm] = useState('');
+  // Пункт рейла с kind: 'modal', чьё окно сейчас открыто.
+  const [openModalCategory, setOpenModalCategory] = useState<Category | null>(
+    null
+  );
+  // Выбранной бывает только вкладка панели: пункты-окна (`kind: 'modal'`)
+  // не становятся текущими — панель под ними не меняется.
+  const isCategorySelected = (category: Category) =>
+    getCategoryKind(category) === 'panel' && activeCategory === category;
 
   const dispatch = useAppDispatch();
   const sidebar = useSidebar();
@@ -224,6 +224,13 @@ export const Sidebar: React.FC = () => {
           (key !== 'aiAnalysis' || isAIAnalysisEnabled)
       ),
     [isAIAnalysisEnabled]
+  );
+  // Пункты-окна идут отдельной группой под разделителем.
+  const panelCategoryItems = visibleCategoryItems.filter(
+    ([key]) => getCategoryKind(key as Category) === 'panel'
+  );
+  const modalCategoryItems = visibleCategoryItems.filter(
+    ([key]) => getCategoryKind(key as Category) === 'modal'
   );
 
   useEffect(() => {
@@ -335,7 +342,17 @@ export const Sidebar: React.FC = () => {
 
   const handleResetSearch = useCallback(() => setSearchTerm(''), []);
 
+  const handleCloseCategoryModal = useCallback(
+    () => setOpenModalCategory(null),
+    []
+  );
+
   const handleCategoryClick = (category: Category) => {
+    if (getCategoryKind(category) === 'modal') {
+      setOpenModalCategory(category);
+      return;
+    }
+
     if (activeCategory !== category) {
       handleCategoryChange(category);
       return;
@@ -393,6 +410,96 @@ export const Sidebar: React.FC = () => {
     ]
   );
 
+  const renderCategoryItem = ([
+    key,
+    item,
+  ]: (typeof visibleCategoryItems)[number]) => (
+    <Tooltip title={item.label} placement='right' key={key}>
+      <ListItem
+        disablePadding
+        sx={{
+          display: 'block',
+          position: 'relative',
+          mb: 0.5,
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            left: 0,
+            top: 6,
+            bottom: 6,
+            width: 3,
+            borderRadius: '0 999px 999px 0',
+            backgroundColor: 'primary.main',
+            opacity: isCategorySelected(key as Category) ? 1 : 0,
+            transition: 'opacity 150ms ease',
+          },
+        }}
+      >
+        <ListItemButton
+          data-testid={
+            key === 'queueTaskList'
+              ? 'widgets/project-editor/sidebar/task-queue-tab'
+              : key === 'activeNodes'
+                ? 'widgets/project-editor/sidebar/active-nodes-tab'
+                : 'widgets/project-editor/sidebar/category-tab'
+          }
+          data-sidebar-category={key}
+          selected={isCategorySelected(key as Category)}
+          disableRipple
+          disableTouchRipple
+          onClick={() => handleCategoryClick(key as Category)}
+          sx={{
+            width: 38,
+            height: 38,
+            minHeight: 38,
+            p: 0,
+            mx: 'auto',
+            borderRadius: theme => getRadius(theme, -8),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background-color 150ms ease, color 150ms ease',
+
+            '&.Mui-selected': {
+              bgcolor: theme => alpha(theme.palette.primary.main, 0.1),
+              '&:hover': {
+                bgcolor: theme => alpha(theme.palette.primary.main, 0.13),
+              },
+            },
+            '&:hover': {
+              bgcolor: theme => alpha(theme.palette.primary.main, 0.08),
+            },
+          }}
+        >
+          <ListItemIcon
+            sx={{
+              minWidth: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: theme =>
+                isCategorySelected(key as Category)
+                  ? theme.palette.primary.main
+                  : key === 'aiAnalysis'
+                    ? theme.palette.primary.main
+                    : theme.palette.text.secondary,
+              opacity: isCategorySelected(key as Category)
+                ? 1
+                : key === 'aiAnalysis'
+                  ? 1
+                  : 0.72,
+              '& svg': {
+                fontSize: 22,
+              },
+            }}
+          >
+            {item.icon}
+          </ListItemIcon>
+        </ListItemButton>
+      </ListItem>
+    </Tooltip>
+  );
+
   const railWidth = sidebar.categoriesWidth;
   const contentWidth = Math.min(Math.max(localContentWidth, 240), 640);
 
@@ -443,98 +550,16 @@ export const Sidebar: React.FC = () => {
       >
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <List sx={{ py: 1.25 }}>
-            {visibleCategoryItems.map(([key, item]) => (
-              <Tooltip title={item.label} placement='right' key={key}>
-                <ListItem
-                  disablePadding
-                  sx={{
-                    display: 'block',
-                    position: 'relative',
-                    mb: 0.5,
-                    '&::before': {
-                      content: '""',
-                      position: 'absolute',
-                      left: 0,
-                      top: 6,
-                      bottom: 6,
-                      width: 3,
-                      borderRadius: '0 999px 999px 0',
-                      backgroundColor: 'primary.main',
-                      opacity: activeCategory === key ? 1 : 0,
-                      transition: 'opacity 150ms ease',
-                    },
-                  }}
-                >
-                  <ListItemButton
-                    data-testid={
-                      key === 'queueTaskList'
-                        ? 'widgets/project-editor/sidebar/task-queue-tab'
-                        : key === 'activeNodes'
-                          ? 'widgets/project-editor/sidebar/active-nodes-tab'
-                          : 'widgets/project-editor/sidebar/category-tab'
-                    }
-                    data-sidebar-category={key}
-                    selected={activeCategory === key}
-                    disableRipple
-                    disableTouchRipple
-                    onClick={() => handleCategoryClick(key as Category)}
-                    sx={{
-                      width: 38,
-                      height: 38,
-                      minHeight: 38,
-                      p: 0,
-                      mx: 'auto',
-                      borderRadius: theme => getRadius(theme, -8),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition:
-                        'background-color 150ms ease, color 150ms ease',
-
-                      '&.Mui-selected': {
-                        bgcolor: theme =>
-                          alpha(theme.palette.primary.main, 0.1),
-                        '&:hover': {
-                          bgcolor: theme =>
-                            alpha(theme.palette.primary.main, 0.13),
-                        },
-                      },
-                      '&:hover': {
-                        bgcolor: theme =>
-                          alpha(theme.palette.primary.main, 0.08),
-                      },
-                    }}
-                  >
-                    <ListItemIcon
-                      sx={{
-                        minWidth: 'auto',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: theme =>
-                          activeCategory === key
-                            ? theme.palette.primary.main
-                            : key === 'aiAnalysis'
-                              ? theme.palette.primary.main
-                              : theme.palette.text.secondary,
-                        opacity:
-                          activeCategory === key
-                            ? 1
-                            : key === 'aiAnalysis'
-                              ? 1
-                              : 0.72,
-                        '& svg': {
-                          fontSize: 22,
-                        },
-                      }}
-                    >
-                      {item.icon}
-                    </ListItemIcon>
-                  </ListItemButton>
-                </ListItem>
-              </Tooltip>
-            ))}
+            {panelCategoryItems.map(renderCategoryItem)}
           </List>
+          {modalCategoryItems.length ? (
+            <>
+              <Divider sx={{ mx: 1.5, borderColor: 'divider' }} />
+              <List sx={{ py: 1.25 }}>
+                {modalCategoryItems.map(renderCategoryItem)}
+              </List>
+            </>
+          ) : null}
 
           <Box sx={{ mt: 'auto', pb: 1 }}>
             <Divider sx={{ mx: 1.5, borderColor: 'divider' }} />
@@ -687,6 +712,12 @@ export const Sidebar: React.FC = () => {
           />
         </Paper>
       </Box>
+
+      <DataCatalogModal
+        open={openModalCategory === 'dataCatalog'}
+        projectId={currentProject?.id ?? null}
+        onClose={handleCloseCategoryModal}
+      />
     </SidebarLayout>
   );
 };
