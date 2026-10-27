@@ -28,6 +28,7 @@ import {
 } from '@/entities/node/node-execution-status';
 import { requiresConnectedNodeMetadata } from '@/entities/node/node-io';
 import { CustomNodeType } from '@/entities/project-editor/graph';
+import { useLineageNodeRole } from '@/entities/project-editor/lineage-highlight';
 import { useNodeContextMenuActions } from '@/entities/project-editor/node-context-menu';
 
 import type {
@@ -212,9 +213,11 @@ const CustomNode_: React.FC<CustomNodeProps> = props => {
     () => getNodeStyles(theme, nodeExecutionStatus, selected, cacheEnabled),
     [cacheEnabled, nodeExecutionStatus, selected, theme]
   );
+  const lineageRole = useLineageNodeRole(nodeID);
   const nodeWrapperStyles = useMemo(
-    () => getNodeWrapperStyles(selected, searchMatch, searchActive),
-    [searchActive, searchMatch, selected]
+    () =>
+      getNodeWrapperStyles(selected, searchMatch, searchActive, lineageRole),
+    [lineageRole, searchActive, searchMatch, selected]
   );
 
   const normalizedNodeErrorMessage = useMemo(() => {

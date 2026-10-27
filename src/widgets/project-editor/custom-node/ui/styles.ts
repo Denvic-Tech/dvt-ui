@@ -45,16 +45,35 @@ export const macosPopInKeyframes = keyframes`
   }
 `;
 
+export type NodeLineageRole = 'highlighted' | 'dimmed' | null;
+
 export const getNodeWrapperStyles =
   (
     selected: boolean,
     searchMatch: boolean,
-    searchActive: boolean
+    searchActive: boolean,
+    lineageRole: NodeLineageRole = null
   ): SxProps<Theme> =>
   (theme: Theme) => ({
     position: 'relative',
     display: 'inline-block',
     overflow: 'visible',
+    opacity: lineageRole === 'dimmed' ? 0.32 : 1,
+    filter: lineageRole === 'dimmed' ? 'saturate(0.5)' : 'none',
+    transition: 'opacity .25s ease, filter .25s ease',
+    ...(lineageRole === 'highlighted'
+      ? {
+          // Нода цепочки lineage: простая синяя обводка без анимации.
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            inset: -6,
+            borderRadius: getRadius(theme, 6),
+            border: `5px solid ${alpha(theme.palette.primary.main, 0.45)}`,
+            pointerEvents: 'none',
+          },
+        }
+      : null),
     outline: selected ? '2px dashed' : 'none',
     outlineColor: selected ? theme.palette.primary.light : 'transparent',
     outlineOffset: selected ? 6 : 0,

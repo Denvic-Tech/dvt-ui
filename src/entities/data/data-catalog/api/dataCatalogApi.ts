@@ -12,6 +12,7 @@ import type {
   GetDatasetArg,
   GetDatasetUsageArg,
   SearchDatasetsArg,
+  SetDatasetDescriptionsArg,
 } from '../model/types';
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -146,6 +147,41 @@ export const dataCatalogApi = createApi({
         });
       },
     }),
+    setDatasetDescriptions: build.mutation<
+      DatasetDetails,
+      SetDatasetDescriptionsArg
+    >({
+      // Описания датасета глобальны: сбрасываем его карточку и список.
+      invalidatesTags: (_result, _error, arg) => [
+        { type: 'Dataset', id: arg.datasetId },
+        'DatasetList',
+      ],
+      queryFn: async (arg, api) => {
+        try {
+          const response = await client.dataCatalog.datasets
+            .datasetId(arg.datasetId)
+            .patch(
+              {
+                body: {
+                  ...(arg.description !== undefined
+                    ? { description: arg.description }
+                    : {}),
+                  fields: arg.fields ?? null,
+                },
+              },
+              { signal: api.signal, silent: true }
+            );
+          return { data: response.data };
+        } catch (error) {
+          return {
+            error: toDataCatalogError(
+              error,
+              'Не удалось сохранить описание датасета.'
+            ),
+          };
+        }
+      },
+    }),
     getDatasetUsage: build.query<DatasetUsageEntry[], GetDatasetUsageArg>({
       providesTags: (_result, _error, arg) => [
         { type: 'Dataset', id: arg.datasetId },
@@ -179,4 +215,5 @@ export const {
   useGetDatasetQuery,
   useGetDatasetUsageQuery,
   useSearchDatasetsInfiniteQuery,
+  useSetDatasetDescriptionsMutation,
 } = dataCatalogApi;

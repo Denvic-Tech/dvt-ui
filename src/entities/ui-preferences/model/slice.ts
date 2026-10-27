@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 import type {
   HomeDashboardUIPreferences,
+  NodeFieldsViewerUIPreferences,
   NodeLibraryUIPreferences,
   NodeModalWorkspaceUIPreferences,
   ProjectsViewMode,
@@ -28,6 +29,11 @@ const createInitialNodeModalWorkspacePreferences =
 const createInitialHomeDashboardPreferences =
   (): HomeDashboardUIPreferences => ({
     sectionUses: {},
+  });
+
+const createInitialNodeFieldsViewerPreferences =
+  (): NodeFieldsViewerUIPreferences => ({
+    showFullPath: false,
   });
 
 const ensureHomeDashboardPreferences = (
@@ -115,6 +121,7 @@ const initialState: UIPreferencesState = {
   nodeLibrary: createInitialNodeLibraryPreferences(),
   nodeModalWorkspace: createInitialNodeModalWorkspacePreferences(),
   homeDashboard: createInitialHomeDashboardPreferences(),
+  nodeFieldsViewer: createInitialNodeFieldsViewerPreferences(),
   skipHardStopConfirm: false,
   suppressedPrompts: {},
 };
@@ -167,6 +174,13 @@ const uiPreferencesSlice = createSlice({
     },
     setHomeWidgetIds(state, action: PayloadAction<string[]>) {
       ensureHomeDashboardPreferences(state).widgetIds = [...action.payload];
+    },
+    setNodeFieldsViewerShowFullPath(state, action: PayloadAction<boolean>) {
+      state.nodeFieldsViewer = {
+        ...(state.nodeFieldsViewer ??
+          createInitialNodeFieldsViewerPreferences()),
+        showFullPath: action.payload,
+      };
     },
     setSkipHardStopConfirm(state, action: PayloadAction<boolean>) {
       state.skipHardStopConfirm = action.payload;

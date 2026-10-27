@@ -10,6 +10,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import SensorsIcon from '@mui/icons-material/Sensors';
 import StopIcon from '@mui/icons-material/Stop';
 import TableChartIcon from '@mui/icons-material/TableChart';
+import ViewColumnOutlinedIcon from '@mui/icons-material/ViewColumnOutlined';
 
 import {
   NodeContextMenuExtension,
@@ -22,6 +23,8 @@ import { selectNodeActions } from '@/features/project-editor/select-node';
 import { uiLayoutActions } from '@/features/ui-layout';
 
 import { nodeDataFrameViewerActions } from '@/entities/node/node-dataframe-viewer';
+import { hasNodeColumns } from '@/entities/node/node-definition';
+import { nodeFieldsViewerActions } from '@/entities/node/node-fields-viewer';
 import { nodeJsonViewerActions } from '@/entities/node/node-json-viewer';
 import { nodeMetaViewerActions } from '@/entities/node/node-meta-viewer';
 import { nodePayloadViewerActions } from '@/entities/node/node-payload-viewer/ui/slice';
@@ -221,6 +224,24 @@ const CoreContextMenuExtension: NodeContextMenuExtension = {
         onSelect: ({ dispatch, nodeID }) => {
           dispatch(selectNodeActions.selectNode(nodeID));
           dispatch(nodeDataFrameViewerActions.open(nodeID));
+        },
+      });
+    }
+
+    // Lineage колонок не зависит от кэша: бэкенд строит его по графу проекта.
+    if (hasNodeColumns(nodeDefinition)) {
+      items.push({
+        id: 'open-node-fields',
+        type: 'action',
+        label: 'Посмотреть колонки',
+        icon: (
+          <IconWrapper>
+            <ViewColumnOutlinedIcon />
+          </IconWrapper>
+        ),
+        onSelect: ({ dispatch, nodeID }) => {
+          dispatch(selectNodeActions.selectNode(nodeID));
+          dispatch(nodeFieldsViewerActions.open(nodeID));
         },
       });
     }

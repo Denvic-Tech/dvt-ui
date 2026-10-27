@@ -140,3 +140,9 @@
 - Если встроенный браузер не авторизован в приложении, диалог можно проверить изолированно: временная страница `tmp/<name>/index.html` + `main.tsx` (папка `tmp/` в .gitignore) раздаётся тем же Vite dev-сервером по `http://localhost:5173/tmp/<name>/index.html` с алиасами `@/`. Внутри — `ThemeProvider` с `lightTheme`, `Provider` с реальным `store` из `@/app/providers/store/store` (или пустым `configureStore`) и импорт `@/index.css` + `@fontsource/inter/*`.
 - API-обёртки вида `export const fooApi = { method: async () => ... }` можно подменить прямо на странице присваиванием (`projectTransferApi.previewImport = async () => mock`) — модуль один и тот же для страницы и компонента.
 - Скриншоты в фоне иногда возвращают кадр до перерисовки (MUI Popover/Dialog): проверяйте состояние через `javascript_tool`/`find` и делайте повторный скриншот. Страницу после проверки удаляйте.
+
+### 2026-10-22 — RTK Query: подмена кэша ответом мутации
+
+- Чтобы положить ответ мутации в уже загруженный кэш query, используйте `api.util.updateQueryData(endpoint, arg, () => response)` (возврат значения из immer-рецепта заменяет данные синхронно). `upsertQueryData` запускает отдельный «запрос» и пишет данные асинхронно — тесты, читающие state сразу после `await dispatch(mutation)`, видят старое значение.
+- Для query, вызванного с `port: null` (бэкенд сам выбирает порт), сопоставляйте кэш по фактическому `data.port`: `api.endpoints.getNodeFields.select(cachedArg)(state).data?.port`.
+- Пункты рейла сайдбара с `kind: 'modal'` (`Sidebar/items.tsx`) не трогают `activeCategory`; окно монтируется в `Sidebar` с `open={openModalCategory === '<key>'}`, а MUI сам размонтирует содержимое после закрытия, так что состояние окна сбрасывается без ручной очистки.

@@ -5,6 +5,7 @@ import type {
   DatasetPageSchema,
   DatasetSummarySchema,
   DatasetUsageEntrySchema,
+  FieldDescriptionPatchSchema,
 } from '@/shared/gatewayClient';
 
 export type DatasetSummary = DatasetSummarySchema;
@@ -52,4 +53,14 @@ export interface GetDatasetArg {
 export interface GetDatasetUsageArg {
   datasetId: string;
   direction?: DatasetUsageDirection | null;
+}
+
+/** Изменение описания поля датасета: ключ `description` обязателен, `null` очищает. */
+export type DatasetFieldDescriptionPatch = FieldDescriptionPatchSchema;
+
+export interface SetDatasetDescriptionsArg {
+  datasetId: string;
+  /** Описание самого датасета; без ключа не меняется, `null` очищает. */
+  description?: string | null;
+  fields?: DatasetFieldDescriptionPatch[];
 }

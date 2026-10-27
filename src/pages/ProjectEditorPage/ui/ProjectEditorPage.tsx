@@ -14,9 +14,11 @@ import { CustomNode } from '@/widgets/project-editor/custom-node';
 import { WidgetNode } from '@/widgets/project-editor/custom-node-widget/ui';
 import { FileStorageManagerViewer } from '@/widgets/project-editor/file-storage-manager-viewer/ui';
 import { GraphEditor } from '@/widgets/project-editor/graph-editor';
+import { LineageHighlightBanner } from '@/widgets/project-editor/lineage-highlight-banner';
 import { NodeDataModal } from '@/widgets/project-editor/node-data-modal';
 import { NodeDataFrameViewer } from '@/widgets/project-editor/node-dataframe-viewer';
 import { NodeDocumentationViewer } from '@/widgets/project-editor/node-documentation-viewer';
+import { NodeFieldsViewer } from '@/widgets/project-editor/node-fields-viewer';
 import { NodeJsonViewer } from '@/widgets/project-editor/node-json-viewer';
 import { NodeMetaViewer } from '@/widgets/project-editor/node-metadata-viewer';
 import { Sidebar } from '@/widgets/project-editor/sidebar';
@@ -96,10 +98,12 @@ const ProjectEditorPage_ = () => {
                   }}
                 >
                   <NodeMetaViewer />
+                  <NodeFieldsViewer />
                   <NodePayloadViewer />
                   <NodeJsonViewer />
                   <NodeDocumentationViewer />
                   <GraphSyncStatusIndicator />
+                  <LineageHighlightBanner />
                   <GraphEditor nodeTypes={nodeTypes} edgeTypes={edgeTypes} />
                   <Console />
                   {isAIAnalysisEnabled ? (

@@ -28,6 +28,7 @@ import {
   dbConnectionsReducer,
 } from '@/entities/data/db-connection';
 import { jsonDataReducer } from '@/entities/data/json-data';
+import { lineageApi } from '@/entities/data/lineage';
 import { storageReducer } from '@/entities/data/storage';
 import { homeWidgetsApi } from '@/entities/home-widget';
 import { logsReducer } from '@/entities/log';
@@ -37,6 +38,7 @@ import { nodeDefinitionReducer } from '@/entities/node/node-definition';
 import { nodeDocumentationReducer } from '@/entities/node/node-documentation';
 import { nodeDocumentationViewerReducer } from '@/entities/node/node-documentation-viewer';
 import { nodeExecutionStatusReducer } from '@/entities/node/node-execution-status';
+import { nodeFieldsViewerReducer } from '@/entities/node/node-fields-viewer';
 import { nodeJsonViewerReducer } from '@/entities/node/node-json-viewer';
 import { nodeMetaViewerReducer } from '@/entities/node/node-meta-viewer';
 import { nodeMetadataReducer } from '@/entities/node/node-metadata';
@@ -49,6 +51,7 @@ import { taskExecutionStatusReducer } from '@/entities/project/task-execution-st
 import { taskLogsReducer } from '@/entities/project/task-logs';
 import { edgeContextMenuReducer } from '@/entities/project-editor/edge-context-menu';
 import { graphReducer } from '@/entities/project-editor/graph';
+import { lineageHighlightReducer } from '@/entities/project-editor/lineage-highlight';
 import { multiNodeContextMenuReducer } from '@/entities/project-editor/multi-node-context-menu';
 import { nodeContextMenuReducer } from '@/entities/project-editor/node-context-menu';
 import { systemAvailabilityReducer } from '@/entities/system-availability';
@@ -80,6 +83,7 @@ export const rootReducer = combineReducers({
   dbConnections: dbConnectionsReducer,
   [dbCatalogApi.reducerPath]: dbCatalogApi.reducer,
   [dataCatalogApi.reducerPath]: dataCatalogApi.reducer,
+  [lineageApi.reducerPath]: lineageApi.reducer,
   [homeWidgetsApi.reducerPath]: homeWidgetsApi.reducer,
   logs: logsReducer,
   graph: graphReducer,
@@ -94,6 +98,8 @@ export const rootReducer = combineReducers({
   uiLayout: uiLayoutReducer,
   uiPreferences: uiPreferencesReducer,
   nodeMetaViewer: nodeMetaViewerReducer,
+  nodeFieldsViewer: nodeFieldsViewerReducer,
+  lineageHighlight: lineageHighlightReducer,
   nodeDataFrameViewer: nodeDataFrameViewerReducer,
   nodeJsonViewer: nodeJsonViewerReducer,
   selectNode: selectNodeReducer,

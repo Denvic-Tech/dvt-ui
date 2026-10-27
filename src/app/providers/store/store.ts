@@ -22,6 +22,7 @@ import { syncGraphMiddleware } from '@/features/project-editor/sync-graph';
 
 import { dataCatalogApi } from '@/entities/data/data-catalog';
 import { dbCatalogApi } from '@/entities/data/db-connection';
+import { lineageApi } from '@/entities/data/lineage';
 import { homeWidgetsApi } from '@/entities/home-widget';
 import { nodeExecutionStatusListenerMiddleware } from '@/entities/node/node-execution-status';
 import { taskExecutionStatusListenerMiddleware } from '@/entities/project/task-execution-status';
@@ -72,6 +73,7 @@ export const store = configureStore({
     })
       .concat(dbCatalogApi.middleware)
       .concat(dataCatalogApi.middleware)
+      .concat(lineageApi.middleware)
       .concat(homeWidgetsApi.middleware)
       .concat(websocketMiddleware)
       .prepend(syncGraphMiddleware)

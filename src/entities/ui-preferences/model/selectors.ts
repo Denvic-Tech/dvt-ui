@@ -61,6 +61,9 @@ export const selectIsNodeLibraryCategoryCollapsed = (
   category: string
 ) => Boolean(selectCollapsedNodeLibraryCategories(state)[category]);
 
+export const selectNodeFieldsViewerShowFullPath = (state: RootState) =>
+  selectUIPreferences(state).nodeFieldsViewer?.showFullPath ?? false;
+
 export const selectSkipHardStopConfirm = (state: RootState) =>
   selectUIPreferences(state).skipHardStopConfirm;
 

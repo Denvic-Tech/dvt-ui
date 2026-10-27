@@ -7,6 +7,7 @@ import {
   selectHomeSectionUses,
   selectHomeWidgetIds,
   selectIsPromptSuppressed,
+  selectNodeFieldsViewerShowFullPath,
   selectNodeModalWorkspacePreviewWidth,
   selectPinnedNodeNames,
   selectProjectsViewMode,
@@ -118,6 +119,23 @@ export const useNodeModalWorkspacePreferences = () => {
   return {
     previewWidth,
     setPreviewWidth,
+  };
+};
+
+export const useNodeFieldsViewerPreferences = () => {
+  const dispatch = useAppDispatch();
+  const showFullPath = useAppSelector(selectNodeFieldsViewerShowFullPath);
+
+  const setShowFullPath = useCallback(
+    (nextValue: boolean) => {
+      dispatch(uiPreferencesActions.setNodeFieldsViewerShowFullPath(nextValue));
+    },
+    [dispatch]
+  );
+
+  return {
+    showFullPath,
+    setShowFullPath,
   };
 };
 

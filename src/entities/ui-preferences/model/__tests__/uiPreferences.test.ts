@@ -4,6 +4,7 @@ import {
   selectCollapsedNodeLibraryCategories,
   selectIsNodeLibraryCategoryCollapsed,
   selectIsNodePinned,
+  selectNodeFieldsViewerShowFullPath,
   selectNodeModalWorkspacePreviewWidth,
   selectPinnedNodeNames,
 } from '../selectors';
@@ -123,6 +124,26 @@ describe('uiPreferences slice', () => {
     );
 
     expect(state.homeDashboard.sectionUses).toEqual({ admin: 1 });
+  });
+
+  it('stores the node fields viewer path mode, including legacy state', () => {
+    const initial = uiPreferencesReducer(undefined, { type: 'unknown' });
+    expect(initial.nodeFieldsViewer.showFullPath).toBe(false);
+
+    const { nodeFieldsViewer: _omitted, ...legacyState } = initial;
+    expect(
+      selectNodeFieldsViewerShowFullPath({
+        uiPreferences: legacyState,
+      } as never)
+    ).toBe(false);
+
+    const state = uiPreferencesReducer(
+      legacyState as UIPreferencesState,
+      uiPreferencesActions.setNodeFieldsViewerShowFullPath(true)
+    );
+    expect(
+      selectNodeFieldsViewerShowFullPath({ uiPreferences: state } as never)
+    ).toBe(true);
   });
 
   it('stores the ordered home widget ids', () => {
