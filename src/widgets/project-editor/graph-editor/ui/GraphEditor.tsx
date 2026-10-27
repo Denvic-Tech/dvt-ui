@@ -124,6 +124,7 @@ import {
   selectGraphLastLoadedProjectID,
   updateGraphNodePositions,
 } from '@/entities/project-editor/graph';
+import { selectLineageHighlight } from '@/entities/project-editor/lineage-highlight';
 import { useMultiNodeContextMenuActions } from '@/entities/project-editor/multi-node-context-menu';
 import { NodeLibraryContextMenu } from '@/entities/project-editor/node-library/ui/NodeLibraryContextMenu/NodeLibraryContextMenu';
 
@@ -4996,6 +4997,63 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
       window.cancelAnimationFrame(frameID);
     };
   }, [centerOnNode, pendingNodeFocus, visibleNodes]);
+
+  // Подсветка цепочки lineage: раскрываем свёрнутые сабграфы с её нодами и
+  // вписываем всю цепочку во вьюпорт. Сабграфы раскрываются через ref-ы, чтобы
+  // их пересоздание не перезапускало эффект и не отменяло вписывание.
+  const lineageHighlight = useAppSelector(selectLineageHighlight);
+  const lastFittedLineageRequestIDRef = useRef(0);
+  useEffect(() => {
+    if (
+      !lineageHighlight ||
+      lineageHighlight.requestID <= lastFittedLineageRequestIDRef.current
+    ) {
+      return;
+    }
+
+    const { requestID, nodeIDs } = lineageHighlight;
+    lastFittedLineageRequestIDRef.current = requestID;
+
+    const chainNodeIDs = new Set(nodeIDs);
+    const collapsedSubgraphIDs = new Set<string>();
+    nodesRef.current.forEach(node => {
+      if (!chainNodeIDs.has(node.id) || !node.subgraphId) {
+        return;
+      }
+      const subgraph = subgraphsRef.current.find(
+        item => item.id === node.subgraphId
+      );
+      if (subgraph && !subgraph.expanded) {
+        collapsedSubgraphIDs.add(subgraph.id);
+      }
+    });
+    collapsedSubgraphIDs.forEach(subgraphID =>
+      setSubgraphExpandedRef.current(subgraphID, true)
+    );
+
+    const fitChain = async () => {
+      // Два кадра: раскрытые сабграфы успевают отрисовать и измерить ноды.
+      await new Promise<void>(resolve => {
+        window.requestAnimationFrame(() => resolve());
+      });
+      await new Promise<void>(resolve => {
+        window.requestAnimationFrame(() => resolve());
+      });
+      if (lastFittedLineageRequestIDRef.current !== requestID) {
+        return;
+      }
+      await fitView({
+        nodes: nodeIDs.map(id => ({ id })),
+        padding: 0.2,
+        duration: 360,
+        maxZoom: 1,
+      });
+    };
+
+    void fitChain().catch(error => {
+      console.error('Failed to fit lineage chain', error);
+    });
+  }, [fitView, lineageHighlight]);
 
   // Reset / clamp active match index:
   // - on query change: jump to the first match

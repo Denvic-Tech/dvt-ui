@@ -51,6 +51,7 @@ import { taskExecutionStatusReducer } from '@/entities/project/task-execution-st
 import { taskLogsReducer } from '@/entities/project/task-logs';
 import { edgeContextMenuReducer } from '@/entities/project-editor/edge-context-menu';
 import { graphReducer } from '@/entities/project-editor/graph';
+import { lineageHighlightReducer } from '@/entities/project-editor/lineage-highlight';
 import { multiNodeContextMenuReducer } from '@/entities/project-editor/multi-node-context-menu';
 import { nodeContextMenuReducer } from '@/entities/project-editor/node-context-menu';
 import { systemAvailabilityReducer } from '@/entities/system-availability';
@@ -98,6 +99,7 @@ export const rootReducer = combineReducers({
   uiPreferences: uiPreferencesReducer,
   nodeMetaViewer: nodeMetaViewerReducer,
   nodeFieldsViewer: nodeFieldsViewerReducer,
+  lineageHighlight: lineageHighlightReducer,
   nodeDataFrameViewer: nodeDataFrameViewerReducer,
   nodeJsonViewer: nodeJsonViewerReducer,
   selectNode: selectNodeReducer,
