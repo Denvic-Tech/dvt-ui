@@ -2080,6 +2080,258 @@ export type ColumnOutput = {
 };
 
 /**
+ * ColumnDescriptionPatchSchema
+ *
+ * Ключ description обязателен: null удаляет описание колонки.
+ */
+export type ColumnDescriptionPatchSchema = {
+  /**
+   * Column
+   */
+  column: string;
+  /**
+   * Description
+   */
+  description: string | null;
+};
+
+/**
+ * ColumnGroupSchema
+ *
+ * Все вхождения колонки с общим origin; группа это представление, а не сущность хранения.
+ */
+export type ColumnGroupSchema = {
+  origin: LineageRefSchema;
+  /**
+   * Kind
+   */
+  kind: 'dataset_field' | 'node_column';
+  /**
+   * Dataset Id
+   */
+  dataset_id?: string | null;
+  /**
+   * Dataset Location
+   */
+  dataset_location?: string | null;
+  /**
+   * Field Name
+   */
+  field_name?: string | null;
+  /**
+   * Origin Node Name
+   */
+  origin_node_name?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Description Provenance
+   */
+  description_provenance?:
+    | 'declared'
+    | 'source'
+    | 'inherited'
+    | 'derived'
+    | 'none'
+    | 'unknown';
+  description_source?: LineageRefSchema | null;
+  /**
+   * Description Updated By
+   */
+  description_updated_by?: string | null;
+  /**
+   * Description Updated At
+   */
+  description_updated_at?: string | null;
+  /**
+   * Override Count
+   */
+  override_count?: number;
+  /**
+   * Occurrences
+   */
+  occurrences?: Array<ColumnOccurrenceSchema>;
+};
+
+/**
+ * ColumnOccurrenceSchema
+ *
+ * Колонка одного порта внутри группы; `is_override` отмечает переопределение не на origin.
+ */
+export type ColumnOccurrenceSchema = {
+  ref: LineageRefSchema;
+  /**
+   * Node Id
+   */
+  node_id: string;
+  /**
+   * Node Name
+   */
+  node_name: string;
+  /**
+   * Port
+   */
+  port: string;
+  /**
+   * Role
+   */
+  role: 'output' | 'input';
+  /**
+   * Column
+   */
+  column: string;
+  /**
+   * Op
+   */
+  op:
+    | 'source'
+    | 'pass'
+    | 'rename'
+    | 'compute'
+    | 'aggregate'
+    | 'merge'
+    | 'unknown';
+  /**
+   * Deps
+   */
+  deps?: Array<LineageRefSchema>;
+  /**
+   * Deps Unknown
+   */
+  deps_unknown?: boolean;
+  /**
+   * Depth
+   *
+   * Хопов от origin по pass/rename/source.
+   */
+  depth: number;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Description Provenance
+   */
+  description_provenance?:
+    | 'declared'
+    | 'source'
+    | 'inherited'
+    | 'derived'
+    | 'none'
+    | 'unknown';
+  description_source?: LineageRefSchema | null;
+  /**
+   * Description Updated By
+   */
+  description_updated_by?: string | null;
+  /**
+   * Description Updated At
+   */
+  description_updated_at?: string | null;
+  /**
+   * Is Override
+   */
+  is_override?: boolean;
+};
+
+/**
+ * ColumnRowSchema
+ *
+ * Отрезок цепочки с одним именем и одним текстом описания: строка общего окна каталога.
+ */
+export type ColumnRowSchema = {
+  /**
+   * Id
+   *
+   * Ключ стартового вхождения; стабилен, пока не меняется граф.
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  origin: LineageRefSchema;
+  start: LineageRefSchema;
+  /**
+   * Kind
+   */
+  kind: 'dataset_field' | 'node_column';
+  /**
+   * Dataset Id
+   */
+  dataset_id?: string | null;
+  /**
+   * Dataset Location
+   */
+  dataset_location?: string | null;
+  /**
+   * Field Name
+   */
+  field_name?: string | null;
+  /**
+   * Origin Node Name
+   */
+  origin_node_name?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Description Provenance
+   */
+  description_provenance?:
+    | 'declared'
+    | 'source'
+    | 'inherited'
+    | 'derived'
+    | 'none'
+    | 'unknown';
+  description_source?: LineageRefSchema | null;
+  /**
+   * Description Updated By
+   */
+  description_updated_by?: string | null;
+  /**
+   * Description Updated At
+   */
+  description_updated_at?: string | null;
+  /**
+   * Is Rename
+   */
+  is_rename?: boolean;
+  /**
+   * Renamed From
+   */
+  renamed_from?: string | null;
+  /**
+   * Is Refinement
+   *
+   * Строка возникла из-за точечного описания в ноде старта.
+   */
+  is_refinement?: boolean;
+  /**
+   * Targets
+   */
+  targets?: Array<DescriptionTargetSchema>;
+  /**
+   * Depends On
+   *
+   * id строк, из которых собрана колонка.
+   */
+  depends_on?: Array<string>;
+  /**
+   * Node Count
+   */
+  node_count?: number;
+  /**
+   * Occurrences
+   */
+  occurrences?: Array<ColumnOccurrenceSchema>;
+};
+
+/**
  * CommonResponse
  */
 export type CommonResponse = {
@@ -3242,6 +3494,42 @@ export type DeleteFolderIn = {
 };
 
 /**
+ * DescriptionTargetSchema
+ *
+ * Куда пишется описание строки: `project` через PATCH колонок ноды, `global` через PATCH сущности.
+ */
+export type DescriptionTargetSchema = {
+  /**
+   * Scope
+   */
+  scope: 'project' | 'global';
+  /**
+   * Node Id
+   */
+  node_id?: string | null;
+  /**
+   * Port
+   */
+  port?: string | null;
+  /**
+   * Column
+   */
+  column?: string | null;
+  /**
+   * Dataset Id
+   */
+  dataset_id?: string | null;
+  /**
+   * Field Id
+   */
+  field_id?: string | null;
+  /**
+   * Field Name
+   */
+  field_name?: string | null;
+};
+
+/**
  * Dvt_service_filesFileNoDriverConnectionCreateRequest
  */
 export type DvtServiceFilesFileNoDriverConnectionCreateRequest = {
@@ -3718,6 +4006,12 @@ export type ExplainStepSchema = {
    * Field Name
    */
   field_name?: string | null;
+  /**
+   * Deps
+   *
+   * Direct parents of this step; lets a client rebuild the tree without guessing by depth.
+   */
+  deps?: Array<LineageRefSchema>;
 };
 
 /**
@@ -4479,6 +4773,7 @@ export type FieldExplanationSchema = {
     | 'source'
     | 'inherited'
     | 'derived'
+    | 'none'
     | 'unknown';
   description_source?: LineageRefSchema | null;
   /**
@@ -7287,6 +7582,20 @@ export type NoDriverOptions = {
 };
 
 /**
+ * NodeColumnDescriptionsPatchSchema
+ */
+export type NodeColumnDescriptionsPatchSchema = {
+  /**
+   * Port
+   */
+  port?: string | null;
+  /**
+   * Fields
+   */
+  fields: Array<ColumnDescriptionPatchSchema>;
+};
+
+/**
  * NodeDefinition
  *
  * Обновленное определение ноды для передачи клиенту.
@@ -7466,12 +7775,33 @@ export type NodeFieldSchema = {
     | 'source'
     | 'inherited'
     | 'derived'
+    | 'none'
     | 'unknown';
   description_source?: LineageRefSchema | null;
+  /**
+   * Description Updated By
+   */
+  description_updated_by?: string | null;
+  /**
+   * Description Updated At
+   */
+  description_updated_at?: string | null;
   /**
    * Explanation
    */
   explanation?: string | null;
+  /**
+   * Origin Field Name
+   *
+   * Имя поля сущности, если колонка происходит из него.
+   */
+  origin_field_name?: string | null;
+  /**
+   * Origin Location
+   *
+   * Человекочитаемый адрес сущности-источника колонки.
+   */
+  origin_location?: string | null;
 };
 
 /**
@@ -7518,6 +7848,10 @@ export type NodeFieldsResponseSchema = {
    * Fields
    */
   fields?: Array<NodeFieldSchema>;
+  /**
+   * Orphaned Annotations
+   */
+  orphaned_annotations?: Array<OrphanedAnnotationSchema>;
 };
 
 /**
@@ -8031,6 +8365,34 @@ export type OrganizationUpdateSchema = {
    * Is organization active
    */
   is_active?: boolean | null;
+};
+
+/**
+ * OrphanedAnnotationSchema
+ *
+ * Описание колонки, которой больше нет на порту: осталось после переименования в ноде.
+ */
+export type OrphanedAnnotationSchema = {
+  /**
+   * Column
+   */
+  column: string;
+  /**
+   * Description
+   */
+  description: string;
+  /**
+   * Origin Key
+   */
+  origin_key?: string | null;
+  /**
+   * Description Updated By
+   */
+  description_updated_by?: string | null;
+  /**
+   * Updated At
+   */
+  updated_at: string;
 };
 
 /**
@@ -8793,6 +9155,42 @@ export type PresignedPostOut = {
 };
 
 /**
+ * ProjectColumnsResponseSchema
+ */
+export type ProjectColumnsResponseSchema = {
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * Lineage Available
+   *
+   * false, если у проекта нет документа lineage даже после ленивого repair.
+   */
+  lineage_available: boolean;
+  /**
+   * Truncated
+   */
+  truncated?: boolean;
+  /**
+   * Rows
+   */
+  rows?: Array<ColumnRowSchema>;
+  /**
+   * Groups
+   */
+  groups?: Array<ColumnGroupSchema>;
+  /**
+   * Unresolved Ports
+   */
+  unresolved_ports?: Array<UnresolvedPortSchema>;
+  /**
+   * Orphaned Annotations
+   */
+  orphaned_annotations?: Array<ProjectOrphanedAnnotationSchema>;
+};
+
+/**
  * ProjectCreateSchema
  *
  * Схема для создания проекта в БД
@@ -9052,6 +9450,40 @@ export type ProjectLastRunSchema = {
    * Причина аварийного завершения запуска
    */
   termination_reason?: string | null;
+};
+
+/**
+ * ProjectOrphanedAnnotationSchema
+ */
+export type ProjectOrphanedAnnotationSchema = {
+  /**
+   * Column
+   */
+  column: string;
+  /**
+   * Description
+   */
+  description: string;
+  /**
+   * Origin Key
+   */
+  origin_key?: string | null;
+  /**
+   * Description Updated By
+   */
+  description_updated_by?: string | null;
+  /**
+   * Updated At
+   */
+  updated_at: string;
+  /**
+   * Node Id
+   */
+  node_id: string;
+  /**
+   * Port
+   */
+  port: string;
 };
 
 /**
@@ -12152,6 +12584,40 @@ export type TruncateTableRequest = {
    * Schema Name
    */
   schema_name?: string | null;
+};
+
+/**
+ * UnresolvedPortSchema
+ */
+export type UnresolvedPortSchema = {
+  /**
+   * Node Id
+   */
+  node_id: string;
+  /**
+   * Node Name
+   */
+  node_name: string;
+  /**
+   * Port
+   */
+  port: string;
+  /**
+   * Role
+   */
+  role: 'output' | 'input';
+  /**
+   * Status
+   */
+  status: 'resolved' | 'partially_resolved' | 'unresolved';
+  /**
+   * Reason
+   */
+  reason?: string | null;
+  /**
+   * Detail
+   */
+  detail?: string | null;
 };
 
 /**
@@ -22165,6 +22631,40 @@ export type ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPos
 export type ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponse =
   ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponses[keyof ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponses];
 
+export type GetProjectColumnsProjectsProjectIdLineageColumnsGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     *
+     * Project ID
+     */
+    project_id: string;
+  };
+  query?: never;
+  url: '/projects/{project_id}/lineage/columns';
+};
+
+export type GetProjectColumnsProjectsProjectIdLineageColumnsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetProjectColumnsProjectsProjectIdLineageColumnsGetError =
+  GetProjectColumnsProjectsProjectIdLineageColumnsGetErrors[keyof GetProjectColumnsProjectsProjectIdLineageColumnsGetErrors];
+
+export type GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ProjectColumnsResponseSchema;
+};
+
+export type GetProjectColumnsProjectsProjectIdLineageColumnsGetResponse =
+  GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses[keyof GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses];
+
 export type GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData = {
   body?: never;
   headers?: {
@@ -22218,6 +22718,57 @@ export type GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses =
 
 export type GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponse =
   GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses[keyof GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponses];
+
+export type SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData =
+  {
+    body: NodeColumnDescriptionsPatchSchema;
+    headers?: {
+      /**
+       * X-Language
+       */
+      'X-Language'?: string | null;
+      /**
+       * Accept-Language
+       */
+      'Accept-Language'?: string | null;
+    };
+    path: {
+      /**
+       * Node Id
+       */
+      node_id: string;
+      /**
+       * Project Id
+       *
+       * Project ID
+       */
+      project_id: string;
+    };
+    query?: never;
+    url: '/projects/{project_id}/lineage/nodes/{node_id}/columns';
+  };
+
+export type SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchErrors =
+  {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+  };
+
+export type SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchError =
+  SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchErrors[keyof SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchErrors];
+
+export type SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses =
+  {
+    /**
+     * Successful Response
+     */
+    200: NodeFieldsResponseSchema;
+  };
+
+export type SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponse =
+  SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses[keyof SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses];
 
 export type ExplainFieldProjectsProjectIdLineageExplainGetData = {
   body?: never;

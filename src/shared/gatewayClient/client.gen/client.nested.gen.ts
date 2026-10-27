@@ -282,6 +282,9 @@ import type {
   GetProjectByIdProjectsProjectIdGetData,
   GetProjectByIdProjectsProjectIdGetError,
   GetProjectByIdProjectsProjectIdGetResponses,
+  GetProjectColumnsProjectsProjectIdLineageColumnsGetData,
+  GetProjectColumnsProjectsProjectIdLineageColumnsGetError,
+  GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses,
   GetProjectItemsProjectsItemsGetData,
   GetProjectItemsProjectsItemsGetError,
   GetProjectItemsProjectsItemsGetResponses,
@@ -488,6 +491,9 @@ import type {
   SetDataStorePostData,
   SetDataStorePostError,
   SetDataStorePostResponses,
+  SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData,
+  SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchError,
+  SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses,
   SetProjectVariablesProjectsProjectIdVariablesPutData,
   SetProjectVariablesProjectsProjectIdVariablesPutError,
   SetProjectVariablesProjectsProjectIdVariablesPutResponses,
@@ -756,6 +762,8 @@ import {
   zGetOrganizationsPublicOrganizationsGetResponse,
   zGetProjectByIdProjectsProjectIdGetData,
   zGetProjectByIdProjectsProjectIdGetResponse,
+  zGetProjectColumnsProjectsProjectIdLineageColumnsGetData,
+  zGetProjectColumnsProjectsProjectIdLineageColumnsGetResponse,
   zGetProjectItemsProjectsItemsGetData,
   zGetProjectItemsProjectsItemsGetResponse,
   zGetProjectLogsProjectsProjectIdLogsGetData,
@@ -902,6 +910,8 @@ import {
   zSetAppSettingsValueAppSettingsKeyPostData,
   zSetDataBatchStoreBatchPostData,
   zSetDataStorePostData,
+  zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData,
+  zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponse,
   zSetProjectVariablesProjectsProjectIdVariablesPutData,
   zSetProjectVariablesProjectsProjectIdVariablesPutResponse,
   zSqlCodeMetadataUtilsSqlCodeMetadataPostData,
@@ -4244,6 +4254,67 @@ export const nestedClient = {
           },
         },
         lineage: {
+          columns: {
+            /**
+             * Get Project Columns
+             */
+            get: async (
+              params?: OperationParams<GetProjectColumnsProjectsProjectIdLineageColumnsGetData>,
+              config?: OperationConfig<
+                GetProjectColumnsProjectsProjectIdLineageColumnsGetData,
+                GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses[keyof GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses]
+              >
+            ): OperationResult<
+              GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses[keyof GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses],
+              GetProjectColumnsProjectsProjectIdLineageColumnsGetError
+            > => {
+              const requestParams = (params ??
+                {}) as OperationParams<GetProjectColumnsProjectsProjectIdLineageColumnsGetData>;
+              const { client: clientOverride, ...requestConfig } = (config ??
+                {}) as OperationConfig<
+                GetProjectColumnsProjectsProjectIdLineageColumnsGetData,
+                GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses[keyof GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses]
+              >;
+              const requestClient = clientOverride ?? client;
+              const requestOptions = {
+                ...requestConfig,
+                ...requestParams,
+              } satisfies Omit<
+                OperationBaseOptions<
+                  GetProjectColumnsProjectsProjectIdLineageColumnsGetData,
+                  GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses[keyof GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses]
+                >,
+                'path'
+              >;
+              if (requestOptions.requestValidator == null) {
+                requestOptions.requestValidator = async data => {
+                  return await zGetProjectColumnsProjectsProjectIdLineageColumnsGetData.parseAsync(
+                    data
+                  );
+                };
+              }
+              if (requestOptions.responseValidator == null) {
+                requestOptions.responseValidator = async data => {
+                  return await zGetProjectColumnsProjectsProjectIdLineageColumnsGetResponse.parseAsync(
+                    data
+                  );
+                };
+              }
+              const path = {
+                ...rootPathContext_projectId,
+              } satisfies PathContext;
+              return requestClient.request<
+                GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses[keyof GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses],
+                GetProjectColumnsProjectsProjectIdLineageColumnsGetError,
+                true
+              >({
+                ...requestOptions,
+                method: 'GET',
+                url: '/projects/{project_id}/lineage/columns',
+                path,
+              });
+            },
+          },
           nodes: {
             nodeId: (nodeId: PathParamValue) => {
               const rootPathContext_projectId_nodeId: PathContext = {
@@ -4308,6 +4379,67 @@ export const nestedClient = {
                       ...requestOptions,
                       method: 'GET',
                       url: '/projects/{project_id}/lineage/nodes/{node_id}/fields',
+                      path,
+                    });
+                  },
+                },
+                columns: {
+                  /**
+                   * Set Node Column Descriptions
+                   */
+                  patch: async (
+                    params?: OperationParams<SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData>,
+                    config?: OperationConfig<
+                      SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData,
+                      SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses[keyof SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses]
+                    >
+                  ): OperationResult<
+                    SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses[keyof SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses],
+                    SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchError
+                  > => {
+                    const requestParams = (params ??
+                      {}) as OperationParams<SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData>;
+                    const { client: clientOverride, ...requestConfig } =
+                      (config ?? {}) as OperationConfig<
+                        SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData,
+                        SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses[keyof SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses]
+                      >;
+                    const requestClient = clientOverride ?? client;
+                    const requestOptions = {
+                      ...requestConfig,
+                      ...requestParams,
+                    } satisfies Omit<
+                      OperationBaseOptions<
+                        SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData,
+                        SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses[keyof SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses]
+                      >,
+                      'path'
+                    >;
+                    if (requestOptions.requestValidator == null) {
+                      requestOptions.requestValidator = async data => {
+                        return await zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData.parseAsync(
+                          data
+                        );
+                      };
+                    }
+                    if (requestOptions.responseValidator == null) {
+                      requestOptions.responseValidator = async data => {
+                        return await zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponse.parseAsync(
+                          data
+                        );
+                      };
+                    }
+                    const path = {
+                      ...rootPathContext_projectId_nodeId,
+                    } satisfies PathContext;
+                    return requestClient.request<
+                      SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses[keyof SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses],
+                      SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchError,
+                      true
+                    >({
+                      ...requestOptions,
+                      method: 'PATCH',
+                      url: '/projects/{project_id}/lineage/nodes/{node_id}/columns',
                       path,
                     });
                   },

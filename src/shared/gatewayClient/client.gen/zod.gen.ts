@@ -1541,6 +1541,171 @@ export const zColumnOutput = z.object({
 export type ColumnOutputZodType = z.infer<typeof zColumnOutput>;
 
 /**
+ * ColumnDescriptionPatchSchema
+ *
+ * Ключ description обязателен: null удаляет описание колонки.
+ */
+export const zColumnDescriptionPatchSchema = z.object({
+  column: z.string().min(1).max(512),
+  description: z.union([z.string().max(20480), z.null()]),
+});
+
+export type ColumnDescriptionPatchSchemaZodType = z.infer<
+  typeof zColumnDescriptionPatchSchema
+>;
+
+/**
+ * LineageRefSchema
+ */
+export const zLineageRefSchema = z.object({
+  key: z.string(),
+  kind: z.enum(['ds', 'node']),
+  dataset_id: z.optional(z.union([z.string(), z.null()])),
+  field_id: z.optional(z.union([z.string(), z.null()])),
+  node_id: z.optional(z.union([z.string(), z.null()])),
+  port: z.optional(z.union([z.string(), z.null()])),
+  column: z.optional(z.union([z.string(), z.null()])),
+});
+
+export type LineageRefSchemaZodType = z.infer<typeof zLineageRefSchema>;
+
+/**
+ * ColumnOccurrenceSchema
+ *
+ * Колонка одного порта внутри группы; `is_override` отмечает переопределение не на origin.
+ */
+export const zColumnOccurrenceSchema = z.object({
+  ref: zLineageRefSchema,
+  node_id: z.string(),
+  node_name: z.string(),
+  port: z.string(),
+  role: z.enum(['output', 'input']),
+  column: z.string(),
+  op: z.enum([
+    'source',
+    'pass',
+    'rename',
+    'compute',
+    'aggregate',
+    'merge',
+    'unknown',
+  ]),
+  deps: z.optional(z.array(zLineageRefSchema)),
+  deps_unknown: z.optional(z.boolean()).default(false),
+  depth: z.int().gte(0),
+  description: z.optional(z.union([z.string(), z.null()])),
+  description_provenance: z.optional(
+    z.enum(['declared', 'source', 'inherited', 'derived', 'none', 'unknown'])
+  ),
+  description_source: z.optional(z.union([zLineageRefSchema, z.null()])),
+  description_updated_by: z.optional(z.union([z.string(), z.null()])),
+  description_updated_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  is_override: z.optional(z.boolean()).default(false),
+});
+
+export type ColumnOccurrenceSchemaZodType = z.infer<
+  typeof zColumnOccurrenceSchema
+>;
+
+/**
+ * ColumnGroupSchema
+ *
+ * Все вхождения колонки с общим origin; группа это представление, а не сущность хранения.
+ */
+export const zColumnGroupSchema = z.object({
+  origin: zLineageRefSchema,
+  kind: z.enum(['dataset_field', 'node_column']),
+  dataset_id: z.optional(z.union([z.string(), z.null()])),
+  dataset_location: z.optional(z.union([z.string(), z.null()])),
+  field_name: z.optional(z.union([z.string(), z.null()])),
+  origin_node_name: z.optional(z.union([z.string(), z.null()])),
+  description: z.optional(z.union([z.string(), z.null()])),
+  description_provenance: z.optional(
+    z.enum(['declared', 'source', 'inherited', 'derived', 'none', 'unknown'])
+  ),
+  description_source: z.optional(z.union([zLineageRefSchema, z.null()])),
+  description_updated_by: z.optional(z.union([z.string(), z.null()])),
+  description_updated_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  override_count: z.optional(z.int().gte(0)).default(0),
+  occurrences: z.optional(z.array(zColumnOccurrenceSchema)),
+});
+
+export type ColumnGroupSchemaZodType = z.infer<typeof zColumnGroupSchema>;
+
+/**
+ * DescriptionTargetSchema
+ *
+ * Куда пишется описание строки: `project` через PATCH колонок ноды, `global` через PATCH сущности.
+ */
+export const zDescriptionTargetSchema = z.object({
+  scope: z.enum(['project', 'global']),
+  node_id: z.optional(z.union([z.string(), z.null()])),
+  port: z.optional(z.union([z.string(), z.null()])),
+  column: z.optional(z.union([z.string(), z.null()])),
+  dataset_id: z.optional(z.union([z.string(), z.null()])),
+  field_id: z.optional(z.union([z.string(), z.null()])),
+  field_name: z.optional(z.union([z.string(), z.null()])),
+});
+
+export type DescriptionTargetSchemaZodType = z.infer<
+  typeof zDescriptionTargetSchema
+>;
+
+/**
+ * ColumnRowSchema
+ *
+ * Отрезок цепочки с одним именем и одним текстом описания: строка общего окна каталога.
+ */
+export const zColumnRowSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  origin: zLineageRefSchema,
+  start: zLineageRefSchema,
+  kind: z.enum(['dataset_field', 'node_column']),
+  dataset_id: z.optional(z.union([z.string(), z.null()])),
+  dataset_location: z.optional(z.union([z.string(), z.null()])),
+  field_name: z.optional(z.union([z.string(), z.null()])),
+  origin_node_name: z.optional(z.union([z.string(), z.null()])),
+  description: z.optional(z.union([z.string(), z.null()])),
+  description_provenance: z.optional(
+    z.enum(['declared', 'source', 'inherited', 'derived', 'none', 'unknown'])
+  ),
+  description_source: z.optional(z.union([zLineageRefSchema, z.null()])),
+  description_updated_by: z.optional(z.union([z.string(), z.null()])),
+  description_updated_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
+  is_rename: z.optional(z.boolean()).default(false),
+  renamed_from: z.optional(z.union([z.string(), z.null()])),
+  is_refinement: z.optional(z.boolean()).default(false),
+  targets: z.optional(z.array(zDescriptionTargetSchema)),
+  depends_on: z.optional(z.array(z.string())),
+  node_count: z.optional(z.int().gte(0)).default(0),
+  occurrences: z.optional(z.array(zColumnOccurrenceSchema)),
+});
+
+export type ColumnRowSchemaZodType = z.infer<typeof zColumnRowSchema>;
+
+/**
  * CommonResponse
  */
 export const zCommonResponse = z.object({
@@ -2284,21 +2449,6 @@ export const zExceptionCategory = z.enum([
 export type ExceptionCategoryZodType = z.infer<typeof zExceptionCategory>;
 
 /**
- * LineageRefSchema
- */
-export const zLineageRefSchema = z.object({
-  key: z.string(),
-  kind: z.enum(['ds', 'node']),
-  dataset_id: z.optional(z.union([z.string(), z.null()])),
-  field_id: z.optional(z.union([z.string(), z.null()])),
-  node_id: z.optional(z.union([z.string(), z.null()])),
-  port: z.optional(z.union([z.string(), z.null()])),
-  column: z.optional(z.union([z.string(), z.null()])),
-});
-
-export type LineageRefSchemaZodType = z.infer<typeof zLineageRefSchema>;
-
-/**
  * ExplainStepSchema
  */
 export const zExplainStepSchema = z.object({
@@ -2322,6 +2472,7 @@ export const zExplainStepSchema = z.object({
   dataset_id: z.optional(z.union([z.string(), z.null()])),
   field_id: z.optional(z.union([z.string(), z.null()])),
   field_name: z.optional(z.union([z.string(), z.null()])),
+  deps: z.optional(z.array(zLineageRefSchema)),
 });
 
 export type ExplainStepSchemaZodType = z.infer<typeof zExplainStepSchema>;
@@ -2742,7 +2893,7 @@ export const zFieldExplanationSchema = z.object({
   direction: z.enum(['upstream', 'downstream']),
   description: z.optional(z.union([z.string(), z.null()])),
   description_provenance: z.optional(
-    z.enum(['declared', 'source', 'inherited', 'derived', 'unknown'])
+    z.enum(['declared', 'source', 'inherited', 'derived', 'none', 'unknown'])
   ),
   description_source: z.optional(z.union([zLineageRefSchema, z.null()])),
   truncated: z.optional(z.boolean()).default(false),
@@ -4091,6 +4242,18 @@ export type MysqlSqlPymysqlDefaultDriverConnectionUpdateRequestZodType =
   z.infer<typeof zMysqlSqlPymysqlDefaultDriverConnectionUpdateRequest>;
 
 /**
+ * NodeColumnDescriptionsPatchSchema
+ */
+export const zNodeColumnDescriptionsPatchSchema = z.object({
+  port: z.optional(z.union([z.string().max(128), z.null()])),
+  fields: z.array(zColumnDescriptionPatchSchema).min(1).max(2000),
+});
+
+export type NodeColumnDescriptionsPatchSchemaZodType = z.infer<
+  typeof zNodeColumnDescriptionsPatchSchema
+>;
+
+/**
  * OutputDefinitionModel
  *
  * Определение выходного поля ноды.
@@ -4198,13 +4361,43 @@ export const zNodeFieldSchema = z.object({
   deps_unknown: z.optional(z.boolean()).default(false),
   description: z.optional(z.union([z.string(), z.null()])),
   description_provenance: z.optional(
-    z.enum(['declared', 'source', 'inherited', 'derived', 'unknown'])
+    z.enum(['declared', 'source', 'inherited', 'derived', 'none', 'unknown'])
   ),
   description_source: z.optional(z.union([zLineageRefSchema, z.null()])),
+  description_updated_by: z.optional(z.union([z.string(), z.null()])),
+  description_updated_at: z.optional(
+    z.union([
+      z.iso.datetime({
+        offset: true,
+      }),
+      z.null(),
+    ])
+  ),
   explanation: z.optional(z.union([z.string(), z.null()])),
+  origin_field_name: z.optional(z.union([z.string(), z.null()])),
+  origin_location: z.optional(z.union([z.string(), z.null()])),
 });
 
 export type NodeFieldSchemaZodType = z.infer<typeof zNodeFieldSchema>;
+
+/**
+ * OrphanedAnnotationSchema
+ *
+ * Описание колонки, которой больше нет на порту: осталось после переименования в ноде.
+ */
+export const zOrphanedAnnotationSchema = z.object({
+  column: z.string(),
+  description: z.string(),
+  origin_key: z.optional(z.union([z.string(), z.null()])),
+  description_updated_by: z.optional(z.union([z.string(), z.null()])),
+  updated_at: z.iso.datetime({
+    offset: true,
+  }),
+});
+
+export type OrphanedAnnotationSchemaZodType = z.infer<
+  typeof zOrphanedAnnotationSchema
+>;
 
 /**
  * NodeFieldsResponseSchema
@@ -4220,6 +4413,7 @@ export const zNodeFieldsResponseSchema = z.object({
   detail: z.optional(z.union([z.string(), z.null()])),
   available_ports: z.optional(z.array(z.string())),
   fields: z.optional(z.array(zNodeFieldSchema)),
+  orphaned_annotations: z.optional(z.array(zOrphanedAnnotationSchema)),
 });
 
 export type NodeFieldsResponseSchemaZodType = z.infer<
@@ -4650,6 +4844,57 @@ export const zPresignedPostOut = z.object({
 });
 
 export type PresignedPostOutZodType = z.infer<typeof zPresignedPostOut>;
+
+/**
+ * UnresolvedPortSchema
+ */
+export const zUnresolvedPortSchema = z.object({
+  node_id: z.string(),
+  node_name: z.string(),
+  port: z.string(),
+  role: z.enum(['output', 'input']),
+  status: z.enum(['resolved', 'partially_resolved', 'unresolved']),
+  reason: z.optional(z.union([z.string(), z.null()])),
+  detail: z.optional(z.union([z.string(), z.null()])),
+});
+
+export type UnresolvedPortSchemaZodType = z.infer<typeof zUnresolvedPortSchema>;
+
+/**
+ * ProjectOrphanedAnnotationSchema
+ */
+export const zProjectOrphanedAnnotationSchema = z.object({
+  column: z.string(),
+  description: z.string(),
+  origin_key: z.optional(z.union([z.string(), z.null()])),
+  description_updated_by: z.optional(z.union([z.string(), z.null()])),
+  updated_at: z.iso.datetime({
+    offset: true,
+  }),
+  node_id: z.string(),
+  port: z.string(),
+});
+
+export type ProjectOrphanedAnnotationSchemaZodType = z.infer<
+  typeof zProjectOrphanedAnnotationSchema
+>;
+
+/**
+ * ProjectColumnsResponseSchema
+ */
+export const zProjectColumnsResponseSchema = z.object({
+  project_id: z.string(),
+  lineage_available: z.boolean(),
+  truncated: z.optional(z.boolean()).default(false),
+  rows: z.optional(z.array(zColumnRowSchema)),
+  groups: z.optional(z.array(zColumnGroupSchema)),
+  unresolved_ports: z.optional(z.array(zUnresolvedPortSchema)),
+  orphaned_annotations: z.optional(z.array(zProjectOrphanedAnnotationSchema)),
+});
+
+export type ProjectColumnsResponseSchemaZodType = z.infer<
+  typeof zProjectColumnsResponseSchema
+>;
 
 /**
  * ProjectCreateSchema
@@ -12821,6 +13066,27 @@ export type ConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPos
     typeof zConfirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPostResponse
   >;
 
+export const zGetProjectColumnsProjectsProjectIdLineageColumnsGetData =
+  z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+      project_id: z.string(),
+    }),
+    query: z.optional(z.never()),
+  });
+
+export type GetProjectColumnsProjectsProjectIdLineageColumnsGetDataZodType =
+  z.infer<typeof zGetProjectColumnsProjectsProjectIdLineageColumnsGetData>;
+
+/**
+ * Successful Response
+ */
+export const zGetProjectColumnsProjectsProjectIdLineageColumnsGetResponse =
+  zProjectColumnsResponseSchema;
+
+export type GetProjectColumnsProjectsProjectIdLineageColumnsGetResponseZodType =
+  z.infer<typeof zGetProjectColumnsProjectsProjectIdLineageColumnsGetResponse>;
+
 export const zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetData =
   z.object({
     body: z.optional(z.never()),
@@ -12855,6 +13121,38 @@ export const zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponse 
 export type GetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponseZodType =
   z.infer<
     typeof zGetNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGetResponse
+  >;
+
+export const zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData =
+  z.object({
+    body: zNodeColumnDescriptionsPatchSchema,
+    path: z.object({
+      node_id: z.string(),
+      project_id: z.string(),
+    }),
+    query: z.optional(z.never()),
+    headers: z.optional(
+      z.object({
+        'X-Language': z.optional(z.union([z.string(), z.null()])),
+        'Accept-Language': z.optional(z.union([z.string(), z.null()])),
+      })
+    ),
+  });
+
+export type SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchDataZodType =
+  z.infer<
+    typeof zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData
+  >;
+
+/**
+ * Successful Response
+ */
+export const zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponse =
+  zNodeFieldsResponseSchema;
+
+export type SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponseZodType =
+  z.infer<
+    typeof zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponse
   >;
 
 export const zExplainFieldProjectsProjectIdLineageExplainGetData = z.object({

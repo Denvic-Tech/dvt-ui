@@ -286,6 +286,9 @@ import type {
   GetProjectByIdProjectsProjectIdGetData,
   GetProjectByIdProjectsProjectIdGetErrors,
   GetProjectByIdProjectsProjectIdGetResponses,
+  GetProjectColumnsProjectsProjectIdLineageColumnsGetData,
+  GetProjectColumnsProjectsProjectIdLineageColumnsGetErrors,
+  GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses,
   GetProjectItemsProjectsItemsGetData,
   GetProjectItemsProjectsItemsGetErrors,
   GetProjectItemsProjectsItemsGetResponses,
@@ -492,6 +495,9 @@ import type {
   SetDataStorePostData,
   SetDataStorePostErrors,
   SetDataStorePostResponses,
+  SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData,
+  SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchErrors,
+  SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses,
   SetProjectVariablesProjectsProjectIdVariablesPutData,
   SetProjectVariablesProjectsProjectIdVariablesPutErrors,
   SetProjectVariablesProjectsProjectIdVariablesPutResponses,
@@ -763,6 +769,8 @@ import {
   zGetOrganizationsPublicOrganizationsGetResponse,
   zGetProjectByIdProjectsProjectIdGetData,
   zGetProjectByIdProjectsProjectIdGetResponse,
+  zGetProjectColumnsProjectsProjectIdLineageColumnsGetData,
+  zGetProjectColumnsProjectsProjectIdLineageColumnsGetResponse,
   zGetProjectItemsProjectsItemsGetData,
   zGetProjectItemsProjectsItemsGetResponse,
   zGetProjectLogsProjectsProjectIdLogsGetData,
@@ -910,6 +918,8 @@ import {
   zSetAppSettingsValueAppSettingsKeyPostData,
   zSetDataBatchStoreBatchPostData,
   zSetDataStorePostData,
+  zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData,
+  zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponse,
   zSetProjectVariablesProjectsProjectIdVariablesPutData,
   zSetProjectVariablesProjectsProjectIdVariablesPutResponse,
   zSqlCodeMetadataUtilsSqlCodeMetadataPostData,
@@ -3932,6 +3942,40 @@ export const confirmFieldRenameDataCatalogDatasetsDatasetIdFieldsRenameConfirmPo
   };
 
 /**
+ * Get Project Columns
+ *
+ * Все колонки проекта группами по origin: обзор для окна каталога, без текстов объяснений.
+ */
+export const getProjectColumnsProjectsProjectIdLineageColumnsGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    GetProjectColumnsProjectsProjectIdLineageColumnsGetData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).get<
+    GetProjectColumnsProjectsProjectIdLineageColumnsGetResponses,
+    GetProjectColumnsProjectsProjectIdLineageColumnsGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetProjectColumnsProjectsProjectIdLineageColumnsGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetProjectColumnsProjectsProjectIdLineageColumnsGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/projects/{project_id}/lineage/columns',
+    ...options,
+  });
+};
+
+/**
  * Get Node Fields
  *
  * Колонки DataFrame-порта ноды с происхождением и наследованными описаниями.
@@ -3964,6 +4008,43 @@ export const getNodeFieldsProjectsProjectIdLineageNodesNodeIdFieldsGet = <
     ...options,
   });
 };
+
+/**
+ * Set Node Column Descriptions
+ *
+ * Описания колонок порта ноды: `null` удаляет; ответ как у GET .../fields после записи.
+ */
+export const setNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatch =
+  <ThrowOnError extends boolean = false>(
+    options: Options<
+      SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData,
+      ThrowOnError
+    >
+  ) => {
+    return (options.client ?? client).patch<
+      SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponses,
+      SetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchErrors,
+      ThrowOnError
+    >({
+      requestValidator: async data => {
+        return await zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchData.parseAsync(
+          data
+        );
+      },
+      responseType: 'json',
+      responseValidator: async data => {
+        return await zSetNodeColumnDescriptionsProjectsProjectIdLineageNodesNodeIdColumnsPatchResponse.parseAsync(
+          data
+        );
+      },
+      url: '/projects/{project_id}/lineage/nodes/{node_id}/columns',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  };
 
 /**
  * Explain Field
