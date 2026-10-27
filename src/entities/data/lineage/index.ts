@@ -1,16 +1,22 @@
 export {
+  invalidateProjectColumns,
   lineageApi,
   useGetFieldExplanationQuery,
   useGetNodeFieldsQuery,
+  useGetProjectColumnsQuery,
+  useSetNodeColumnDescriptionsMutation,
 } from './api/lineageApi';
 export type {
   ExplainTreeNode,
+  LineageChain,
+  LineageGraphEdge,
   LineagePath,
   LineagePathRow,
 } from './model/presentation';
 export {
   buildExplainTree,
   buildLineagePath,
+  collectLineageChain,
   filterNodeFields,
   flattenExplainTree,
   getFieldDependencyColumns,
@@ -21,12 +27,34 @@ export {
   LINEAGE_OP_APPEARANCE,
   NODE_FIELDS_STATUS_APPEARANCE,
 } from './model/presentation';
+export {
+  canClearRowDescription,
+  countProjectColumnsFilters,
+  filterProjectColumnRows,
+  formatNodeCount,
+  getDefaultTarget,
+  getProjectColumnsStats,
+  getRowDependencyNames,
+  getRowMarks,
+  getRowOriginLabel,
+  getRowStartNodeName,
+  hasRowDescription,
+  isSplitRow,
+  PROJECT_COLUMNS_FILTERS,
+  type ProjectColumnsFilter,
+  type ProjectColumnsStats,
+  PROVENANCE_TONE,
+} from './model/projectColumns';
 export type {
+  ColumnDescriptionPatch,
+  ColumnOccurrence,
+  DescriptionTarget,
   ExplainDirection,
   ExplainStep,
   FieldExplanation,
   GetFieldExplanationArg,
   GetNodeFieldsArg,
+  GetProjectColumnsArg,
   LineageDescriptionProvenance,
   LineageGap,
   LineageOp,
@@ -34,4 +62,13 @@ export type {
   NodeField,
   NodeFields,
   NodeFieldsStatus,
+  OrphanedAnnotation,
+  ProjectColumnRow,
+  ProjectColumns,
+  SetNodeColumnDescriptionsArg,
+  UnresolvedPort,
 } from './model/types';
+export {
+  ColumnDescriptionDialog,
+  type ColumnDescriptionDialogProps,
+} from './ui/ColumnDescriptionDialog';

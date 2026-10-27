@@ -1,10 +1,17 @@
 import type {
+  ColumnDescriptionPatchSchema,
+  ColumnOccurrenceSchema,
+  ColumnRowSchema,
+  DescriptionTargetSchema,
   ExplainStepSchema,
   FieldExplanationSchema,
   LineageGapSchema,
   LineageRefSchema,
   NodeFieldSchema,
   NodeFieldsResponseSchema,
+  ProjectColumnsResponseSchema,
+  ProjectOrphanedAnnotationSchema,
+  UnresolvedPortSchema,
 } from '@/shared/gatewayClient';
 
 export type LineageRef = LineageRefSchema;
@@ -50,4 +57,33 @@ export interface GetFieldExplanationArg {
   port?: string | null;
   direction?: ExplainDirection;
   maxDepth?: number;
+}
+
+/** Изменение описания колонки: `description: null` удаляет описание ноды. */
+export type ColumnDescriptionPatch = ColumnDescriptionPatchSchema;
+
+export interface SetNodeColumnDescriptionsArg {
+  projectId: string;
+  nodeId: string;
+  /** Порт ноды, к колонкам которого относятся описания. */
+  port?: string | null;
+  fields: ColumnDescriptionPatch[];
+}
+
+/** Все колонки проекта: строки-отрезки `rows`, группы по origin, пробелы lineage. */
+export type ProjectColumns = ProjectColumnsResponseSchema;
+
+/**
+ * Строка общего слоя: отрезок цепочки, на котором не меняются имя колонки и
+ * текст описания. Переименование и уточнение в ноде начинают новую строку.
+ */
+export type ProjectColumnRow = ColumnRowSchema;
+export type ColumnOccurrence = ColumnOccurrenceSchema;
+/** Куда пишется описание строки: аннотация ноды (`project`) или поле таблицы (`global`). */
+export type DescriptionTarget = DescriptionTargetSchema;
+export type UnresolvedPort = UnresolvedPortSchema;
+export type OrphanedAnnotation = ProjectOrphanedAnnotationSchema;
+
+export interface GetProjectColumnsArg {
+  projectId: string;
 }

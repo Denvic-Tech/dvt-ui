@@ -85,6 +85,10 @@ export const LINEAGE_DESCRIPTION_PROVENANCE_APPEARANCE: Record<
     label: 'Выведено',
     description: 'Описание собрано из описаний исходных колонок.',
   },
+  none: {
+    label: 'Без описания',
+    description: 'У колонки нет описания.',
+  },
   unknown: {
     label: 'Неизвестно',
     description: 'Происхождение описания не определено.',
@@ -328,4 +332,67 @@ export const buildLineagePath = (
     totalCount,
     changesCount: totalCount - passThroughCount,
   };
+};
+
+/** Минимум о ребре графа, нужный для сопоставления с шагами lineage. */
+export interface LineageGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+}
+
+export interface LineageChain {
+  nodeIDs: string[];
+  edgeIDs: string[];
+}
+
+const stripOutputPrefix = (handle: string) => handle.replace(/^output-/, '');
+
+/**
+ * Ноды и рёбра холста, по которым колонка дошла до текущей ноды. Поля
+ * датасетов на холсте не рисуются и пропускаются. Ребро ищется между
+ * нодой шага и ближайшей нижестоящей нодой (другой) по выходному порту
+ * шага; без порта подходит любое ребро между этими нодами.
+ */
+export const collectLineageChain = (
+  tree: ExplainTreeNode | null,
+  edges: readonly LineageGraphEdge[]
+): LineageChain => {
+  const nodeIDs = new Set<string>();
+  const edgeIDs = new Set<string>();
+
+  const walk = (node: ExplainTreeNode, consumerNodeID: string | null) => {
+    const { step } = node;
+    const nodeID =
+      step.ref.kind === 'node' ? (step.node_id ?? step.ref.node_id) : null;
+
+    if (nodeID) {
+      nodeIDs.add(nodeID);
+
+      if (consumerNodeID && consumerNodeID !== nodeID) {
+        const port = step.port ?? step.ref.port ?? null;
+        edges.forEach(edge => {
+          if (
+            edge.source === nodeID &&
+            edge.target === consumerNodeID &&
+            (!port ||
+              !edge.sourceHandle ||
+              stripOutputPrefix(edge.sourceHandle) === stripOutputPrefix(port))
+          ) {
+            edgeIDs.add(edge.id);
+          }
+        });
+      }
+    }
+
+    const nextConsumer = nodeID ?? consumerNodeID;
+    node.children.forEach(child => walk(child, nextConsumer));
+  };
+
+  if (tree) {
+    walk(tree, null);
+  }
+
+  return { nodeIDs: Array.from(nodeIDs), edgeIDs: Array.from(edgeIDs) };
 };

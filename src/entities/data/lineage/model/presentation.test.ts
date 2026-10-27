@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildExplainTree,
   buildLineagePath,
+  collectLineageChain,
   filterNodeFields,
   flattenExplainTree,
   getFieldDependencyColumns,
@@ -235,5 +236,72 @@ describe('buildLineagePath', () => {
       totalCount: 0,
       changesCount: 0,
     });
+  });
+});
+
+describe('collectLineageChain', () => {
+  const nodeStep = (
+    nodeId: string,
+    column: string,
+    depth: number,
+    op: LineageOp,
+    deps?: LineageRef[]
+  ): ExplainStep => ({
+    ...step(nodeRef(column, nodeId), depth, op, deps),
+    port: 'output',
+  });
+
+  it('collects canvas nodes and the edges between consecutive steps', () => {
+    const tree = buildExplainTree({
+      root: nodeRef('total', 'calc'),
+      steps: [
+        nodeStep('calc', 'total', 0, 'compute', [
+          nodeRef('price', 'read'),
+          nodeRef('qty', 'join'),
+        ]),
+        nodeStep('read', 'price', 1, 'source', [dsRef('f-price')]),
+        nodeStep('join', 'qty', 1, 'pass', [nodeRef('qty', 'read')]),
+        nodeStep('read', 'qty', 2, 'source', [dsRef('f-qty')]),
+        step(dsRef('f-price'), 2, 'source', []),
+        step(dsRef('f-qty'), 3, 'source', []),
+      ],
+    });
+
+    const chain = collectLineageChain(tree, [
+      {
+        id: 'e1',
+        source: 'read',
+        target: 'calc',
+        sourceHandle: 'output-output',
+      },
+      {
+        id: 'e2',
+        source: 'join',
+        target: 'calc',
+        sourceHandle: 'output-output',
+      },
+      {
+        id: 'e3',
+        source: 'read',
+        target: 'join',
+        sourceHandle: 'output-output',
+      },
+      {
+        id: 'e4',
+        source: 'read',
+        target: 'calc',
+        sourceHandle: 'output-other',
+      },
+      {
+        id: 'e5',
+        source: 'other',
+        target: 'calc',
+        sourceHandle: 'output-output',
+      },
+    ]);
+
+    expect(chain.nodeIDs.sort()).toEqual(['calc', 'join', 'read']);
+    expect(chain.edgeIDs.sort()).toEqual(['e1', 'e2', 'e3']);
+    expect(collectLineageChain(null, [])).toEqual({ nodeIDs: [], edgeIDs: [] });
   });
 });

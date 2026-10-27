@@ -23,6 +23,7 @@ import { selectNodeActions } from '@/features/project-editor/select-node';
 import { uiLayoutActions } from '@/features/ui-layout';
 
 import { nodeDataFrameViewerActions } from '@/entities/node/node-dataframe-viewer';
+import { hasNodeColumns } from '@/entities/node/node-definition';
 import { nodeFieldsViewerActions } from '@/entities/node/node-fields-viewer';
 import { nodeJsonViewerActions } from '@/entities/node/node-json-viewer';
 import { nodeMetaViewerActions } from '@/entities/node/node-meta-viewer';
@@ -70,13 +71,6 @@ const CoreContextMenuExtension: NodeContextMenuExtension = {
         Array.isArray(def.type)
           ? def.type.includes('JSON') || def.type.includes('DICT')
           : def.type === 'JSON' || def.type === 'DICT'
-      )
-    );
-    const hasDataframeInput = Boolean(
-      inputDefinitions.some(def =>
-        Array.isArray(def.type)
-          ? def.type.includes('DATAFRAME')
-          : def.type === 'DATAFRAME'
       )
     );
     const hasSignalIO = Boolean(
@@ -235,8 +229,7 @@ const CoreContextMenuExtension: NodeContextMenuExtension = {
     }
 
     // Lineage колонок не зависит от кэша: бэкенд строит его по графу проекта.
-    // У синков выхода нет — тогда бэкенд отдаёт состав колонок на входе.
-    if (!isWidget && (hasDataframeOutput || hasDataframeInput)) {
+    if (hasNodeColumns(nodeDefinition)) {
       items.push({
         id: 'open-node-fields',
         type: 'action',

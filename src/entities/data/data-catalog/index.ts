@@ -4,6 +4,7 @@ export {
   useGetDatasetQuery,
   useGetDatasetUsageQuery,
   useSearchDatasetsInfiniteQuery,
+  useSetDatasetDescriptionsMutation,
 } from './api/dataCatalogApi';
 export {
   DATASET_FIELD_STATUS_APPEARANCE,
@@ -21,6 +22,7 @@ export {
 export type {
   DatasetDetails,
   DatasetField,
+  DatasetFieldDescriptionPatch,
   DatasetFieldStatus,
   DatasetFreshness,
   DatasetLocator,
@@ -31,8 +33,8 @@ export type {
   GetDatasetArg,
   GetDatasetUsageArg,
   SearchDatasetsArg,
+  SetDatasetDescriptionsArg,
 } from './model/types';
-export { DatasetCard } from './ui/DatasetCard';
 export {
   DatasetFieldStatusBadge,
   DatasetFreshnessBadge,
