@@ -437,6 +437,10 @@ export const SaveParquetEditor: React.FC<
     typeof localInputData.write_index === 'boolean'
       ? localInputData.write_index
       : false;
+  const syncColumnDescriptions =
+    typeof localInputData.sync_column_descriptions === 'boolean'
+      ? localInputData.sync_column_descriptions
+      : true;
   const layout = getSaveParquetLayout(localInputData, modeDefault);
   const simpleUnavailableReason = isExpressionValue(localInputData.mode)
     ? 'Simple недоступен, пока mode задан expression-ом: expression может разрешиться в append. Для перехода в Simple задайте mode=create или mode=overwrite.'
@@ -1224,6 +1228,27 @@ export const SaveParquetEditor: React.FC<
           {errors.write_index ? (
             <FieldHintBottom tone='error'>{errors.write_index}</FieldHintBottom>
           ) : null}
+        </div>
+
+        <div>
+          <ToggleOption
+            control={
+              <StyledSwitch
+                checked={syncColumnDescriptions}
+                onChange={event =>
+                  update({ sync_column_descriptions: event.target.checked })
+                }
+                inputProps={{
+                  'aria-label': 'Синхронизировать описания колонок с каталогом',
+                }}
+              />
+            }
+            label='Синхронизировать описания колонок с каталогом'
+          />
+          <FieldHintBottom tone='default'>
+            Описания колонок из Data Catalog записываются в метаданные полей
+            Parquet (только новый режим совместимости).
+          </FieldHintBottom>
         </div>
       </PartitionCard>
 

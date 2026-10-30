@@ -9,9 +9,11 @@ import {
   Alert,
   Box,
   Button,
+  FormControlLabel,
   IconButton,
   Skeleton,
   Stack,
+  Switch,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -1123,6 +1125,39 @@ export const WriteSettingsStep: React.FC<
             onMinBatchRowsChange={handleMinBatchRowsChange}
             errors={fieldErrors}
           />
+        </SettingsSection>
+
+        <SettingsSection>
+          <SectionTitle>Описания колонок</SectionTitle>
+          <FormControlLabel
+            control={
+              <Switch
+                size='small'
+                checked={localInputData?.sync_column_descriptions ?? true}
+                onChange={event => {
+                  const checked = event.target.checked;
+                  setLocalInputData(prev => ({
+                    ...(prev ?? {}),
+                    sync_column_descriptions: checked,
+                  }));
+                }}
+                inputProps={{
+                  'aria-label': 'Синхронизировать описания колонок с каталогом',
+                }}
+              />
+            }
+            label='Синхронизировать описания колонок с каталогом'
+            sx={{ ml: 0, '& .MuiFormControlLabel-label': { fontSize: 13 } }}
+          />
+          <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+            На каждом прогоне описания из Data Catalog записываются в
+            комментарии колонок таблицы; пустое описание комментарий не стирает.
+          </Typography>
+          {sharedState?.catalogDescriptionsError ? (
+            <Alert severity='warning' sx={{ mt: 1 }}>
+              {sharedState.catalogDescriptionsError}
+            </Alert>
+          ) : null}
         </SettingsSection>
 
         {isTableNew && selectedCreationMode === 'typed' ? (

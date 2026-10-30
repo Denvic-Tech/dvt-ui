@@ -77,6 +77,7 @@ export type SaveParquetValues = {
   compatibility_mode?: 'legacy' | 'new';
   compression?: ExpressionCapableValue<string | null>;
   write_index?: ExpressionCapableValue<boolean | null>;
+  sync_column_descriptions?: boolean | null;
   partition_on?: ExpressionCapableValue<string[] | null>;
   mode?: ExpressionCapableValue<string | null>;
   row_cap?: ExpressionCapableValue<number | null>;

@@ -39,6 +39,11 @@ import { ApiError } from '@/shared/lib/errors';
 import { isExpressionValue } from '@/shared/lib/node-input-values';
 
 import {
+  buildCatalogDescriptionPatch,
+  type CatalogDescriptions,
+} from './catalogDescriptions';
+import type { ColumnDescriptionPatch } from './catalogDescriptions.types';
+import {
   type CommentOverrides,
   commentValue,
   mergeCommentActions,
@@ -197,12 +202,20 @@ export type WriteDataFrameToDBValues = {
   column_mapping?: ColumnMappingItem[] | null;
   on_extra_df_columns?: ExtraColumnsMode | null;
   on_missing_df_columns?: MissingColumnsMode | null;
+  sync_column_descriptions?: boolean | null;
 };
 
 export interface ExtensionState {
   typedCommentOverrides?: CommentOverrides;
   dbCommentOverrides?: CommentOverrides;
   dbNullableOverrides?: Record<string, boolean>;
+  /** Описания каталога по имени колонки входа `df`: baseline комментариев. */
+  catalogDescriptions?: CatalogDescriptions | null;
+  /** Запись правок комментариев аннотациями входа `df` Write-ноды. */
+  persistColumnDescriptions?:
+    | ((fields: ColumnDescriptionPatch[]) => Promise<void>)
+    | undefined;
+  catalogDescriptionsError?: string | null;
   columnCommentsSupported?: boolean;
   commentTargetKey?: string;
   suppressDefaultColumnActions?: boolean;
@@ -1908,6 +1921,48 @@ export const confirmWriteModeOnContinue = async (
   return requestConfirm(tableLabel);
 };
 
+/**
+ * Правки комментариев, отличающиеся от baseline каталога, сохраняются аннотациями
+ * входа `df` до DDL. Ошибка каталога не блокирует DDL: она показывается отдельно.
+ */
+export const persistCatalogDescriptions = async (
+  sharedState: ExtensionState | undefined,
+  setSharedState: StepOnContinueContext<
+    WriteDataFrameToDBValues,
+    ExtensionState
+  >['setSharedState']
+): Promise<void> => {
+  const persist = sharedState?.persistColumnDescriptions;
+  if (!persist) return;
+  const metadataComments: Record<string, string | null | undefined> = {};
+  for (const column of sharedState?.inputDataframeMetadata?.columns ?? []) {
+    metadataComments[column.name] = column.comment;
+  }
+  const fields = buildCatalogDescriptionPatch({
+    typedOverrides: sharedState?.typedCommentOverrides,
+    dbOverrides: sharedState?.dbCommentOverrides,
+    rows: sharedState?.resolvedColumnRows,
+    catalog: sharedState?.catalogDescriptions,
+    metadataComments,
+  });
+  if (fields.length === 0) return;
+  try {
+    await persist(fields);
+    setSharedState(prev => ({
+      ...(prev ?? {}),
+      catalogDescriptionsError: null,
+    }));
+  } catch (error) {
+    setSharedState(prev => ({
+      ...(prev ?? {}),
+      catalogDescriptionsError: extractApiErrorMessage(
+        error,
+        'Не удалось сохранить описания колонок в каталоге данных.'
+      ),
+    }));
+  }
+};
+
 export const prepareWriteStepOnContinue = async (
   context: StepOnContinueContext<WriteDataFrameToDBValues, ExtensionState>
 ): Promise<void> => {
@@ -1921,6 +1976,8 @@ export const prepareWriteStepOnContinue = async (
     isCreateTableLoading: false,
     lastCreateTableKey: null,
   }));
+
+  await persistCatalogDescriptions(sharedState, setSharedState);
 
   const actions = getPendingColumnActions(sharedState);
 
@@ -2248,6 +2305,8 @@ export const createTableBeforeFinish = async (
     createTableSuccessAt: null,
     isCreateTableLoading: true,
   }));
+
+  await persistCatalogDescriptions(sharedState, setSharedState);
 
   try {
     const message =
