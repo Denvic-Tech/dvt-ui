@@ -1716,6 +1716,107 @@ export const zCommonResponse = z.object({
 export type CommonResponseZodType = z.infer<typeof zCommonResponse>;
 
 /**
+ * ConnectCodeStatus
+ */
+export const zConnectCodeStatus = z.enum([
+  'pending',
+  'claimed',
+  'expired',
+  'revoked',
+]);
+
+export type ConnectCodeStatusZodType = z.infer<typeof zConnectCodeStatus>;
+
+/**
+ * ResourceScopeSchema
+ */
+export const zResourceScopeSchema = z.object({
+  mode: z.enum(['all', 'selected']),
+  ids: z.optional(z.array(z.string())),
+});
+
+export type ResourceScopeSchemaZodType = z.infer<typeof zResourceScopeSchema>;
+
+/**
+ * MCPAccessScopeSchema
+ */
+export const zMcpAccessScopeSchema = z.object({
+  schema_version: z.optional(z.literal(1)).default(1),
+  purpose: z.optional(z.literal('mcp')).default('mcp'),
+  projects: zResourceScopeSchema,
+  db_connections: zResourceScopeSchema,
+});
+
+export type McpAccessScopeSchemaZodType = z.infer<typeof zMcpAccessScopeSchema>;
+
+/**
+ * ConnectLinkCreateSchema
+ */
+export const zConnectLinkCreateSchema = z.object({
+  base_url: z.string().max(2048),
+  access_scope: zMcpAccessScopeSchema,
+  name: z.optional(z.union([z.string().max(255), z.null()])),
+  token_expires_at: z.optional(z.union([z.int().gt(0), z.null()])),
+});
+
+export type ConnectLinkCreateSchemaZodType = z.infer<
+  typeof zConnectLinkCreateSchema
+>;
+
+/**
+ * ConnectLinkCreatedSchema
+ */
+export const zConnectLinkCreatedSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  connect_url: z.string(),
+  expires_at: z.iso.datetime({
+    offset: true,
+  }),
+});
+
+export type ConnectLinkCreatedSchemaZodType = z.infer<
+  typeof zConnectLinkCreatedSchema
+>;
+
+/**
+ * ConnectLinkReadSchema
+ */
+export const zConnectLinkReadSchema = z.object({
+  id: z.string(),
+  created_at: z.iso.datetime({
+    offset: true,
+  }),
+  expires_at: z.iso.datetime({
+    offset: true,
+  }),
+  status: zConnectCodeStatus,
+  claims_count: z.int(),
+  token_id: z.union([z.string(), z.null()]),
+  last_claimed_at: z.union([
+    z.iso.datetime({
+      offset: true,
+    }),
+    z.null(),
+  ]),
+});
+
+export type ConnectLinkReadSchemaZodType = z.infer<
+  typeof zConnectLinkReadSchema
+>;
+
+/**
+ * ConnectLinkListSchema
+ */
+export const zConnectLinkListSchema = z.object({
+  items: z.array(zConnectLinkReadSchema),
+});
+
+export type ConnectLinkListSchemaZodType = z.infer<
+  typeof zConnectLinkListSchema
+>;
+
+/**
  * ConnectionCheckResult
  */
 export const zConnectionCheckResult = z.object({
@@ -3690,28 +3791,6 @@ export const zLogEntriesPageSchema = z.object({
 });
 
 export type LogEntriesPageSchemaZodType = z.infer<typeof zLogEntriesPageSchema>;
-
-/**
- * ResourceScopeSchema
- */
-export const zResourceScopeSchema = z.object({
-  mode: z.enum(['all', 'selected']),
-  ids: z.optional(z.array(z.string())),
-});
-
-export type ResourceScopeSchemaZodType = z.infer<typeof zResourceScopeSchema>;
-
-/**
- * MCPAccessScopeSchema
- */
-export const zMcpAccessScopeSchema = z.object({
-  schema_version: z.optional(z.literal(1)).default(1),
-  purpose: z.optional(z.literal('mcp')).default('mcp'),
-  projects: zResourceScopeSchema,
-  db_connections: zResourceScopeSchema,
-});
-
-export type McpAccessScopeSchemaZodType = z.infer<typeof zMcpAccessScopeSchema>;
 
 /**
  * MCPTokenCreateSchema
@@ -15266,6 +15345,66 @@ export const zUpdateMcpTokenMcpTokensTokenIdPatchResponse = zMcpTokenReadSchema;
 
 export type UpdateMcpTokenMcpTokensTokenIdPatchResponseZodType = z.infer<
   typeof zUpdateMcpTokenMcpTokensTokenIdPatchResponse
+>;
+
+export const zListConnectLinksAgentsConnectGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type ListConnectLinksAgentsConnectGetDataZodType = z.infer<
+  typeof zListConnectLinksAgentsConnectGetData
+>;
+
+/**
+ * Successful Response
+ */
+export const zListConnectLinksAgentsConnectGetResponse = zConnectLinkListSchema;
+
+export type ListConnectLinksAgentsConnectGetResponseZodType = z.infer<
+  typeof zListConnectLinksAgentsConnectGetResponse
+>;
+
+export const zCreateConnectLinkAgentsConnectPostData = z.object({
+  body: zConnectLinkCreateSchema,
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type CreateConnectLinkAgentsConnectPostDataZodType = z.infer<
+  typeof zCreateConnectLinkAgentsConnectPostData
+>;
+
+/**
+ * Successful Response
+ */
+export const zCreateConnectLinkAgentsConnectPostResponse =
+  zConnectLinkCreatedSchema;
+
+export type CreateConnectLinkAgentsConnectPostResponseZodType = z.infer<
+  typeof zCreateConnectLinkAgentsConnectPostResponse
+>;
+
+export const zRevokeConnectLinkAgentsConnectCodeIdDeleteData = z.object({
+  body: z.optional(z.never()),
+  path: z.object({
+    code_id: z.string(),
+  }),
+  query: z.optional(z.never()),
+});
+
+export type RevokeConnectLinkAgentsConnectCodeIdDeleteDataZodType = z.infer<
+  typeof zRevokeConnectLinkAgentsConnectCodeIdDeleteData
+>;
+
+/**
+ * Successful Response
+ */
+export const zRevokeConnectLinkAgentsConnectCodeIdDeleteResponse = z.void();
+
+export type RevokeConnectLinkAgentsConnectCodeIdDeleteResponseZodType = z.infer<
+  typeof zRevokeConnectLinkAgentsConnectCodeIdDeleteResponse
 >;
 
 export const zGetFixturesPytestMonFixturesGetData = z.object({

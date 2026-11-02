@@ -61,6 +61,9 @@ import type {
   CreateConnectionPublicDbConnectionsPostData,
   CreateConnectionPublicDbConnectionsPostErrors,
   CreateConnectionPublicDbConnectionsPostResponses,
+  CreateConnectLinkAgentsConnectPostData,
+  CreateConnectLinkAgentsConnectPostErrors,
+  CreateConnectLinkAgentsConnectPostResponses,
   CreateDatabaseUtilsDdlCreateDatabasePostData,
   CreateDatabaseUtilsDdlCreateDatabasePostErrors,
   CreateDatabaseUtilsDdlCreateDatabasePostResponses,
@@ -391,6 +394,8 @@ import type {
   ListConnectionsPublicDbConnectionsGetData,
   ListConnectionsPublicDbConnectionsGetErrors,
   ListConnectionsPublicDbConnectionsGetResponses,
+  ListConnectLinksAgentsConnectGetData,
+  ListConnectLinksAgentsConnectGetResponses,
   ListDatabasesDbConnectionsConnectionIdCatalogDatabasesGetData,
   ListDatabasesDbConnectionsConnectionIdCatalogDatabasesGetErrors,
   ListDatabasesDbConnectionsConnectionIdCatalogDatabasesGetResponses,
@@ -471,6 +476,9 @@ import type {
   ResolveWriteColumnsUtilsDdlResolveWriteColumnsPostData,
   ResolveWriteColumnsUtilsDdlResolveWriteColumnsPostErrors,
   ResolveWriteColumnsUtilsDdlResolveWriteColumnsPostResponses,
+  RevokeConnectLinkAgentsConnectCodeIdDeleteData,
+  RevokeConnectLinkAgentsConnectCodeIdDeleteErrors,
+  RevokeConnectLinkAgentsConnectCodeIdDeleteResponses,
   RevokeMcpTokenMcpTokensTokenIdDeleteData,
   RevokeMcpTokenMcpTokensTokenIdDeleteErrors,
   RevokeMcpTokenMcpTokensTokenIdDeleteResponses,
@@ -621,6 +629,8 @@ import {
   zCreateConnectionDbConnectionsPostResponse,
   zCreateConnectionPublicDbConnectionsPostData,
   zCreateConnectionPublicDbConnectionsPostResponse,
+  zCreateConnectLinkAgentsConnectPostData,
+  zCreateConnectLinkAgentsConnectPostResponse,
   zCreateDatabaseUtilsDdlCreateDatabasePostData,
   zCreateDatabaseUtilsDdlCreateDatabasePostResponse,
   zCreateFolderStorageFolderCreatePostData,
@@ -847,6 +857,8 @@ import {
   zListConnectionsDbConnectionsGetResponse,
   zListConnectionsPublicDbConnectionsGetData,
   zListConnectionsPublicDbConnectionsGetResponse,
+  zListConnectLinksAgentsConnectGetData,
+  zListConnectLinksAgentsConnectGetResponse,
   zListDatabasesDbConnectionsConnectionIdCatalogDatabasesGetData,
   zListDatabasesDbConnectionsConnectionIdCatalogDatabasesGetResponse,
   zListExtensionsExtensionsGetData,
@@ -905,6 +917,8 @@ import {
   zRenamePathStoragePathRenamePostResponse,
   zResolveWriteColumnsUtilsDdlResolveWriteColumnsPostData,
   zResolveWriteColumnsUtilsDdlResolveWriteColumnsPostResponse,
+  zRevokeConnectLinkAgentsConnectCodeIdDeleteData,
+  zRevokeConnectLinkAgentsConnectCodeIdDeleteResponse,
   zRevokeMcpTokenMcpTokensTokenIdDeleteData,
   zRevokeMcpTokenMcpTokensTokenIdDeleteResponse,
   zRunUpdateUpdateRunPostData,
@@ -6802,6 +6816,92 @@ export const updateMcpTokenMcpTokensTokenIdPatch = <
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+};
+
+/**
+ * List Connect Links
+ */
+export const listConnectLinksAgentsConnectGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<ListConnectLinksAgentsConnectGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    ListConnectLinksAgentsConnectGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zListConnectLinksAgentsConnectGetData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zListConnectLinksAgentsConnectGetResponse.parseAsync(data);
+    },
+    url: '/agents/connect',
+    ...options,
+  });
+};
+
+/**
+ * Create Connect Link
+ *
+ * Create a one-time link that an AI agent exchanges for its own MCP token.
+ */
+export const createConnectLinkAgentsConnectPost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<CreateConnectLinkAgentsConnectPostData, ThrowOnError>
+) => {
+  return (options.client ?? client).post<
+    CreateConnectLinkAgentsConnectPostResponses,
+    CreateConnectLinkAgentsConnectPostErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zCreateConnectLinkAgentsConnectPostData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zCreateConnectLinkAgentsConnectPostResponse.parseAsync(data);
+    },
+    url: '/agents/connect',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Revoke Connect Link
+ *
+ * Revoke the link and, when an agent already claimed it, the MCP token it issued.
+ */
+export const revokeConnectLinkAgentsConnectCodeIdDelete = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<RevokeConnectLinkAgentsConnectCodeIdDeleteData, ThrowOnError>
+) => {
+  return (options.client ?? client).delete<
+    RevokeConnectLinkAgentsConnectCodeIdDeleteResponses,
+    RevokeConnectLinkAgentsConnectCodeIdDeleteErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zRevokeConnectLinkAgentsConnectCodeIdDeleteData.parseAsync(
+        data
+      );
+    },
+    responseValidator: async data => {
+      return await zRevokeConnectLinkAgentsConnectCodeIdDeleteResponse.parseAsync(
+        data
+      );
+    },
+    url: '/agents/connect/{code_id}',
+    ...options,
   });
 };
 
