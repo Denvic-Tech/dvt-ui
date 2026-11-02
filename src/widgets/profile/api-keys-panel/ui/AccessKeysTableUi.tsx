@@ -69,10 +69,8 @@ export const AccessKeyStatusBadge = ({
 };
 
 export const AccessKeyIconBox = ({
-  tone,
   children,
 }: {
-  tone: 'api' | 'mcp';
   children: React.ReactNode;
 }) => (
   <Box
@@ -83,11 +81,8 @@ export const AccessKeyIconBox = ({
       display: 'grid',
       placeItems: 'center',
       borderRadius: '9px',
-      bgcolor:
-        tone === 'api'
-          ? 'rgba(99, 102, 241, 0.09)'
-          : 'rgba(16, 185, 129, 0.08)',
-      color: tone === 'api' ? '#6366f1' : '#2d9d70',
+      bgcolor: 'rgba(99, 102, 241, 0.09)',
+      color: '#6366f1',
       '& svg': { fontSize: 18 },
     }}
   >
@@ -121,13 +116,7 @@ export const AccessKeysInfoBar = ({
   </Stack>
 );
 
-export const AccessKeysTableSkeleton = ({
-  variant,
-  rows = 4,
-}: {
-  variant: 'api' | 'mcp';
-  rows?: number;
-}) => (
+export const AccessKeysTableSkeleton = ({ rows = 4 }: { rows?: number }) => (
   <>
     {Array.from({ length: rows }, (_, index) => (
       <Box
@@ -136,14 +125,7 @@ export const AccessKeysTableSkeleton = ({
           display: 'grid',
           gridTemplateColumns: {
             xs: 'minmax(0, 1fr)',
-            md:
-              variant === 'api'
-                ? 'minmax(280px, 1fr) 166px 176px 44px'
-                : 'minmax(0, 1fr)',
-            lg:
-              variant === 'mcp'
-                ? 'minmax(250px, 1.2fr) minmax(220px, 0.9fr) 156px 168px 44px'
-                : undefined,
+            md: 'minmax(280px, 1fr) 166px 176px 44px',
           },
           alignItems: 'center',
           minHeight: 64,
@@ -168,48 +150,11 @@ export const AccessKeysTableSkeleton = ({
           </Box>
         </Stack>
 
-        {variant === 'mcp' && (
-          <Stack
-            direction='row'
-            gap={0.75}
-            sx={{ display: { xs: 'none', lg: 'flex' } }}
-          >
-            <Skeleton
-              variant='rounded'
-              animation='wave'
-              width={86}
-              height={23}
-            />
-            <Skeleton
-              variant='rounded'
-              animation='wave'
-              width={112}
-              height={23}
-            />
-          </Stack>
-        )}
-
-        <Box
-          sx={{
-            display: {
-              xs: 'none',
-              md: variant === 'api' ? 'block' : 'none',
-              lg: 'block',
-            },
-          }}
-        >
+        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
           <Skeleton animation='wave' width={78} height={17} />
           <Skeleton animation='wave' width={92} height={15} />
         </Box>
-        <Box
-          sx={{
-            display: {
-              xs: 'none',
-              md: variant === 'api' ? 'block' : 'none',
-              lg: 'block',
-            },
-          }}
-        >
+        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
           <Skeleton animation='wave' width={84} height={17} />
         </Box>
       </Box>

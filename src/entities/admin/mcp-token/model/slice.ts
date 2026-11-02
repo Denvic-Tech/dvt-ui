@@ -50,6 +50,11 @@ export const createMcpToken = createAppAsyncThunk<
   McpTokenCreateSchema
 >('mcpToken/create', payload => mcpTokenApi.create(payload));
 
+export const renameMcpToken = createAppAsyncThunk<
+  McpTokenReadSchema,
+  { tokenId: string; name: string }
+>('mcpToken/rename', ({ tokenId, name }) => mcpTokenApi.rename(tokenId, name));
+
 export const revokeMcpToken = createAppAsyncThunk<void, string>(
   'mcpToken/revoke',
   tokenId => mcpTokenApi.revoke(tokenId)
@@ -102,6 +107,11 @@ const mcpTokenSlice = createSlice({
         state.creationError = ensureApiErrorPayload(
           action.payload,
           action.error.message ?? 'Не удалось создать MCP-токен.'
+        );
+      })
+      .addCase(renameMcpToken.fulfilled, (state, action) => {
+        state.items = state.items.map(item =>
+          item.id === action.payload.id ? action.payload : item
         );
       })
       .addCase(revokeMcpToken.pending, (state, action) => {

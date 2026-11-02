@@ -16,6 +16,13 @@ export const mcpTokenApi = {
     return response.data;
   },
 
+  async rename(tokenId: string, name: string): Promise<McpTokenReadSchema> {
+    const response = await client.mcpTokens
+      .tokenId(tokenId)
+      .patch({ body: { name } });
+    return response.data;
+  },
+
   async revoke(tokenId: string): Promise<void> {
     await client.mcpTokens.tokenId(tokenId).delete();
   },
