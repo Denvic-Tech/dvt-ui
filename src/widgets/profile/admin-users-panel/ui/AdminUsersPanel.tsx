@@ -1,11 +1,14 @@
 import * as React from 'react';
 import { Alert } from '@mui/material';
+import { IconLayoutSidebar } from '@tabler/icons-react';
 
-import { normalizeRole } from '@/entities/user';
 import { useAdmin } from '@/entities/admin/admin';
 import { useOrganizations } from '@/entities/admin/organizations';
+import { normalizeRole } from '@/entities/user';
+
 import type { AdminUserReadSchema } from '@/shared/gatewayClient';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { PageLayout } from '@/shared/ui/page-layout';
 
 import {
   buildCreateUserPayload,
@@ -26,6 +29,7 @@ import type {
   SortDir,
   SortKey,
 } from '../model/types';
+
 import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { PanelHeader } from './PanelHeader';
@@ -35,7 +39,6 @@ import {
   PaginationButtons,
   PaginationInfo,
   PaginationSection,
-  PanelContainer,
 } from './styles';
 import { UsersTable } from './UsersTable';
 import { UsersToolbar } from './UsersToolbar';
@@ -262,7 +265,7 @@ export const AdminUsersPanel: React.FC<AdminUsersPanelProps> = ({
 
   return (
     <>
-      <PanelContainer>
+      <PageLayout width='wide' title='Admin Panel' icon={IconLayoutSidebar}>
         <PanelHeader
           onOpenCreate={handleOpenCreate}
           onRefresh={handleRefresh}
@@ -316,7 +319,7 @@ export const AdminUsersPanel: React.FC<AdminUsersPanelProps> = ({
             </PaginationButton>
           </PaginationButtons>
         </PaginationSection>
-      </PanelContainer>
+      </PageLayout>
 
       <CreateUserDialog
         currentUserRole={currentUser?.role}

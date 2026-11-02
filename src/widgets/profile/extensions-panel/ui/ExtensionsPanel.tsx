@@ -28,6 +28,7 @@ import {
   Switch,
   Typography,
 } from '@mui/material';
+import { IconPuzzle } from '@tabler/icons-react';
 
 import { extensionsApi } from '@/features/profile/extensions';
 
@@ -37,6 +38,7 @@ import type {
   ExtensionReadSchema,
 } from '@/shared/gatewayClient';
 import { ApiErrorPayload, isApiError } from '@/shared/lib/errors';
+import { PageLayout, PageToolbar } from '@/shared/ui/page-layout';
 
 type PendingAction = 'install' | 'reload' | 'delete' | 'sync' | null;
 
@@ -305,7 +307,12 @@ const ExtensionListItem: React.FC<{
             justifyContent='space-between'
             alignItems={{ xs: 'stretch', lg: 'flex-start' }}
           >
-            <Stack direction='row' spacing={1.5} alignItems='flex-start'>
+            <Stack
+              direction='row'
+              spacing={1.5}
+              alignItems='flex-start'
+              sx={{ minWidth: 0 }}
+            >
               <Box
                 sx={{
                   width: 40,
@@ -327,6 +334,8 @@ const ExtensionListItem: React.FC<{
                   direction={{ xs: 'column', sm: 'row' }}
                   spacing={1}
                   alignItems={{ xs: 'flex-start', sm: 'center' }}
+                  flexWrap='wrap'
+                  useFlexGap
                   sx={{ mb: 0.75 }}
                 >
                   <Typography
@@ -382,6 +391,7 @@ const ExtensionListItem: React.FC<{
               direction={{ xs: 'column', sm: 'row' }}
               spacing={1}
               alignItems={{ xs: 'stretch', sm: 'center' }}
+              sx={{ flexShrink: 0 }}
             >
               {showVersionSelect ? (
                 <Select
@@ -862,272 +872,221 @@ export const ExtensionsPanel: React.FC = () => {
   };
 
   return (
-    <Stack spacing={2.5}>
-      <Paper variant='outlined' sx={cleanMinimalPaperSx}>
-        <Box
-          sx={{
-            px: { xs: 2, md: 2.5 },
-            py: 2.25,
-            background:
-              'linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(249,250,251,1) 100%)',
-          }}
-        >
+    <>
+      <PageLayout width='default' title='Extensions' icon={IconPuzzle}>
+        <PageToolbar>
           <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            justifyContent='space-between'
-            alignItems={{ xs: 'flex-start', lg: 'center' }}
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            sx={{
+              '& .MuiButton-root': { whiteSpace: 'nowrap' },
+            }}
           >
-            <Stack direction='row' spacing={1.5} alignItems='flex-start'>
+            <input
+              ref={packageInputRef}
+              type='file'
+              accept='.dvtx,.zip,application/zip'
+              hidden
+              onChange={event => void handlePackageSelected(event)}
+            />
+            <Button
+              variant='contained'
+              startIcon={
+                packagePending && !packagePreview ? (
+                  <CircularProgress size={16} color='inherit' />
+                ) : (
+                  <UploadFileRoundedIcon fontSize='small' />
+                )
+              }
+              disabled={packagePending}
+              onClick={() => packageInputRef.current?.click()}
+              sx={{ ...actionButtonSx, backgroundColor: '#6366f1' }}
+            >
+              Установить из файла
+            </Button>
+            <Button
+              variant='outlined'
+              startIcon={
+                pendingByName['__sync__'] === 'sync' ? (
+                  <CircularProgress size={16} color='inherit' />
+                ) : (
+                  <RefreshRoundedIcon fontSize='small' />
+                )
+              }
+              onClick={() => void handleSync()}
+              disabled={pendingByName['__sync__'] === 'sync'}
+              sx={{
+                ...actionButtonSx,
+                borderColor: '#d1d5db',
+                color: '#374151',
+                backgroundColor: '#ffffff',
+                '&:hover': {
+                  borderColor: '#9ca3af',
+                  backgroundColor: '#f9fafb',
+                },
+              }}
+            >
+              Синхронизировать
+            </Button>
+          </Stack>
+        </PageToolbar>
+
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1.5}
+          useFlexGap
+          sx={{ mb: 2 }}
+        >
+          <Chip
+            label={`Всего: ${extensions.length}`}
+            size='small'
+            sx={statusChipSx('default')}
+          />
+          <Chip
+            label={`Установлено: ${extensions.filter(item => item.is_installed).length}`}
+            size='small'
+            sx={statusChipSx('success')}
+          />
+          <Chip
+            label={`Доступны обновления: ${
+              extensions.filter(
+                item =>
+                  item.is_installed &&
+                  item.last_version &&
+                  item.last_version !== item.current_version
+              ).length
+            }`}
+            size='small'
+            sx={statusChipSx('warning')}
+          />
+        </Stack>
+
+        <Stack spacing={2.5}>
+          {flashMessage ? (
+            <Alert
+              severity={flashMessage.severity}
+              onClose={() => setFlashMessage(null)}
+              sx={{
+                borderRadius: '12px',
+                border: '1px solid #bbf7d0',
+                backgroundColor: '#f0fdf4',
+              }}
+            >
+              {flashMessage.message}
+            </Alert>
+          ) : null}
+
+          {globalError ? (
+            <Alert
+              severity='error'
+              onClose={() => setGlobalError(null)}
+              sx={{
+                borderRadius: '12px',
+                border: '1px solid #fecaca',
+                backgroundColor: '#fef2f2',
+              }}
+            >
+              {globalError.message}
+            </Alert>
+          ) : null}
+
+          {loading ? (
+            <Box
+              sx={{
+                px: 3,
+                py: 6,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 1.5,
+              }}
+            >
+              <CircularProgress />
+              <Typography sx={{ fontSize: 13, color: '#6b7280' }}>
+                Загружаем каталог расширений...
+              </Typography>
+            </Box>
+          ) : null}
+
+          {!loading && !extensions.length ? (
+            <Box
+              sx={{
+                px: 3,
+                py: 5,
+                textAlign: 'center',
+              }}
+            >
               <Box
                 sx={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '12px',
+                  mx: 'auto',
+                  mb: 1.5,
+                  width: 48,
+                  height: 48,
+                  borderRadius: '14px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: '#e0e7ff',
+                  backgroundColor: alpha('#6366f1', 0.12),
                   color: '#4f46e5',
-                  boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.12)',
                 }}
               >
                 <ExtensionRoundedIcon />
               </Box>
-              <Box>
-                <Typography
-                  sx={{ fontSize: 18, fontWeight: 700, color: '#111827' }}
-                >
-                  Расширения
-                </Typography>
-                <Typography
-                  sx={{
-                    mt: 0.75,
-                    fontSize: 13,
-                    color: '#6b7280',
-                    maxWidth: 760,
-                  }}
-                >
-                  Управление каталогом расширений: установка, обновление и
-                  удаление пакетов, а также просмотр нод, которые они добавляют
-                  в редактор.
-                </Typography>
-              </Box>
-            </Stack>
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-              <input
-                ref={packageInputRef}
-                type='file'
-                accept='.dvtx,.zip,application/zip'
-                hidden
-                onChange={event => void handlePackageSelected(event)}
-              />
-              <Button
-                variant='contained'
-                startIcon={
-                  packagePending && !packagePreview ? (
-                    <CircularProgress size={16} color='inherit' />
-                  ) : (
-                    <UploadFileRoundedIcon fontSize='small' />
-                  )
-                }
-                disabled={packagePending}
-                onClick={() => packageInputRef.current?.click()}
-                sx={{ ...actionButtonSx, backgroundColor: '#6366f1' }}
+              <Typography
+                sx={{ fontSize: 16, fontWeight: 700, color: '#111827' }}
               >
-                Установить из файла
-              </Button>
-              <Button
-                variant='outlined'
-                startIcon={
-                  pendingByName['__sync__'] === 'sync' ? (
-                    <CircularProgress size={16} color='inherit' />
-                  ) : (
-                    <RefreshRoundedIcon fontSize='small' />
-                  )
-                }
-                onClick={() => void handleSync()}
-                disabled={pendingByName['__sync__'] === 'sync'}
-                sx={{
-                  ...actionButtonSx,
-                  borderColor: '#d1d5db',
-                  color: '#374151',
-                  backgroundColor: '#ffffff',
-                  '&:hover': {
-                    borderColor: '#9ca3af',
-                    backgroundColor: '#f9fafb',
-                  },
-                }}
-              >
-                Синхронизировать
-              </Button>
-            </Stack>
-          </Stack>
-        </Box>
+                Расширения не найдены
+              </Typography>
+              <Typography sx={{ mt: 0.75, fontSize: 13, color: '#6b7280' }}>
+                Выполните синхронизацию каталога после публикации новых
+                расширений на backend.
+              </Typography>
+            </Box>
+          ) : null}
 
-        <Divider />
-
-        <Box
-          sx={{ px: { xs: 2, md: 2.5 }, py: 1.75, backgroundColor: '#f9fafb' }}
-        >
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={1.5}
-            useFlexGap
-          >
-            <Chip
-              label={`Всего: ${extensions.length}`}
-              size='small'
-              sx={statusChipSx('default')}
-            />
-            <Chip
-              label={`Установлено: ${extensions.filter(item => item.is_installed).length}`}
-              size='small'
-              sx={statusChipSx('success')}
-            />
-            <Chip
-              label={`Доступны обновления: ${
-                extensions.filter(
-                  item =>
-                    item.is_installed &&
-                    item.last_version &&
-                    item.last_version !== item.current_version
-                ).length
-              }`}
-              size='small'
-              sx={statusChipSx('warning')}
-            />
-          </Stack>
-        </Box>
-      </Paper>
-
-      {flashMessage ? (
-        <Alert
-          severity={flashMessage.severity}
-          onClose={() => setFlashMessage(null)}
-          sx={{
-            borderRadius: '12px',
-            border: '1px solid #bbf7d0',
-            backgroundColor: '#f0fdf4',
-          }}
-        >
-          {flashMessage.message}
-        </Alert>
-      ) : null}
-
-      {globalError ? (
-        <Alert
-          severity='error'
-          onClose={() => setGlobalError(null)}
-          sx={{
-            borderRadius: '12px',
-            border: '1px solid #fecaca',
-            backgroundColor: '#fef2f2',
-          }}
-        >
-          {globalError.message}
-        </Alert>
-      ) : null}
-
-      {loading ? (
-        <Paper
-          variant='outlined'
-          sx={{
-            ...cleanMinimalPaperSx,
-            px: 3,
-            py: 6,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1.5,
-          }}
-        >
-          <CircularProgress />
-          <Typography sx={{ fontSize: 13, color: '#6b7280' }}>
-            Загружаем каталог расширений...
-          </Typography>
-        </Paper>
-      ) : null}
-
-      {!loading && !extensions.length ? (
-        <Paper
-          variant='outlined'
-          sx={{
-            ...cleanMinimalPaperSx,
-            px: 3,
-            py: 5,
-            textAlign: 'center',
-            backgroundColor: '#ffffff',
-          }}
-        >
-          <Box
-            sx={{
-              mx: 'auto',
-              mb: 1.5,
-              width: 48,
-              height: 48,
-              borderRadius: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: alpha('#6366f1', 0.12),
-              color: '#4f46e5',
-            }}
-          >
-            <ExtensionRoundedIcon />
-          </Box>
-          <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>
-            Расширения не найдены
-          </Typography>
-          <Typography sx={{ mt: 0.75, fontSize: 13, color: '#6b7280' }}>
-            Выполните синхронизацию каталога после публикации новых расширений
-            на backend.
-          </Typography>
-        </Paper>
-      ) : null}
-
-      {!loading ? (
-        <Stack spacing={2}>
-          {extensions.map(extension => (
-            <ExtensionListItem
-              key={extension.name}
-              extension={extension}
-              expanded={expandedNames.has(extension.name)}
-              pendingAction={pendingByName[extension.name] ?? null}
-              selectedVersion={selectedVersions[extension.name] ?? null}
-              onToggle={() => toggleExpanded(extension.name)}
-              onInstall={() =>
-                void runAction(
-                  extension.name,
-                  'install',
-                  () =>
-                    extensionsApi.install(
+          {!loading ? (
+            <Stack spacing={2}>
+              {extensions.map(extension => (
+                <ExtensionListItem
+                  key={extension.name}
+                  extension={extension}
+                  expanded={expandedNames.has(extension.name)}
+                  pendingAction={pendingByName[extension.name] ?? null}
+                  selectedVersion={selectedVersions[extension.name] ?? null}
+                  onToggle={() => toggleExpanded(extension.name)}
+                  onInstall={() =>
+                    void runAction(
                       extension.name,
-                      selectedVersions[extension.name] || null
-                    ),
-                  `Расширение "${extension.display_name || extension.name}" установлено.`
-                )
-              }
-              onReload={() =>
-                void runAction(
-                  extension.name,
-                  'reload',
-                  () => extensionsApi.reload(extension.name),
-                  `Расширение "${extension.display_name || extension.name}" обновлено.`
-                )
-              }
-              onDelete={() => openDeleteDialog(extension)}
-              onVersionChange={(version: string) =>
-                setSelectedVersions(prev => ({
-                  ...prev,
-                  [extension.name]: version,
-                }))
-              }
-            />
-          ))}
+                      'install',
+                      () =>
+                        extensionsApi.install(
+                          extension.name,
+                          selectedVersions[extension.name] || null
+                        ),
+                      `Расширение "${extension.display_name || extension.name}" установлено.`
+                    )
+                  }
+                  onReload={() =>
+                    void runAction(
+                      extension.name,
+                      'reload',
+                      () => extensionsApi.reload(extension.name),
+                      `Расширение "${extension.display_name || extension.name}" обновлено.`
+                    )
+                  }
+                  onDelete={() => openDeleteDialog(extension)}
+                  onVersionChange={(version: string) =>
+                    setSelectedVersions(prev => ({
+                      ...prev,
+                      [extension.name]: version,
+                    }))
+                  }
+                />
+              ))}
+            </Stack>
+          ) : null}
         </Stack>
-      ) : null}
+      </PageLayout>
 
       <Dialog
         open={packagePreview !== null}
@@ -1274,6 +1233,6 @@ export const ExtensionsPanel: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Stack>
+    </>
   );
 };

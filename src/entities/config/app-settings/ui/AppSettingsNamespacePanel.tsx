@@ -1,7 +1,6 @@
 import * as React from 'react';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import {
@@ -10,7 +9,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Divider,
   FormControlLabel,
   IconButton,
   InputAdornment,
@@ -29,7 +27,8 @@ import {
 import { useAlert } from '@/app/notifications';
 
 import { isApiError } from '@/shared/lib/errors';
-import { Panel } from '@/shared/ui';
+import { getNamespaceIcon } from '@/shared/lib/getNamespaceIcon';
+import { PageLayout, PageToolbar } from '@/shared/ui/page-layout';
 import { SingleOptionDropdownSelect } from '@/shared/ui/select';
 
 import {
@@ -262,7 +261,6 @@ const CompactFieldRow = ({
       },
       alignItems: field.kind === 'oom_guard' ? 'start' : 'center',
       gap: { xs: 1.5, md: 3 },
-      px: { xs: 0, sm: 1.5 },
       py: 2.5,
       borderBottom: '1px solid #e5e7eb',
       '&:last-of-type': { borderBottom: 0 },
@@ -1002,39 +1000,43 @@ export const AppSettingsNamespacePanel: React.FC<
 
   if (isInitialLoading) {
     return (
-      <Box
-        sx={{
-          minHeight: 360,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <CircularProgress />
-      </Box>
+      <PageLayout width='narrow'>
+        <Box
+          sx={{
+            minHeight: 360,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </PageLayout>
     );
   }
 
   if (error || definitionsError) {
     return (
-      <Alert severity='error'>
-        {error?.message ??
-          definitionsError?.message ??
-          'Не удалось загрузить настройки.'}
-      </Alert>
+      <PageLayout width='narrow'>
+        <Alert severity='error'>
+          {error?.message ??
+            definitionsError?.message ??
+            'Не удалось загрузить настройки.'}
+        </Alert>
+      </PageLayout>
     );
   }
 
   if (!namespace) {
     return (
-      <Panel elevation={0} sx={{ p: 3, border: '1px solid #e5e7eb' }}>
+      <PageLayout width='narrow'>
         <Typography sx={{ fontSize: 18, fontWeight: 700 }}>
           Настройки не найдены
         </Typography>
         <Typography sx={{ mt: 1, color: '#6b7280' }}>
           Для выбранного раздела нет app settings definitions.
         </Typography>
-      </Panel>
+      </PageLayout>
     );
   }
 
@@ -1064,172 +1066,32 @@ export const AppSettingsNamespacePanel: React.FC<
 
   if (compactNamespaceConfig) {
     return (
-      <Box
+      <PageLayout
+        key={namespace.id}
+        width='narrow'
         component='form'
         onSubmit={handleSubmit}
-        sx={{
-          width: '100%',
-          minHeight: '100%',
-          p: { xs: 2, sm: 3 },
-          bgcolor: 'background.paper',
-          border: 1,
-          borderColor: 'divider',
-          borderRadius: '18px',
-        }}
+        title={compactNamespaceConfig.title}
+        icon={getNamespaceIcon(namespace.id)}
       >
-        <Box sx={{ width: '100%', maxWidth: 1180, mr: 'auto' }}>
-          <Stack direction='row' alignItems='center' gap={1.5}>
-            <Box
-              sx={{
-                width: 44,
-                height: 44,
-                flex: '0 0 44px',
-                display: 'grid',
-                placeItems: 'center',
-                borderRadius: '11px',
-                bgcolor: 'rgba(99, 102, 241, 0.08)',
-                color: 'primary.main',
-              }}
-            >
-              <SettingsOutlinedIcon sx={{ fontSize: 21 }} />
-            </Box>
-
-            <Box sx={{ minWidth: 0 }}>
-              <Stack direction='row' alignItems='center' gap={1}>
-                <Typography
-                  component='h1'
-                  sx={{
-                    color: 'text.primary',
-                    fontSize: { xs: 23, sm: 26 },
-                    fontWeight: 700,
-                    letterSpacing: '-0.025em',
-                    lineHeight: 1.15,
-                  }}
-                >
-                  {compactNamespaceConfig.title}
-                </Typography>
-                <Chip
-                  label={compactNamespaceConfig.badge}
-                  size='small'
-                  sx={{
-                    height: 22,
-                    borderRadius: '6px',
-                    bgcolor: '#f3f4f6',
-                    color: '#6b7280',
-                    fontFamily:
-                      '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                    fontSize: 10.5,
-                  }}
-                />
-              </Stack>
-              <Typography
-                sx={{
-                  mt: 0.35,
-                  color: 'text.secondary',
-                  fontSize: 13,
-                  lineHeight: 1.3,
-                }}
-              >
-                {compactNamespaceConfig.description}
-              </Typography>
-            </Box>
-          </Stack>
-
-          {upsertError ? (
-            <Alert severity='error' sx={{ mt: 2.25 }}>
-              {resolveErrorMessage(
-                upsertError,
-                'Не удалось сохранить настройки.'
-              )}
-            </Alert>
-          ) : null}
-
-          <Box sx={{ width: '100%', maxWidth: 900, mt: 2.5 }}>
-            {fields.map(field => (
-              <CompactFieldRow key={field.key} field={field}>
-                <Stack spacing={0.65}>
-                  <FieldControl
-                    field={field}
-                    value={values[field.key]}
-                    error={errors[field.key]}
-                    variant='compact'
-                    onChange={value => updateValue(field, value)}
-                  />
-                  {normalizedNamespaceId !== 'runtime' ? (
-                    <Typography
-                      sx={{
-                        color: '#c0c4cf',
-                        fontFamily:
-                          '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                        fontSize: 11,
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      {field.key}
-                    </Typography>
-                  ) : null}
-                </Stack>
-              </CompactFieldRow>
-            ))}
-          </Box>
-
-          <Box
+        <PageToolbar justify='flex-start'>
+          <Chip
+            label={compactNamespaceConfig.badge}
+            size='small'
             sx={{
-              width: '100%',
-              maxWidth: 900,
-              display: 'flex',
-              justifyContent: 'flex-end',
-              mt: 2,
+              height: 22,
+              borderRadius: '6px',
+              bgcolor: '#f3f4f6',
+              color: '#6b7280',
+              fontFamily:
+                '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+              fontSize: 10.5,
             }}
-          >
-            <Button
-              type='submit'
-              variant='contained'
-              disabled={isSaving}
-              sx={{
-                minHeight: 36,
-                px: 2,
-                borderRadius: '9px',
-                boxShadow: 'none',
-                '&:hover': { boxShadow: 'none' },
-              }}
-            >
-              {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
-            </Button>
-          </Box>
-        </Box>
-      </Box>
-    );
-  }
+          />
+        </PageToolbar>
 
-  return (
-    <Panel
-      component='form'
-      elevation={0}
-      onSubmit={handleSubmit}
-      sx={{
-        height: '100%',
-        minHeight: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        bgcolor: '#fff',
-      }}
-    >
-      <Box sx={{ px: { xs: 2, sm: 3 }, py: 2.5 }}>
-        <Typography sx={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>
-          {namespace.label}
-        </Typography>
-        <Typography sx={{ mt: 0.75, fontSize: 14, color: '#6b7280' }}>
-          Настройки namespace `{namespace.id}` формируются автоматически из
-          definitions.
-        </Typography>
-      </Box>
-      <Divider />
-
-      <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         {upsertError ? (
-          <Alert severity='error' sx={{ m: 2 }}>
+          <Alert severity='error' sx={{ mb: 2.25 }}>
             {resolveErrorMessage(
               upsertError,
               'Не удалось сохранить настройки.'
@@ -1237,44 +1099,111 @@ export const AppSettingsNamespacePanel: React.FC<
           </Alert>
         ) : null}
 
-        {namespace.groups.map(group => (
-          <Box key={group.id}>
-            <Box
-              sx={{
-                px: { xs: 2, sm: 3 },
-                py: 2,
-                bgcolor: '#f9fafb',
-                borderTop: '1px solid #e5e7eb',
-                borderBottom: '1px solid #e5e7eb',
-              }}
-            >
-              <Typography
-                sx={{ fontSize: 13, fontWeight: 700, color: '#374151' }}
-              >
-                {group.label}
-              </Typography>
-            </Box>
-
-            {group.fields.map(field => (
-              <FieldRow key={field.key} field={field}>
+        <Box sx={{ width: '100%' }}>
+          {fields.map(field => (
+            <CompactFieldRow key={field.key} field={field}>
+              <Stack spacing={0.65}>
                 <FieldControl
                   field={field}
                   value={values[field.key]}
                   error={errors[field.key]}
+                  variant='compact'
                   onChange={value => updateValue(field, value)}
                 />
-              </FieldRow>
-            ))}
+                {normalizedNamespaceId !== 'runtime' ? (
+                  <Typography
+                    sx={{
+                      color: '#c0c4cf',
+                      fontFamily:
+                        '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                      fontSize: 11,
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {field.key}
+                  </Typography>
+                ) : null}
+              </Stack>
+            </CompactFieldRow>
+          ))}
+        </Box>
+
+        <Box
+          sx={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            mt: 2,
+          }}
+        >
+          <Button
+            type='submit'
+            variant='contained'
+            disabled={isSaving}
+            sx={{
+              minHeight: 36,
+              px: 2,
+              borderRadius: '9px',
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none' },
+            }}
+          >
+            {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
+          </Button>
+        </Box>
+      </PageLayout>
+    );
+  }
+
+  return (
+    <PageLayout
+      key={namespace.id}
+      width='narrow'
+      component='form'
+      onSubmit={handleSubmit}
+      title={namespace.label}
+      icon={getNamespaceIcon(namespace.id)}
+    >
+      {upsertError ? (
+        <Alert severity='error' sx={{ mb: 2 }}>
+          {resolveErrorMessage(upsertError, 'Не удалось сохранить настройки.')}
+        </Alert>
+      ) : null}
+
+      {namespace.groups.map(group => (
+        <Box key={group.id}>
+          <Box
+            sx={{
+              px: { xs: 2, sm: 3 },
+              py: 2,
+              bgcolor: '#f9fafb',
+              borderTop: '1px solid #e5e7eb',
+              borderBottom: '1px solid #e5e7eb',
+            }}
+          >
+            <Typography
+              sx={{ fontSize: 13, fontWeight: 700, color: '#374151' }}
+            >
+              {group.label}
+            </Typography>
           </Box>
-        ))}
-      </Box>
+
+          {group.fields.map(field => (
+            <FieldRow key={field.key} field={field}>
+              <FieldControl
+                field={field}
+                value={values[field.key]}
+                error={errors[field.key]}
+                onChange={value => updateValue(field, value)}
+              />
+            </FieldRow>
+          ))}
+        </Box>
+      ))}
 
       <Box
         sx={{
-          px: { xs: 2, sm: 3 },
-          py: 2,
-          borderTop: '1px solid #e5e7eb',
-          bgcolor: '#f9fafb',
+          mt: 2,
           display: 'flex',
           justifyContent: 'flex-end',
         }}
@@ -1283,6 +1212,6 @@ export const AppSettingsNamespacePanel: React.FC<
           {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
         </Button>
       </Box>
-    </Panel>
+    </PageLayout>
   );
 };

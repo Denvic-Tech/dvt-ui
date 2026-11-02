@@ -20,55 +20,10 @@ const COMPACT_ROW_MEDIA = '@media (max-width: 1280px)';
 
 export const ROW_COLUMNS = `${NAME_COL} ${STATUS_COL} ${TASK_COL} ${METRICS_COL} ${CHEVRON_COL}`;
 
-export const PanelCard = styled(Card)(() => ({
-  width: '100%',
-  borderRadius: 16,
-  borderColor: '#e5e7eb',
-  background: '#ffffff',
-  boxShadow: 'none',
-}));
-
 export const PanelInner = styled('div')(() => ({
   display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr)',
   gap: 18,
-  padding: 20,
-}));
-
-export const HeaderWrap = styled('div')(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'flex-start',
-  justifyContent: 'space-between',
-  gap: 16,
-  [theme.breakpoints.down('md')]: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-  },
-}));
-
-export const HeaderContent = styled('div')(() => ({
-  minWidth: 0,
-}));
-
-export const HeaderTitleRow = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 10,
-  flexWrap: 'wrap',
-}));
-
-export const HeaderTitle = styled('h2')(() => ({
-  margin: 0,
-  fontSize: 18,
-  fontWeight: 600,
-  lineHeight: 1.2,
-  color: '#111827',
-}));
-
-export const HeaderDescription = styled('p')(() => ({
-  margin: '6px 0 0',
-  fontSize: 12,
-  lineHeight: 1.5,
-  color: '#6b7280',
 }));
 
 export const VersionBadge = styled(Badge)(() => ({

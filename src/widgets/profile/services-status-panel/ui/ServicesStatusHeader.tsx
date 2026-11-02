@@ -3,16 +3,12 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 
 import { Spinner } from '@/shared/ui';
+import { PageToolbar } from '@/shared/ui/page-layout';
 
 import {
   AutoReloadActionButton,
   AutoReloadDot,
   HeaderActions,
-  HeaderContent,
-  HeaderDescription,
-  HeaderTitle,
-  HeaderTitleRow,
-  HeaderWrap,
   RefreshActionButton,
   VersionBadge,
 } from './styled.ts';
@@ -33,22 +29,13 @@ export const ServicesStatusHeader: React.FC<ServicesStatusHeaderProps> = ({
   version,
 }) => {
   return (
-    <HeaderWrap>
-      <HeaderContent>
-        <HeaderTitleRow>
-          <HeaderTitle>Состояние внутренних сервисов</HeaderTitle>
-          {version ? (
-            <VersionBadge>
-              <Inventory2OutlinedIcon />
-              {version}
-            </VersionBadge>
-          ) : null}
-        </HeaderTitleRow>
-        <HeaderDescription>
-          Мониторинг ресурсов и состояния компонентов системы
-        </HeaderDescription>
-      </HeaderContent>
-
+    <PageToolbar justify={version ? 'space-between' : 'flex-end'}>
+      {version ? (
+        <VersionBadge>
+          <Inventory2OutlinedIcon />
+          {version}
+        </VersionBadge>
+      ) : null}
       <HeaderActions>
         <AutoReloadActionButton
           active={autoRefreshEnabled}
@@ -77,6 +64,6 @@ export const ServicesStatusHeader: React.FC<ServicesStatusHeaderProps> = ({
           Обновить
         </RefreshActionButton>
       </HeaderActions>
-    </HeaderWrap>
+    </PageToolbar>
   );
 };

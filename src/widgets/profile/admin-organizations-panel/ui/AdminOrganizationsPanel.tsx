@@ -34,6 +34,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { IconUsers } from '@tabler/icons-react';
 import { z } from 'zod';
 
 import {
@@ -44,6 +45,7 @@ import {
 } from '@/shared/gatewayClient';
 import { isApiError } from '@/shared/lib/errors';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { PageLayout } from '@/shared/ui/page-layout';
 
 const zName = z
   .string()
@@ -396,266 +398,258 @@ export const AdminOrganizationsPanel: React.FC = () => {
     organizationId != null && updatingOrganizationId === organizationId;
 
   return (
-    <Box>
-      <Stack
-        direction='row'
-        justifyContent='space-between'
-        alignItems='center'
-        sx={{ mb: 2 }}
-      >
-        <Box>
-          <Typography variant='h5' gutterBottom>
-            Organizations
-          </Typography>
-          <Typography variant='body2' color='text.secondary'>
-            Управление организациями системы: создание, редактирование и
-            управление статусом.
-          </Typography>
-        </Box>
-      </Stack>
-
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        alignItems={{ xs: 'stretch', sm: 'center' }}
-        justifyContent='space-between'
-        sx={{ mb: 2 }}
-      >
-        <TextField
-          size='small'
-          label='Search organizations'
-          value={searchInput}
-          onChange={event => setSearchInput(event.target.value)}
-          sx={{ maxWidth: 360 }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position='start'>
-                  <SearchIcon fontSize='small' />
-                </InputAdornment>
-              ),
-              endAdornment: searchInput ? (
-                <InputAdornment position='end'>
-                  <IconButton
-                    size='small'
-                    edge='end'
-                    onClick={() => setSearchInput('')}
-                  >
-                    <ClearIcon fontSize='small' />
-                  </IconButton>
-                </InputAdornment>
-              ) : undefined,
-            },
-          }}
-        />
-
-        <Stack direction='row' spacing={1} justifyContent='flex-end'>
-          <Button
+    <>
+      <PageLayout width='wide' title='Organizations' icon={IconUsers}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          justifyContent='space-between'
+          sx={{ mb: 2 }}
+        >
+          <TextField
             size='small'
-            variant='outlined'
-            startIcon={<RefreshIcon />}
-            onClick={handleRefresh}
-          >
-            Refresh
-          </Button>
-          <Button
-            size='small'
-            variant='contained'
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreate}
-          >
-            New organization
-          </Button>
+            label='Search organizations'
+            value={searchInput}
+            onChange={event => setSearchInput(event.target.value)}
+            sx={{ maxWidth: 360 }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position='start'>
+                    <SearchIcon fontSize='small' />
+                  </InputAdornment>
+                ),
+                endAdornment: searchInput ? (
+                  <InputAdornment position='end'>
+                    <IconButton
+                      size='small'
+                      edge='end'
+                      onClick={() => setSearchInput('')}
+                    >
+                      <ClearIcon fontSize='small' />
+                    </IconButton>
+                  </InputAdornment>
+                ) : undefined,
+              },
+            }}
+          />
+
+          <Stack direction='row' spacing={1} justifyContent='flex-end'>
+            <Button
+              size='small'
+              variant='outlined'
+              startIcon={<RefreshIcon />}
+              onClick={handleRefresh}
+            >
+              Refresh
+            </Button>
+            <Button
+              size='small'
+              variant='contained'
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreate}
+            >
+              New organization
+            </Button>
+          </Stack>
         </Stack>
-      </Stack>
 
-      {loadError ? (
-        <Alert severity='error' sx={{ mb: 2 }}>
-          {loadError}
-        </Alert>
-      ) : null}
+        {loadError ? (
+          <Alert severity='error' sx={{ mb: 2 }}>
+            {loadError}
+          </Alert>
+        ) : null}
 
-      {actionError ? (
-        <Alert severity='error' sx={{ mb: 2 }}>
-          {actionError}
-        </Alert>
-      ) : null}
+        {actionError ? (
+          <Alert severity='error' sx={{ mb: 2 }}>
+            {actionError}
+          </Alert>
+        ) : null}
 
-      <Paper variant='outlined'>
-        <TableContainer sx={{ maxHeight: 640 }}>
-          <Table size='small' stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell
-                  sortDirection={sortBy === 'name' ? sortDirection : false}
-                >
-                  <TableSortLabel
-                    active={sortBy === 'name'}
-                    direction={sortBy === 'name' ? sortDirection : 'asc'}
-                    onClick={() => handleRequestSort('name')}
-                  >
-                    Name
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell
-                  sortDirection={sortBy === 'inn' ? sortDirection : false}
-                >
-                  <TableSortLabel
-                    active={sortBy === 'inn'}
-                    direction={sortBy === 'inn' ? sortDirection : 'asc'}
-                    onClick={() => handleRequestSort('inn')}
-                  >
-                    INN
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell
-                  sortDirection={sortBy === 'active' ? sortDirection : false}
-                >
-                  <TableSortLabel
-                    active={sortBy === 'active'}
-                    direction={sortBy === 'active' ? sortDirection : 'asc'}
-                    onClick={() => handleRequestSort('active')}
-                  >
-                    Active
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell
-                  sortDirection={
-                    sortBy === 'created_at' ? sortDirection : false
-                  }
-                >
-                  <TableSortLabel
-                    active={sortBy === 'created_at'}
-                    direction={sortBy === 'created_at' ? sortDirection : 'desc'}
-                    onClick={() => handleRequestSort('created_at')}
-                  >
-                    Created
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell
-                  sortDirection={
-                    sortBy === 'updated_at' ? sortDirection : false
-                  }
-                >
-                  <TableSortLabel
-                    active={sortBy === 'updated_at'}
-                    direction={sortBy === 'updated_at' ? sortDirection : 'desc'}
-                    onClick={() => handleRequestSort('updated_at')}
-                  >
-                    Updated
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell align='right'>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
+        <Paper variant='outlined'>
+          <TableContainer sx={{ overflow: 'visible' }}>
+            <Table size='small' stickyHeader>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={7}>
-                    <Stack
-                      direction='row'
-                      spacing={1}
-                      alignItems='center'
-                      justifyContent='center'
-                      sx={{ py: 3 }}
+                  <TableCell
+                    sortDirection={sortBy === 'name' ? sortDirection : false}
+                  >
+                    <TableSortLabel
+                      active={sortBy === 'name'}
+                      direction={sortBy === 'name' ? sortDirection : 'asc'}
+                      onClick={() => handleRequestSort('name')}
                     >
-                      <CircularProgress size={18} />
-                      <Typography variant='body2' color='text.secondary'>
-                        Загрузка организаций...
-                      </Typography>
-                    </Stack>
+                      Name
+                    </TableSortLabel>
                   </TableCell>
-                </TableRow>
-              ) : sortedOrganizations.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7}>
-                    <Stack
-                      direction='row'
-                      spacing={1}
-                      alignItems='center'
-                      justifyContent='center'
-                      sx={{ py: 4 }}
+                  <TableCell
+                    sortDirection={sortBy === 'inn' ? sortDirection : false}
+                  >
+                    <TableSortLabel
+                      active={sortBy === 'inn'}
+                      direction={sortBy === 'inn' ? sortDirection : 'asc'}
+                      onClick={() => handleRequestSort('inn')}
                     >
-                      <ApartmentIcon color='disabled' />
-                      <Typography variant='body2' color='text.secondary'>
-                        Организации не найдены.
-                      </Typography>
-                    </Stack>
+                      INN
+                    </TableSortLabel>
                   </TableCell>
+                  <TableCell>Description</TableCell>
+                  <TableCell
+                    sortDirection={sortBy === 'active' ? sortDirection : false}
+                  >
+                    <TableSortLabel
+                      active={sortBy === 'active'}
+                      direction={sortBy === 'active' ? sortDirection : 'asc'}
+                      onClick={() => handleRequestSort('active')}
+                    >
+                      Active
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell
+                    sortDirection={
+                      sortBy === 'created_at' ? sortDirection : false
+                    }
+                  >
+                    <TableSortLabel
+                      active={sortBy === 'created_at'}
+                      direction={
+                        sortBy === 'created_at' ? sortDirection : 'desc'
+                      }
+                      onClick={() => handleRequestSort('created_at')}
+                    >
+                      Created
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell
+                    sortDirection={
+                      sortBy === 'updated_at' ? sortDirection : false
+                    }
+                  >
+                    <TableSortLabel
+                      active={sortBy === 'updated_at'}
+                      direction={
+                        sortBy === 'updated_at' ? sortDirection : 'desc'
+                      }
+                      onClick={() => handleRequestSort('updated_at')}
+                    >
+                      Updated
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell align='right'>Actions</TableCell>
                 </TableRow>
-              ) : (
-                sortedOrganizations.map(organization => {
-                  const active = organization.is_active ?? true;
-                  const updating = isUpdating(organization.id);
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7}>
+                      <Stack
+                        direction='row'
+                        spacing={1}
+                        alignItems='center'
+                        justifyContent='center'
+                        sx={{ py: 3 }}
+                      >
+                        <CircularProgress size={18} />
+                        <Typography variant='body2' color='text.secondary'>
+                          Загрузка организаций...
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ) : sortedOrganizations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7}>
+                      <Stack
+                        direction='row'
+                        spacing={1}
+                        alignItems='center'
+                        justifyContent='center'
+                        sx={{ py: 4 }}
+                      >
+                        <ApartmentIcon color='disabled' />
+                        <Typography variant='body2' color='text.secondary'>
+                          Организации не найдены.
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  sortedOrganizations.map(organization => {
+                    const active = organization.is_active ?? true;
+                    const updating = isUpdating(organization.id);
 
-                  return (
-                    <TableRow hover key={organization.id ?? organization.name}>
-                      <TableCell>{organization.name}</TableCell>
-                      <TableCell>{organization.inn || '—'}</TableCell>
-                      <TableCell>{organization.description || '—'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          size='small'
-                          label={active ? 'Active' : 'Inactive'}
-                          color={active ? 'success' : 'default'}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(organization.created_at)}
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(organization.updated_at)}
-                      </TableCell>
-                      <TableCell align='right'>
-                        <Stack
-                          direction='row'
-                          spacing={0.5}
-                          justifyContent='flex-end'
-                        >
-                          <IconButton
+                    return (
+                      <TableRow
+                        hover
+                        key={organization.id ?? organization.name}
+                      >
+                        <TableCell>{organization.name}</TableCell>
+                        <TableCell>{organization.inn || '—'}</TableCell>
+                        <TableCell>{organization.description || '—'}</TableCell>
+                        <TableCell>
+                          <Chip
                             size='small'
-                            onClick={() => handleOpenEdit(organization)}
-                            disabled={updating}
+                            label={active ? 'Active' : 'Inactive'}
+                            color={active ? 'success' : 'default'}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(organization.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(organization.updated_at)}
+                        </TableCell>
+                        <TableCell align='right'>
+                          <Stack
+                            direction='row'
+                            spacing={0.5}
+                            justifyContent='flex-end'
                           >
-                            <EditIcon fontSize='small' />
-                          </IconButton>
-                          <Tooltip
-                            title={
-                              active
-                                ? 'Deactivate organization'
-                                : 'Activate organization'
-                            }
-                          >
-                            <span>
-                              <IconButton
-                                size='small'
-                                color={active ? 'error' : 'success'}
-                                onClick={() =>
-                                  void handleToggleActive(organization)
-                                }
-                                disabled={updating}
-                              >
-                                {updating ? (
-                                  <CircularProgress size={16} />
-                                ) : active ? (
-                                  <BlockIcon fontSize='small' />
-                                ) : (
-                                  <CheckCircleIcon fontSize='small' />
-                                )}
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+                            <IconButton
+                              size='small'
+                              onClick={() => handleOpenEdit(organization)}
+                              disabled={updating}
+                            >
+                              <EditIcon fontSize='small' />
+                            </IconButton>
+                            <Tooltip
+                              title={
+                                active
+                                  ? 'Deactivate organization'
+                                  : 'Activate organization'
+                              }
+                            >
+                              <span>
+                                <IconButton
+                                  size='small'
+                                  color={active ? 'error' : 'success'}
+                                  onClick={() =>
+                                    void handleToggleActive(organization)
+                                  }
+                                  disabled={updating}
+                                >
+                                  {updating ? (
+                                    <CircularProgress size={16} />
+                                  ) : active ? (
+                                    <BlockIcon fontSize='small' />
+                                  ) : (
+                                    <CheckCircleIcon fontSize='small' />
+                                  )}
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </PageLayout>
 
       <Dialog
         open={createOpen}
@@ -808,6 +802,6 @@ export const AdminOrganizationsPanel: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </>
   );
 };
