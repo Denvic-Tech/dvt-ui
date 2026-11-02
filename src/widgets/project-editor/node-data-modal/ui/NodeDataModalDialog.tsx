@@ -1,19 +1,26 @@
 import { alpha } from '@mui/material/styles';
 import type { PropsWithChildren } from 'react';
 
+import type { NodeModalDialogSize } from '@/app/providers/node-extensions/lib/types';
+
 import { Dialog } from '@/shared/ui/primitives';
 
 import { ModalContainer } from './styles';
 
+const DEFAULT_WIDTH = 'calc(100vw - 96px)';
+const DEFAULT_HEIGHT = 'calc(100dvh - 64px)';
+
 type NodeDataModalDialogProps = PropsWithChildren<{
   onClose: () => void;
   open: boolean;
+  size?: NodeModalDialogSize | undefined;
 }>;
 
 export const NodeDataModalDialog = ({
   children,
   onClose,
   open,
+  size,
 }: NodeDataModalDialogProps) => (
   <Dialog
     data-testid='widgets/project-editor/node-data-modal'
@@ -30,10 +37,10 @@ export const NodeDataModalDialog = ({
       paper: {
         'aria-label': 'Настройки ноды',
         sx: theme => ({
-          width: 'calc(100vw - 96px)',
-          height: 'calc(100dvh - 64px)',
-          maxWidth: 'none',
-          maxHeight: 'none',
+          width: size?.width ?? DEFAULT_WIDTH,
+          height: size?.height ?? DEFAULT_HEIGHT,
+          maxWidth: size?.width !== undefined ? DEFAULT_WIDTH : 'none',
+          maxHeight: size?.height !== undefined ? DEFAULT_HEIGHT : 'none',
           m: 0,
           border: `1px solid ${theme.palette.divider}`,
           backgroundColor: theme.palette.background.paper,

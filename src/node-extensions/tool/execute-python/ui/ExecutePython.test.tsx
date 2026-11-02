@@ -2,37 +2,62 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { makeConst } from '@/shared/lib/node-input-values';
-
 import {
   EXECUTE_PYTHON_COMPLETION_PROVIDERS,
   ExecutePython,
 } from './ExecutePython';
 
 vi.mock('@/shared/ui/node-input', () => ({
-  PythonCodeInput: ({ helperText }: { helperText?: string }) => (
-    <div data-testid='python-code-input'>{helperText}</div>
+  PythonCodeInput: () => <div data-testid='python-code-input' />,
+  JSONNodeInput: ({ title }: { title?: React.ReactNode }) => (
+    <div data-testid='json-node-input'>{title}</div>
   ),
 }));
 
+vi.mock('@/features/node/use-universal-node-data-input', () => ({
+  NodeDataInput: () => <div data-testid='node-data-input' />,
+}));
+
+const nodeDefinition = {
+  name: 'ExecutePython',
+  input_definitions: {
+    json_in: { attr_name: 'json_in', type: 'JSON', display_name: 'json_in' },
+    code: {
+      attr_name: 'code',
+      type: 'STRING',
+      multiline: true,
+      display_name: 'code',
+    },
+  },
+} as never;
+
 describe('ExecutePython', () => {
-  it('describes optional inputs and output variable mapping', () => {
+  it('renders the JSON and script cards with the I/O contract', () => {
     render(
       <ExecutePython
-        nodeId='node-1'
-        nodeName='ExecutePython'
-        inputDefinition={{} as never}
-        value={makeConst('')}
-        onChange={vi.fn()}
-        context='modal'
+        projectID='project-1'
+        id='node-1'
+        data={{} as never}
+        nodeDefinition={nodeDefinition}
+        isOpen
+        localInputData={{ code: '', json_in: '' }}
+        setLocalInputData={vi.fn()}
         variables={[]}
       />
     );
 
-    expect(screen.getByText('Входы: df_in, json_in')).toBeInTheDocument();
+    expect(screen.getByTestId('json-node-input')).toBeInTheDocument();
+    expect(screen.getByText('Входной JSON')).toBeInTheDocument();
+    expect(screen.getByText('опционально')).toBeInTheDocument();
+    expect(screen.getByText('Скрипт')).toBeInTheDocument();
+    expect(screen.getByText('df_in')).toBeInTheDocument();
     expect(screen.getByText('output ← df_out')).toBeInTheDocument();
     expect(screen.getByText('output_json ← json_out')).toBeInTheDocument();
-    expect(screen.getByText(/JSON-данные/)).toBeInTheDocument();
+    expect(screen.getByText('input_variables')).toBeInTheDocument();
+    expect(screen.getByText('project_variables')).toBeInTheDocument();
+    expect(screen.getByText(/Jinja2 не используется/)).toBeInTheDocument();
+    expect(screen.getByTestId('python-code-input')).toBeInTheDocument();
+    expect(screen.queryByTestId('node-data-input')).not.toBeInTheDocument();
   });
 
   it('provides input, output and snippet completions', () => {
