@@ -21,10 +21,18 @@ export const SectionLink = ({ onPick, section, variant }: SectionLinkProps) => {
     <>
       {isCard ? (
         <Box component='span' className='home-section-icon' sx={cardIconSx}>
-          <Icon sx={{ fontSize: 15 }} />
+          <Box component={Icon} sx={{ width: 14, height: 14 }} />
         </Box>
       ) : (
-        <Icon sx={{ fontSize: 16, color: hc.ink3, flexShrink: 0 }} />
+        <Box
+          component={Icon}
+          sx={{
+            width: 16,
+            height: 16,
+            color: hc.brand,
+            flexShrink: 0,
+          }}
+        />
       )}
       <Box component='span' sx={{ ...homeEllipsisSx, flex: 1, minWidth: 0 }}>
         {section.label}
@@ -76,7 +84,7 @@ export const SectionLink = ({ onPick, section, variant }: SectionLinkProps) => {
         },
         '&:hover .home-section-icon, &:focus-visible .home-section-icon': {
           backgroundColor: hc.brandSoftHover,
-          color: hc.brand,
+          color: hc.brandStrong,
         },
       }}
     >
@@ -90,7 +98,7 @@ const cardIconSx = {
   height: 24,
   borderRadius: '6px',
   backgroundColor: hc.brandIconBg,
-  color: hc.brandIcon,
+  color: hc.brand,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',

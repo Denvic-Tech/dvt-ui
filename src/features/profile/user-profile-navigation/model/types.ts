@@ -1,4 +1,4 @@
-import type { SvgIconComponent } from '@mui/icons-material';
+import type { ElementType } from 'react';
 
 import type { DvtDefaultRoles } from '@/shared/gatewayClient';
 
@@ -17,7 +17,7 @@ export type ProfileSectionGroupConfig = {
 export type ProfileSectionConfig = {
   to: string;
   label: string;
-  icon: SvgIconComponent;
+  icon: ElementType;
   group: ProfileSectionGroupId;
   require_roles?: readonly ProfileSectionRoleRequirement[];
 };

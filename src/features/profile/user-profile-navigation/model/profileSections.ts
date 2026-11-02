@@ -1,11 +1,14 @@
-import ApartmentIcon from '@mui/icons-material/Apartment';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import DvrIcon from '@mui/icons-material/Dvr';
-import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
-import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
-import SystemUpdateAltRoundedIcon from '@mui/icons-material/SystemUpdateAltRounded';
-import TuneIcon from '@mui/icons-material/Tune';
-import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import {
+  IconActivity,
+  IconAdjustmentsHorizontal,
+  IconCalendarTime,
+  IconCircleArrowUp,
+  IconKey,
+  IconLayoutSidebar,
+  IconPlugConnected,
+  IconPuzzle,
+  IconUsers,
+} from '@tabler/icons-react';
 
 import {
   type ProfileSectionConfig,
@@ -16,6 +19,7 @@ export const PROFILE_SECTION_PATHS = {
   schedule: '/profile/schedule',
   preferences: '/profile/preferences',
   apiKeys: '/profile/api-keys',
+  mcp: '/profile/mcp',
   admin: '/profile/admin',
   organizations: '/profile/organizations',
   services: '/profile/services',
@@ -50,54 +54,60 @@ export const profileSections = [
   {
     to: PROFILE_SECTION_PATHS.schedule,
     label: 'Schedule Projects',
-    icon: CalendarMonthIcon,
+    icon: IconCalendarTime,
     group: 'general',
     require_roles: ['superadmin', 'admin'],
   },
   {
     to: PROFILE_SECTION_PATHS.preferences,
     label: 'Preferences',
-    icon: TuneIcon,
+    icon: IconAdjustmentsHorizontal,
     group: 'general',
   },
   {
     to: PROFILE_SECTION_PATHS.apiKeys,
     label: 'API Keys',
-    icon: VpnKeyIcon,
+    icon: IconKey,
+    group: 'general',
+  },
+  {
+    to: PROFILE_SECTION_PATHS.mcp,
+    label: 'MCP',
+    icon: IconPlugConnected,
     group: 'general',
   },
   {
     to: PROFILE_SECTION_PATHS.admin,
     label: 'Admin Panel',
-    icon: SupervisorAccountIcon,
+    icon: IconLayoutSidebar,
     group: 'admin',
     require_roles: ['admin', 'superadmin'],
   },
   {
     to: PROFILE_SECTION_PATHS.organizations,
     label: 'Organizations',
-    icon: ApartmentIcon,
+    icon: IconUsers,
     group: 'admin',
     require_roles: ['superadmin'],
   },
   {
     to: PROFILE_SECTION_PATHS.services,
     label: 'Services Stats Panel',
-    icon: DvrIcon,
+    icon: IconActivity,
     group: 'admin',
     require_roles: ['superadmin'],
   },
   {
     to: PROFILE_SECTION_PATHS.extensions,
     label: 'Extensions',
-    icon: ExtensionOutlinedIcon,
+    icon: IconPuzzle,
     group: 'system',
     require_roles: ['superadmin'],
   },
   {
     to: PROFILE_SECTION_PATHS.update,
-    label: 'Обновление',
-    icon: SystemUpdateAltRoundedIcon,
+    label: 'Update',
+    icon: IconCircleArrowUp,
     group: 'system',
     require_roles: ['superadmin'],
   },
