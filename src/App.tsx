@@ -125,7 +125,9 @@ const SetupStatusGuard: React.FC<{ children: React.ReactNode }> = ({
     status,
   ]);
 
-  if (isChecking) {
+  // Only the first check blocks rendering: later ones run in the background so
+  // that navigation does not remount the whole route tree.
+  if (isChecking && !status) {
     return (
       <Box
         sx={{
@@ -148,6 +150,8 @@ const RoutedAppContent = () => {
   const isProjectEditorRoute = location.pathname.startsWith('/project-editor/');
   const isHomeRoute =
     location.pathname === '/' || location.pathname === '/home';
+  // The profile shell scrolls inside and needs room for its shadow.
+  const isProfileRoute = location.pathname.startsWith('/profile');
 
   return (
     <LanguageProvider>
@@ -169,7 +173,10 @@ const RoutedAppContent = () => {
                   sx={{
                     flex: 1,
                     minHeight: 0,
-                    overflow: isProjectEditorRoute ? 'visible' : 'auto',
+                    overflow:
+                      isProjectEditorRoute || isProfileRoute
+                        ? 'visible'
+                        : 'auto',
                     backgroundColor: 'background.default',
                     ...(isHomeRoute
                       ? {
