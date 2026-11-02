@@ -52,6 +52,10 @@ vi.mock('@/features/profile/build-version-info', () => ({
   useBuildVersion: () => useBuildVersionMock(),
 }));
 
+vi.mock('@/features/profile/user-menu', () => ({
+  UserMenu: () => null,
+}));
+
 vi.mock('@/entities/user', () => ({
   normalizeRole: (role: string | null | undefined) =>
     role === 'superadmin' || role === 'admin' || role === 'user' ? role : null,

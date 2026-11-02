@@ -6,6 +6,7 @@ import {
 } from '@mui/material/styles';
 
 import { getControlRadiusValue } from '@/shared/ui/primitives/components/theme-style-helpers';
+import { getSurfaceShadow } from '@/shared/ui/surface-shadow';
 
 export type ProjectBadgeVariant =
   | 'default'
@@ -87,14 +88,7 @@ export const headerPanelSx: SxProps<Theme> = {
   justifyContent: 'space-between',
   gap: 2,
   overflow: 'hidden',
-  boxShadow: theme =>
-    `0 11px 26px ${alpha(
-      theme.palette.common.black,
-      theme.palette.mode === 'light' ? 0.038 : 0.9
-    )}, 0 3px 10px ${alpha(
-      theme.palette.common.black,
-      theme.palette.mode === 'light' ? 0.024 : 0.55
-    )}`,
+  boxShadow: getSurfaceShadow,
 };
 
 export const headerNavSx: SxProps<Theme> = {
@@ -118,7 +112,7 @@ export const headerBrandGroupSx: SxProps<Theme> = {
 export const headerBrandButtonSx: SxProps<Theme> = {
   minWidth: 0,
   display: 'flex',
-  alignItems: 'center',
+  alignItems: 'last baseline',
   gap: 1.5,
   flexWrap: 'nowrap',
   overflow: 'hidden',
@@ -161,40 +155,11 @@ export const headerActionsSx: SxProps<Theme> = {
   flexShrink: 0,
 };
 
-export const avatarLinkSx: SxProps<Theme> = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderRadius: '999px',
-  textDecoration: 'none',
-  color: 'inherit',
-};
-
-export const logoLinkSx: SxProps<Theme> = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 32,
-  height: 32,
-  borderRadius: 10,
-  textDecoration: 'none',
-  color: 'inherit',
-  overflow: 'hidden',
-  flexShrink: 0,
-};
-
 export const logoImageSx: SxProps<Theme> = {
-  width: '100%',
-  height: '100%',
-  objectFit: 'contain',
+  width: 26,
+  height: 26,
   display: 'block',
-};
-
-export const avatarSx: SxProps<Theme> = {
-  width: 32,
-  height: 32,
-  background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)',
-  color: '#ffffff',
+  flexShrink: 0,
 };
 
 export const dividerSx: SxProps<Theme> = {
@@ -227,18 +192,15 @@ export const productTitleBrandSx: SxProps<Theme> = {
   fontFamily:
     '"SF Pro Display", "Geist Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
   letterSpacing: '0.01em',
+  color: '#7C8794',
 };
 
 export const productTitleAccentSx: SxProps<Theme> = {
   display: 'inline-block',
   fontWeight: 700,
   fontSize: 15,
-  background:
-    'linear-gradient(135deg, #2f7a4f 0%, #23856d 24%, #1e7f8d 52%, #256f9f 76%, #315f97 100%)',
-  backgroundClip: 'text',
-  WebkitBackgroundClip: 'text',
-  color: 'transparent',
-  WebkitTextFillColor: 'transparent',
+  color: theme =>
+    theme.palette.mode === 'dark' ? theme.palette.text.primary : '#0A4F6E',
 };
 
 export const productVersionSx: SxProps<Theme> = {
