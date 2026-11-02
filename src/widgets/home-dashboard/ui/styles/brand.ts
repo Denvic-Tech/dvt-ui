@@ -24,19 +24,15 @@ export const productTitleBrandSx: SxProps<Theme> = {
   fontFamily:
     '"SF Pro Display", "Geist Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
   letterSpacing: '0.01em',
-  color: 'text.secondary',
+  color: '#7C8794',
 };
 
 export const productTitleAccentSx: SxProps<Theme> = {
   display: 'inline-block',
   fontWeight: 700,
   fontSize: 20,
-  background:
-    'linear-gradient(135deg, #2f7a4f 0%, #23856d 24%, #1e7f8d 52%, #256f9f 76%, #315f97 100%)',
-  backgroundClip: 'text',
-  WebkitBackgroundClip: 'text',
-  color: 'transparent',
-  WebkitTextFillColor: 'transparent',
+  color: theme =>
+    theme.palette.mode === 'dark' ? theme.palette.text.primary : '#0A4F6E',
 };
 
 export const productVersionSx: SxProps<Theme> = {

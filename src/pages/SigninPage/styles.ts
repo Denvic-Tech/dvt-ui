@@ -115,8 +115,8 @@ export const contentWrapperSx: SxProps<Theme> = {
 
 export const brandRowSx: SxProps<Theme> = {
   display: 'flex',
-  alignItems: 'center',
-  gap: '11px',
+  alignItems: 'last baseline',
+  gap: 1.5,
 };
 
 export const brandTitleSx: SxProps<Theme> = {
@@ -139,22 +139,19 @@ export const brandTitleMetaRowSx: SxProps<Theme> = {
 
 export const brandTitleBrandSx: SxProps<Theme> = {
   fontWeight: 400,
-  fontSize: 13,
+  fontSize: 14,
   fontFamily:
     '"SF Pro Display", "Geist Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
   letterSpacing: '0.01em',
+  color: '#7C8794',
 };
 
 export const brandTitleAccentSx: SxProps<Theme> = {
   display: 'inline-block',
   fontWeight: 700,
-  fontSize: 17,
-  background:
-    'linear-gradient(135deg, #2f7a4f 0%, #23856d 24%, #1e7f8d 52%, #256f9f 76%, #315f97 100%)',
-  backgroundClip: 'text',
-  WebkitBackgroundClip: 'text',
-  color: 'transparent',
-  WebkitTextFillColor: 'transparent',
+  fontSize: 20,
+  color: theme =>
+    theme.palette.mode === 'dark' ? theme.palette.text.primary : '#0A4F6E',
 };
 
 export const brandVersionSx: SxProps<Theme> = {

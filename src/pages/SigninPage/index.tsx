@@ -47,14 +47,14 @@ import {
 const LogoMark = () => (
   <Box
     component='img'
-    src='/DVT-logo.png'
+    src='/Denvic-logo.svg'
     alt=''
     aria-hidden='true'
     sx={{
-      width: 38,
-      height: 38,
+      width: 35,
+      height: 35,
+      display: 'block',
       flexShrink: 0,
-      objectFit: 'contain',
     }}
   />
 );
