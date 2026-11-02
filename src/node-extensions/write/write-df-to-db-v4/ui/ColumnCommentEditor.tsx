@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { type ReactNode, useId, useRef, useState } from 'react';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { Box, Popover, TextField, Typography } from '@mui/material';
 
@@ -13,6 +13,8 @@ type Props = {
   sourceComment?: string | null;
   disabled?: boolean;
   disabledReason?: string;
+  /** Значок сразу после текста комментария (например, источник описания). */
+  adornment?: ReactNode;
   onChange: (value: string | null) => void;
   onReset?: () => void;
 };
@@ -24,6 +26,7 @@ export function ColumnCommentEditor({
   sourceComment,
   disabled,
   disabledReason,
+  adornment,
   onChange,
   onReset,
 }: Props) {
@@ -93,30 +96,41 @@ export function ColumnCommentEditor({
             },
           }}
         >
-          <Typography
-            ref={commentRef}
+          <Box
             component='span'
             sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
               minWidth: 0,
-              fontSize: 14,
-              lineHeight: '20px',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              color: value ? 'inherit' : 'text.disabled',
             }}
           >
-            {value || '—'}
-            {dirty && (
-              <Box
-                component='span'
-                aria-label='Комментарий изменён'
-                sx={{ color: 'primary.main', ml: 0.5 }}
-              >
-                •
-              </Box>
-            )}
-          </Typography>
+            <Typography
+              ref={commentRef}
+              component='span'
+              sx={{
+                minWidth: 0,
+                fontSize: 14,
+                lineHeight: '20px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                color: value ? 'inherit' : 'text.disabled',
+              }}
+            >
+              {value || '—'}
+              {dirty && (
+                <Box
+                  component='span'
+                  aria-label='Комментарий изменён'
+                  sx={{ color: 'primary.main', ml: 0.5 }}
+                >
+                  •
+                </Box>
+              )}
+            </Typography>
+            {adornment}
+          </Box>
           {!disabled && (
             <EditOutlinedIcon
               className='comment-edit-icon'

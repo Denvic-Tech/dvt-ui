@@ -57,6 +57,9 @@ import type {
   CreateConnectionPublicDbConnectionsPostData,
   CreateConnectionPublicDbConnectionsPostError,
   CreateConnectionPublicDbConnectionsPostResponses,
+  CreateConnectLinkAgentsConnectPostData,
+  CreateConnectLinkAgentsConnectPostError,
+  CreateConnectLinkAgentsConnectPostResponses,
   CreateDatabaseUtilsDdlCreateDatabasePostData,
   CreateDatabaseUtilsDdlCreateDatabasePostError,
   CreateDatabaseUtilsDdlCreateDatabasePostResponses,
@@ -387,6 +390,8 @@ import type {
   ListConnectionsPublicDbConnectionsGetData,
   ListConnectionsPublicDbConnectionsGetError,
   ListConnectionsPublicDbConnectionsGetResponses,
+  ListConnectLinksAgentsConnectGetData,
+  ListConnectLinksAgentsConnectGetResponses,
   ListDatabasesDbConnectionsConnectionIdCatalogDatabasesGetData,
   ListDatabasesDbConnectionsConnectionIdCatalogDatabasesGetError,
   ListDatabasesDbConnectionsConnectionIdCatalogDatabasesGetResponses,
@@ -467,6 +472,9 @@ import type {
   ResolveWriteColumnsUtilsDdlResolveWriteColumnsPostData,
   ResolveWriteColumnsUtilsDdlResolveWriteColumnsPostError,
   ResolveWriteColumnsUtilsDdlResolveWriteColumnsPostResponses,
+  RevokeConnectLinkAgentsConnectCodeIdDeleteData,
+  RevokeConnectLinkAgentsConnectCodeIdDeleteError,
+  RevokeConnectLinkAgentsConnectCodeIdDeleteResponses,
   RevokeMcpTokenMcpTokensTokenIdDeleteData,
   RevokeMcpTokenMcpTokensTokenIdDeleteError,
   RevokeMcpTokenMcpTokensTokenIdDeleteResponses,
@@ -617,6 +625,8 @@ import {
   zCreateConnectionDbConnectionsPostResponse,
   zCreateConnectionPublicDbConnectionsPostData,
   zCreateConnectionPublicDbConnectionsPostResponse,
+  zCreateConnectLinkAgentsConnectPostData,
+  zCreateConnectLinkAgentsConnectPostResponse,
   zCreateDatabaseUtilsDdlCreateDatabasePostData,
   zCreateDatabaseUtilsDdlCreateDatabasePostResponse,
   zCreateFolderStorageFolderCreatePostData,
@@ -840,6 +850,8 @@ import {
   zListConnectionsDbConnectionsGetResponse,
   zListConnectionsPublicDbConnectionsGetData,
   zListConnectionsPublicDbConnectionsGetResponse,
+  zListConnectLinksAgentsConnectGetData,
+  zListConnectLinksAgentsConnectGetResponse,
   zListDatabasesDbConnectionsConnectionIdCatalogDatabasesGetData,
   zListDatabasesDbConnectionsConnectionIdCatalogDatabasesGetResponse,
   zListExtensionsExtensionsGetData,
@@ -898,6 +910,7 @@ import {
   zRenamePathStoragePathRenamePostResponse,
   zResolveWriteColumnsUtilsDdlResolveWriteColumnsPostData,
   zResolveWriteColumnsUtilsDdlResolveWriteColumnsPostResponse,
+  zRevokeConnectLinkAgentsConnectCodeIdDeleteData,
   zRevokeMcpTokenMcpTokensTokenIdDeleteData,
   zRunUpdateUpdateRunPostData,
   zRunUpdateUpdateRunPostResponse,
@@ -12067,6 +12080,176 @@ export const nestedClient = {
         method: 'POST',
         url: '/mcp-tokens',
       });
+    },
+  },
+  agents: {
+    connect: {
+      codeId: (codeId: PathParamValue) => {
+        const rootPathContext_codeId: PathContext = {
+          ...rootPathContext,
+          code_id: codeId,
+        };
+        return {
+          /**
+           * Revoke Connect Link
+           */
+          delete: async (
+            params?: OperationParams<RevokeConnectLinkAgentsConnectCodeIdDeleteData>,
+            config?: OperationConfig<
+              RevokeConnectLinkAgentsConnectCodeIdDeleteData,
+              RevokeConnectLinkAgentsConnectCodeIdDeleteResponses[keyof RevokeConnectLinkAgentsConnectCodeIdDeleteResponses]
+            >
+          ): OperationResult<
+            RevokeConnectLinkAgentsConnectCodeIdDeleteResponses[keyof RevokeConnectLinkAgentsConnectCodeIdDeleteResponses],
+            RevokeConnectLinkAgentsConnectCodeIdDeleteError
+          > => {
+            const requestParams = (params ??
+              {}) as OperationParams<RevokeConnectLinkAgentsConnectCodeIdDeleteData>;
+            const { client: clientOverride, ...requestConfig } = (config ??
+              {}) as OperationConfig<
+              RevokeConnectLinkAgentsConnectCodeIdDeleteData,
+              RevokeConnectLinkAgentsConnectCodeIdDeleteResponses[keyof RevokeConnectLinkAgentsConnectCodeIdDeleteResponses]
+            >;
+            const requestClient = clientOverride ?? client;
+            const requestOptions = {
+              ...requestConfig,
+              ...requestParams,
+            } satisfies Omit<
+              OperationBaseOptions<
+                RevokeConnectLinkAgentsConnectCodeIdDeleteData,
+                RevokeConnectLinkAgentsConnectCodeIdDeleteResponses[keyof RevokeConnectLinkAgentsConnectCodeIdDeleteResponses]
+              >,
+              'path'
+            >;
+            if (requestOptions.requestValidator == null) {
+              requestOptions.requestValidator = async data => {
+                return await zRevokeConnectLinkAgentsConnectCodeIdDeleteData.parseAsync(
+                  data
+                );
+              };
+            }
+            const path = { ...rootPathContext_codeId } satisfies PathContext;
+            return requestClient.request<
+              RevokeConnectLinkAgentsConnectCodeIdDeleteResponses[keyof RevokeConnectLinkAgentsConnectCodeIdDeleteResponses],
+              RevokeConnectLinkAgentsConnectCodeIdDeleteError,
+              true
+            >({
+              ...requestOptions,
+              method: 'DELETE',
+              url: '/agents/connect/{code_id}',
+              path,
+            });
+          },
+        };
+      },
+      /**
+       * List Connect Links
+       */
+      get: async (
+        params?: OperationParams<ListConnectLinksAgentsConnectGetData>,
+        config?: OperationConfig<
+          ListConnectLinksAgentsConnectGetData,
+          ListConnectLinksAgentsConnectGetResponses[keyof ListConnectLinksAgentsConnectGetResponses]
+        >
+      ): OperationResult<
+        ListConnectLinksAgentsConnectGetResponses[keyof ListConnectLinksAgentsConnectGetResponses],
+        never
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<ListConnectLinksAgentsConnectGetData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          ListConnectLinksAgentsConnectGetData,
+          ListConnectLinksAgentsConnectGetResponses[keyof ListConnectLinksAgentsConnectGetResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            ListConnectLinksAgentsConnectGetData,
+            ListConnectLinksAgentsConnectGetResponses[keyof ListConnectLinksAgentsConnectGetResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zListConnectLinksAgentsConnectGetData.parseAsync(data);
+          };
+        }
+        if (requestOptions.responseValidator == null) {
+          requestOptions.responseValidator = async data => {
+            return await zListConnectLinksAgentsConnectGetResponse.parseAsync(
+              data
+            );
+          };
+        }
+        return requestClient.request<
+          ListConnectLinksAgentsConnectGetResponses[keyof ListConnectLinksAgentsConnectGetResponses],
+          never,
+          true
+        >({
+          ...requestOptions,
+          method: 'GET',
+          url: '/agents/connect',
+        });
+      },
+      /**
+       * Create Connect Link
+       */
+      post: async (
+        params?: OperationParams<CreateConnectLinkAgentsConnectPostData>,
+        config?: OperationConfig<
+          CreateConnectLinkAgentsConnectPostData,
+          CreateConnectLinkAgentsConnectPostResponses[keyof CreateConnectLinkAgentsConnectPostResponses]
+        >
+      ): OperationResult<
+        CreateConnectLinkAgentsConnectPostResponses[keyof CreateConnectLinkAgentsConnectPostResponses],
+        CreateConnectLinkAgentsConnectPostError
+      > => {
+        const requestParams = (params ??
+          {}) as OperationParams<CreateConnectLinkAgentsConnectPostData>;
+        const { client: clientOverride, ...requestConfig } = (config ??
+          {}) as OperationConfig<
+          CreateConnectLinkAgentsConnectPostData,
+          CreateConnectLinkAgentsConnectPostResponses[keyof CreateConnectLinkAgentsConnectPostResponses]
+        >;
+        const requestClient = clientOverride ?? client;
+        const requestOptions = {
+          ...requestConfig,
+          ...requestParams,
+        } satisfies Omit<
+          OperationBaseOptions<
+            CreateConnectLinkAgentsConnectPostData,
+            CreateConnectLinkAgentsConnectPostResponses[keyof CreateConnectLinkAgentsConnectPostResponses]
+          >,
+          'path'
+        >;
+        if (requestOptions.requestValidator == null) {
+          requestOptions.requestValidator = async data => {
+            return await zCreateConnectLinkAgentsConnectPostData.parseAsync(
+              data
+            );
+          };
+        }
+        if (requestOptions.responseValidator == null) {
+          requestOptions.responseValidator = async data => {
+            return await zCreateConnectLinkAgentsConnectPostResponse.parseAsync(
+              data
+            );
+          };
+        }
+        return requestClient.request<
+          CreateConnectLinkAgentsConnectPostResponses[keyof CreateConnectLinkAgentsConnectPostResponses],
+          CreateConnectLinkAgentsConnectPostError,
+          true
+        >({
+          ...requestOptions,
+          method: 'POST',
+          url: '/agents/connect',
+        });
+      },
     },
   },
   pytestMon: {

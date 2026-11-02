@@ -122,4 +122,23 @@ describe('ExecuteProjectEditor', () => {
       '"unresolved_variables_policy":"skip"'
     );
   });
+
+  it('defaults project variables policy to include and allows skipping', () => {
+    render(<EditorHarness initialValues={{}} />);
+
+    const projectVariablesSelect = screen.getByRole('button', {
+      name: 'Переменные проекта',
+    });
+
+    expect(projectVariablesSelect).toHaveTextContent(
+      'Передать в дочерний проект'
+    );
+
+    fireEvent.mouseDown(projectVariablesSelect);
+    fireEvent.click(screen.getByRole('button', { name: 'Не передавать' }));
+
+    expect(screen.getByTestId('input-values')).toHaveTextContent(
+      '"project_variables_policy":"skip"'
+    );
+  });
 });

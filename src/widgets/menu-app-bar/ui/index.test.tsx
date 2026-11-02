@@ -47,8 +47,12 @@ vi.mock('@/app/notifications', () => ({
   NotificationCenter: () => null,
 }));
 
+vi.mock('@/features/profile/user-menu', () => ({
+  UserMenu: () => <button type='button'>Профиль</button>,
+}));
+
 describe('app/ui/common/Header', () => {
-  it('renders brand version, projects breadcrumb and profile avatar', () => {
+  it('renders brand version, projects breadcrumb and user menu', () => {
     render(
       <MemoryRouter initialEntries={['/project-editor/project-1']}>
         <MenuAppBar />
@@ -61,10 +65,7 @@ describe('app/ui/common/Header', () => {
       '/'
     );
     expect(screen.getByText('v1.19.0rc5')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Profile' })).toHaveAttribute(
-      'href',
-      '/profile'
-    );
+    expect(screen.getByRole('button', { name: 'Профиль' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /проекты/i })).toHaveAttribute(
       'href',
       '/projects'

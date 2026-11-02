@@ -7,6 +7,7 @@ import {
   selectNodeFieldsViewerShowFullPath,
   selectNodeModalWorkspacePreviewWidth,
   selectPinnedNodeNames,
+  selectProfileLastSectionPath,
 } from '../selectors';
 import { uiPreferencesActions, uiPreferencesReducer } from '../slice';
 import type { UIPreferencesState } from '../types';
@@ -144,6 +145,23 @@ describe('uiPreferences slice', () => {
     expect(
       selectNodeFieldsViewerShowFullPath({ uiPreferences: state } as never)
     ).toBe(true);
+  });
+
+  it('stores the last profile section, including legacy state', () => {
+    const initial = uiPreferencesReducer(undefined, { type: 'unknown' });
+    const { profilePage: _omitted, ...legacyState } = initial;
+
+    expect(
+      selectProfileLastSectionPath({ uiPreferences: legacyState } as never)
+    ).toBeNull();
+
+    const state = uiPreferencesReducer(
+      legacyState as UIPreferencesState,
+      uiPreferencesActions.setProfileLastSectionPath('/profile/mcp')
+    );
+    expect(
+      selectProfileLastSectionPath({ uiPreferences: state } as never)
+    ).toBe('/profile/mcp');
   });
 
   it('stores the ordered home widget ids', () => {

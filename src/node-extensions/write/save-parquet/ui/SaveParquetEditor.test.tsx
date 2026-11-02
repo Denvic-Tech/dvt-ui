@@ -283,4 +283,24 @@ describe('SaveParquetEditor', () => {
       'reports/orders, а не reports/orders.parquet'
     );
   });
+
+  it('renders the catalog sync switch on by default and stores an explicit opt-out', () => {
+    renderEditor({
+      path: 'reports/orders',
+      mode: 'overwrite',
+      compatibility_mode: 'new',
+    });
+
+    const toggle = screen.getByRole('checkbox', {
+      name: 'Синхронизировать описания колонок с каталогом',
+    });
+    expect(toggle).toBeChecked();
+    expect(screen.getByText(/метаданные полей Parquet/)).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(screen.getByTestId('values')).toHaveTextContent(
+      '"sync_column_descriptions":false'
+    );
+  });
 });

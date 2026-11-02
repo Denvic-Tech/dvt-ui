@@ -7,4 +7,5 @@ export type ExecuteProjectValues = {
   force_exec?: boolean;
   unresolved_variables_policy?: 'error' | 'skip';
   system_variables_policy?: 'error' | 'skip' | 'include';
+  project_variables_policy?: 'include' | 'skip';
 };

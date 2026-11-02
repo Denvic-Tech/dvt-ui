@@ -294,7 +294,9 @@ export const HomeSearch = ({
                   <SearchRow
                     key={section.id}
                     active={activeIndex === resultIndex}
-                    icon={<Icon sx={{ fontSize: 15 }} />}
+                    icon={
+                      <Box component={Icon} sx={{ width: 15, height: 15 }} />
+                    }
                     label={section.label}
                     meta={section.group}
                     onHover={() => setActiveIndex(resultIndex)}

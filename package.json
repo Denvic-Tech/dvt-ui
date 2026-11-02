@@ -38,6 +38,7 @@
     "@mui/x-tree-view": "^8.5.3",
     "@openai/codex-sdk": "^0.53.0",
     "@reduxjs/toolkit": "^2.6.0",
+    "@tabler/icons-react": "^3.50.0",
     "@tailwindcss/vite": "^4.2.2",
     "@xyflow/react": "^12.6.4",
     "ajv": "^8.17.1",

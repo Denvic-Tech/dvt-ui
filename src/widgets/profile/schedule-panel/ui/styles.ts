@@ -24,17 +24,6 @@ export const colors = {
 };
 
 // Основной контейнер теперь всегда на всю ширину
-export const Container = styled('div')(() => ({
-  backgroundColor: colors.white,
-  borderRadius: 16, // radius: 16px (3xl) по системе
-  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
-  overflow: 'hidden',
-  width: '100%',
-  minHeight: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-}));
-
 export const Header = styled('div')(() => ({
   padding: '16px 20px',
   borderBottom: `1px solid ${colors.gray100}`,
@@ -311,40 +300,6 @@ export const TimeInputGroup = styled('div')(() => ({
   display: 'flex',
   alignItems: 'center',
   gap: 8,
-}));
-
-export const PanelHeader = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'flex-start',
-  justifyContent: 'space-between',
-  gap: 16,
-  marginBottom: 4,
-  flexWrap: 'wrap',
-  padding: '4px 8px 16px',
-  '@media (max-width: 900px)': {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-  },
-}));
-
-export const PanelHeaderCopy = styled('div')(() => ({
-  minWidth: 0,
-}));
-
-export const PanelTitle = styled('h3')(() => ({
-  margin: 0,
-  fontSize: 20,
-  lineHeight: 1.2,
-  fontWeight: 700,
-  color: '#111827',
-  marginBottom: 4,
-}));
-
-export const PanelDescription = styled('p')(() => ({
-  margin: 0,
-  fontSize: 14,
-  lineHeight: 1.5,
-  color: '#6b7280',
 }));
 
 export const CreateActionButton = styled('button')(() => ({

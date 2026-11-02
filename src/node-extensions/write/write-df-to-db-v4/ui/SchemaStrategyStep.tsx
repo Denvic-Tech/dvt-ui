@@ -24,11 +24,12 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { skipToken } from '@reduxjs/toolkit/query';
 import { FiDatabase } from 'react-icons/fi';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 
 import { NodeModalStepperExtensionProps } from '@/app/providers/node-extensions';
-import { useAppDispatch } from '@/app/providers/store';
+import { useAppDispatch, useAppSelector } from '@/app/providers/store';
 
 import { useNodeConnections } from '@/features/node/get-node-connections';
 import {
@@ -45,6 +46,10 @@ import {
   resolveDbCatalogMode,
 } from '@/entities/data/db-connection';
 import { useDbCatalogTable } from '@/entities/data/db-connection/model/hooks/useDbCatalog';
+import {
+  useGetNodeFieldsQuery,
+  useSetNodeColumnDescriptionsMutation,
+} from '@/entities/data/lineage';
 import { setOutputMetadata } from '@/entities/node/node-metadata';
 
 import type {
@@ -61,6 +66,10 @@ import { upsertDbMetadataTable } from '@/shared/lib/db-metadata';
 import { SingleOptionDropdownSelect } from '@/shared/ui';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
 
+import {
+  buildCatalogDescriptions,
+  resolveCommentBaseline,
+} from '../lib/catalogDescriptions';
 import {
   commentsForRecreatedColumns,
   commentValue,
@@ -98,6 +107,7 @@ import {
   normalizeResolvedColumnRows,
   normalizeTableCreateSpecColumns,
   normalizeTableCreateSpecForDialect,
+  persistCatalogDescriptions,
   resolveCreationMode,
   type ResolvedColumnMappingRow,
   serializeColumnMapping,
@@ -106,6 +116,7 @@ import {
 } from '../lib/helpers';
 
 import { MappingValidationSection } from './WriteSettingsStep/sections/MappingValidationSection';
+import { CatalogDescriptionNote } from './CatalogDescriptionNote';
 import { ColumnCommentEditor } from './ColumnCommentEditor';
 import {
   AdvancedPanel,
@@ -1127,6 +1138,41 @@ export const SchemaStrategyStep = ({
     useNodeConnections(nodeID);
   const { confirm } = useConfirmDialog();
   const dispatch = useAppDispatch();
+  const projectId = useAppSelector(
+    state => state.projects.selectedProject?.id ?? null
+  );
+  // Baseline комментариев: описания каталога для входа `df` (свои и унаследованные).
+  const { data: catalogFields } = useGetNodeFieldsQuery(
+    projectId && isOpen ? { projectId, nodeId: nodeID, port: 'df' } : skipToken,
+    { refetchOnMountOrArgChange: true }
+  );
+  const [setNodeColumnDescriptions] = useSetNodeColumnDescriptionsMutation();
+  const catalogDescriptions = useMemo(
+    () => buildCatalogDescriptions(catalogFields?.fields),
+    [catalogFields]
+  );
+  useEffect(() => {
+    setSharedState(prev => ({
+      ...(prev ?? {}),
+      catalogDescriptions,
+      persistColumnDescriptions: projectId
+        ? async fields => {
+            await setNodeColumnDescriptions({
+              projectId,
+              nodeId: nodeID,
+              port: 'df',
+              fields,
+            }).unwrap();
+          }
+        : undefined,
+    }));
+  }, [
+    catalogDescriptions,
+    nodeID,
+    projectId,
+    setNodeColumnDescriptions,
+    setSharedState,
+  ]);
 
   const [isSqlCopied, setIsSqlCopied] = useState<'raw' | 'typed' | null>(null);
   const [mappingSearch, setMappingSearch] = useState('');
@@ -2397,6 +2443,7 @@ export const SchemaStrategyStep = ({
     }));
 
     try {
+      await persistCatalogDescriptions(sharedState, setSharedState);
       const response = await client.utils.ddl.recreateTable.post(
         {
           body: {
@@ -3003,10 +3050,16 @@ export const SchemaStrategyStep = ({
   const renderTypedComment = useCallback(
     (item: ResolvedColumnMappingRow) => {
       const sourceName = item.source_name ?? '';
-      const source =
+      const metadataComment =
         inputDataframeMetadata?.columns.find(
           column => column.name === sourceName
         )?.comment ?? null;
+      const catalogField = catalogDescriptions[sourceName];
+      const source = resolveCommentBaseline(
+        sourceName,
+        catalogDescriptions,
+        metadataComment
+      );
       return (
         <ColumnCommentEditor
           name={
@@ -3022,6 +3075,7 @@ export const SchemaStrategyStep = ({
           baseline={source}
           disabled={!sharedState?.columnCommentsSupported}
           disabledReason='Эта СУБД не поддерживает комментарии: текст DF не будет перенесён'
+          adornment={<CatalogDescriptionNote field={catalogField} />}
           onChange={value => setCommentOverride(sourceName, value, true)}
           onReset={() =>
             setSharedState(prev => {
@@ -3040,6 +3094,7 @@ export const SchemaStrategyStep = ({
       );
     },
     [
+      catalogDescriptions,
       inputDataframeMetadata,
       sharedState?.typedCommentOverrides,
       sharedState?.columnCommentsSupported,
@@ -3053,6 +3108,7 @@ export const SchemaStrategyStep = ({
       <MappingValidationSection
         commentOverrides={sharedState?.dbCommentOverrides}
         sourceCommentOverrides={sharedState?.typedCommentOverrides}
+        catalogDescriptions={catalogDescriptions}
         commentsSupported={sharedState?.columnCommentsSupported}
         onCommentChange={setCommentOverride}
         columnDiff={existingTableColumnDiff}

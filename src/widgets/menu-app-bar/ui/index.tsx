@@ -9,21 +9,14 @@ import { NotificationCenter } from '@/app/notifications';
 import { useAppSelector } from '@/app/providers/store';
 
 import { useBuildVersion } from '@/features/profile/build-version-info';
+import { UserMenu } from '@/features/profile/user-menu';
 
 import { useTaskExecutionStatus } from '@/entities/project/task-execution-status';
 
 import { TaskExecutionStatus } from '@/shared/gatewayClient';
-import {
-  Avatar,
-  Button,
-  IconButton,
-  Panel,
-  Tooltip,
-} from '@/shared/ui/primitives';
+import { Button, IconButton, Panel, Tooltip } from '@/shared/ui/primitives';
 
 import {
-  avatarLinkSx,
-  avatarSx,
   branchBadgeSx,
   branchDotSx,
   breadcrumbButtonSx,
@@ -39,7 +32,6 @@ import {
   headerNavSx,
   headerPanelSx,
   logoImageSx,
-  logoLinkSx,
   notificationBadgeSx,
   productTitleAccentSx,
   productTitleBrandSx,
@@ -124,7 +116,6 @@ export const MenuAppBar = () => {
   const tooltipLabel = isCopied ? 'Скопировано' : statusLabel;
 
   const branchName = '';
-  const userInitial = 'U';
   const buildVersion = versionInfo?.version?.trim() ?? '';
 
   const handleCopyProjectName = React.useCallback(async () => {
@@ -186,14 +177,12 @@ export const MenuAppBar = () => {
               aria-label='На главную'
               sx={headerBrandButtonSx}
             >
-              <Box sx={logoLinkSx}>
-                <Box
-                  component='img'
-                  src='/DVT-logo.png'
-                  alt='DVT'
-                  sx={logoImageSx}
-                />
-              </Box>
+              <Box
+                component='img'
+                src='/Denvic-logo.svg'
+                alt=''
+                sx={logoImageSx}
+              />
 
               <Typography component='div' sx={productTitleSx}>
                 <Box component='span' sx={productTitleBrandSx}>
@@ -286,14 +275,7 @@ export const MenuAppBar = () => {
             </MuiBadge>
           </IconButton>
 
-          <Box
-            component={RouterLink}
-            to='/profile'
-            aria-label='Profile'
-            sx={avatarLinkSx}
-          >
-            <Avatar sx={avatarSx}>{userInitial}</Avatar>
-          </Box>
+          <UserMenu />
         </Box>
       </Panel>
 

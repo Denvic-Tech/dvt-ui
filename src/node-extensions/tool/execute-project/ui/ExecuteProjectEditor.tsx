@@ -35,6 +35,11 @@ const systemVariablesPolicyOptions = [
   { value: 'error', label: 'Остановить с ошибкой' },
 ];
 
+const projectVariablesPolicyOptions = [
+  { value: 'include', label: 'Передать в дочерний проект' },
+  { value: 'skip', label: 'Не передавать' },
+];
+
 const getProjectsFromResponse = (response: unknown): ProjectOption[] => {
   const data = (response as { data?: unknown })?.data ?? response;
   return Array.isArray(data) ? (data as ProjectOption[]) : [];
@@ -400,6 +405,20 @@ export const ExecuteProjectEditor: React.FC<
     [setLocalInputData]
   );
 
+  const handleProjectVariablesPolicyChange = useCallback(
+    (value: string) => {
+      if (value !== 'include' && value !== 'skip') {
+        return;
+      }
+
+      setLocalInputData(prev => ({
+        ...(prev ?? {}),
+        project_variables_policy: value,
+      }));
+    },
+    [setLocalInputData]
+  );
+
   const selectedProjectId = localInputData.target_project_id ?? '';
   const selectedProjectName = localInputData.target_project_name?.trim() ?? '';
   const selectedProjectLabel = selectedProjectId
@@ -645,6 +664,21 @@ export const ExecuteProjectEditor: React.FC<
               />
               <S.FieldHint>
                 Укажите, нужно ли передавать системные переменные в дочерний
+                проект.
+              </S.FieldHint>
+            </S.PolicyField>
+
+            <S.PolicyField>
+              <S.FieldLabel>Переменные проекта</S.FieldLabel>
+              <SingleOptionDropdownSelect
+                ariaLabel='Переменные проекта'
+                options={projectVariablesPolicyOptions}
+                value={localInputData.project_variables_policy ?? 'include'}
+                onChange={handleProjectVariablesPolicyChange}
+                popperMinWidth={0}
+              />
+              <S.FieldHint>
+                Укажите, нужно ли передавать переменные проекта в дочерний
                 проект.
               </S.FieldHint>
             </S.PolicyField>

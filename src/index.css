@@ -56,6 +56,9 @@
   --dvt-danger-surface-hover: #fee2e2;
   --dvt-danger-border: rgba(248, 113, 113, 0.22);
   --dvt-danger-foreground: #dc2626;
+  --content-narrow: 720px;
+  --content-default: 960px;
+  --content-wide: 1280px;
 }
 
 .dark {

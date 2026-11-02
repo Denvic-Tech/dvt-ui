@@ -118,9 +118,20 @@ export type NodeModalPresentationConfig =
       type: 'workspace';
     };
 
+/**
+ * Размеры диалога настроек ноды. Без указания диалог занимает почти весь экран.
+ * Значения ограничиваются размером окна, так что на маленьком экране диалог
+ * не вылезет за его границы.
+ */
+export type NodeModalDialogSize = {
+  width?: number | string;
+  height?: number | string;
+};
+
 export interface NodeModalExtension extends NodeExtensionBase<'modal'> {
   allowOpenWithoutConnectedMetadata?: boolean;
   presentation?: NodeModalPresentationConfig;
+  dialogSize?: NodeModalDialogSize;
   condition: (nodeDefinition: NodeDefinition) => boolean;
   component: React.FC<NodeModalExtensionProps>;
 }

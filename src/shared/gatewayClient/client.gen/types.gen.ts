@@ -2350,6 +2350,103 @@ export type CommonResponse = {
 };
 
 /**
+ * ConnectCodeStatus
+ */
+export type ConnectCodeStatus = 'pending' | 'claimed' | 'expired' | 'revoked';
+
+/**
+ * ConnectLinkCreateSchema
+ */
+export type ConnectLinkCreateSchema = {
+  /**
+   * Base Url
+   *
+   * Origin the user opened DVT from (window.location.origin); must be one of the public addresses of this installation. Links in the instruction are built from it
+   */
+  base_url: string;
+  access_scope: McpAccessScopeSchema;
+  /**
+   * Name
+   *
+   * Name of the MCP token
+   */
+  name?: string | null;
+  /**
+   * Token Expires At
+   *
+   * Unix time when the issued MCP token expires; null for no expiry
+   */
+  token_expires_at?: number | null;
+};
+
+/**
+ * ConnectLinkCreatedSchema
+ */
+export type ConnectLinkCreatedSchema = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Code
+   *
+   * One-time code; shown only in this response
+   */
+  code: string;
+  /**
+   * Connect Url
+   *
+   * Link to the agent instruction; give it to the agent
+   */
+  connect_url: string;
+  /**
+   * Expires At
+   */
+  expires_at: string;
+};
+
+/**
+ * ConnectLinkListSchema
+ */
+export type ConnectLinkListSchema = {
+  /**
+   * Items
+   */
+  items: Array<ConnectLinkReadSchema>;
+};
+
+/**
+ * ConnectLinkReadSchema
+ */
+export type ConnectLinkReadSchema = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Expires At
+   */
+  expires_at: string;
+  status: ConnectCodeStatus;
+  /**
+   * Claims Count
+   */
+  claims_count: number;
+  /**
+   * Token Id
+   */
+  token_id: string | null;
+  /**
+   * Last Claimed At
+   */
+  last_claimed_at: string | null;
+};
+
+/**
  * ConnectionCheckResult
  */
 export type ConnectionCheckResult = {
@@ -25817,6 +25914,82 @@ export type UpdateMcpTokenMcpTokensTokenIdPatchResponses = {
 
 export type UpdateMcpTokenMcpTokensTokenIdPatchResponse =
   UpdateMcpTokenMcpTokensTokenIdPatchResponses[keyof UpdateMcpTokenMcpTokensTokenIdPatchResponses];
+
+export type ListConnectLinksAgentsConnectGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/agents/connect';
+};
+
+export type ListConnectLinksAgentsConnectGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ConnectLinkListSchema;
+};
+
+export type ListConnectLinksAgentsConnectGetResponse =
+  ListConnectLinksAgentsConnectGetResponses[keyof ListConnectLinksAgentsConnectGetResponses];
+
+export type CreateConnectLinkAgentsConnectPostData = {
+  body: ConnectLinkCreateSchema;
+  path?: never;
+  query?: never;
+  url: '/agents/connect';
+};
+
+export type CreateConnectLinkAgentsConnectPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateConnectLinkAgentsConnectPostError =
+  CreateConnectLinkAgentsConnectPostErrors[keyof CreateConnectLinkAgentsConnectPostErrors];
+
+export type CreateConnectLinkAgentsConnectPostResponses = {
+  /**
+   * Successful Response
+   */
+  201: ConnectLinkCreatedSchema;
+};
+
+export type CreateConnectLinkAgentsConnectPostResponse =
+  CreateConnectLinkAgentsConnectPostResponses[keyof CreateConnectLinkAgentsConnectPostResponses];
+
+export type RevokeConnectLinkAgentsConnectCodeIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Code Id
+     */
+    code_id: string;
+  };
+  query?: never;
+  url: '/agents/connect/{code_id}';
+};
+
+export type RevokeConnectLinkAgentsConnectCodeIdDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type RevokeConnectLinkAgentsConnectCodeIdDeleteError =
+  RevokeConnectLinkAgentsConnectCodeIdDeleteErrors[keyof RevokeConnectLinkAgentsConnectCodeIdDeleteErrors];
+
+export type RevokeConnectLinkAgentsConnectCodeIdDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type RevokeConnectLinkAgentsConnectCodeIdDeleteResponse =
+  RevokeConnectLinkAgentsConnectCodeIdDeleteResponses[keyof RevokeConnectLinkAgentsConnectCodeIdDeleteResponses];
 
 export type GetFixturesPytestMonFixturesGetData = {
   body?: never;

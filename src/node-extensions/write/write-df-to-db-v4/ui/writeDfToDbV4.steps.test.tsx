@@ -49,6 +49,19 @@ const {
 
 vi.mock('@/app/providers/store', () => ({
   useAppDispatch: () => dispatchMock,
+  useAppSelector: () => null,
+}));
+
+vi.mock('@/entities/data/lineage', () => ({
+  useGetNodeFieldsQuery: () => ({ data: undefined }),
+  useSetNodeColumnDescriptionsMutation: () => [
+    vi.fn(() => ({ unwrap: () => Promise.resolve({}) })),
+  ],
+}));
+
+vi.mock('@/entities/data/data-catalog', () => ({
+  useGetDatasetQuery: () => ({ data: undefined }),
+  getDatasetQualifiedName: () => '',
 }));
 
 vi.mock('@/entities/data/db-connection/model/hooks/useDbCatalog', () => ({
@@ -682,6 +695,46 @@ describe('write-df-to-db-v4 step placement', () => {
 
     expect(screen.getByText('Настройки записи')).toBeInTheDocument();
     expect(screen.queryByText('Сопоставление DF и DB')).not.toBeInTheDocument();
+  });
+
+  it('renders the catalog sync switch on by default and stores an explicit opt-out', () => {
+    const harness = renderStepHarness({
+      activeStep: 'write',
+      initialInputData: existingTableInputData,
+      initialSharedState: buildExistingTableSharedState(),
+    });
+
+    const toggle = screen.getByRole('checkbox', {
+      name: 'Синхронизировать описания колонок с каталогом',
+    });
+    expect(toggle).toBeChecked();
+    expect(
+      screen.getByText(/пустое описание комментарий не стирает/)
+    ).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(harness.getState()?.localInputData.sync_column_descriptions).toBe(
+      false
+    );
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Синхронизировать описания колонок с каталогом',
+      })
+    ).not.toBeChecked();
+  });
+
+  it('shows the catalog descriptions warning on the write step', () => {
+    renderStepHarness({
+      activeStep: 'write',
+      initialInputData: existingTableInputData,
+      initialSharedState: {
+        ...buildExistingTableSharedState(),
+        catalogDescriptionsError: 'Каталог недоступен',
+      },
+    });
+
+    expect(screen.getByText('Каталог недоступен')).toBeInTheDocument();
   });
 
   it('publishes Typed Table spec errors through modal validation and clears only its own key', async () => {

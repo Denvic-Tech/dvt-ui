@@ -41,15 +41,11 @@ import utc from 'dayjs/plugin/utc';
 import { useAlert } from '@/app/notifications';
 
 import { useApiKeys } from '@/entities/admin/api-key';
-import { useMcpTokens } from '@/entities/admin/mcp-token';
 
+import { copyTextToClipboard } from '@/shared/lib/clipboard';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
 
-import {
-  AccessKeysPageLayout,
-  type AccessKeysStatusFilter,
-  type AccessKeysTab,
-} from './AccessKeysPageLayout';
+import { AccessKeysPageLayout } from './AccessKeysPageLayout';
 import {
   AccessKeyIconBox,
   AccessKeysInfoBar,
@@ -59,7 +55,6 @@ import {
   ExpiresAtCell,
   getAccessKeyVisualStatus,
 } from './AccessKeysTableUi';
-import { McpTokensSection } from './McpTokensSection';
 
 import 'dayjs/locale/ru';
 
@@ -73,7 +68,6 @@ const isIPv4 = (v: string) =>
   /^(\d{1,3}\.){3}\d{1,3}$/.test(v) &&
   v.split('.').every(o => Number(o) >= 0 && Number(o) <= 255);
 
-type ClipboardCopyResult = 'copied' | 'manual' | 'failed';
 type ApiKeyExpiryMode = '30d' | '90d' | '1y' | 'never' | 'date';
 
 const API_KEY_EXPIRY_OPTIONS: Array<{
@@ -87,72 +81,6 @@ const API_KEY_EXPIRY_OPTIONS: Array<{
   { value: 'date', label: 'Дата' },
 ];
 
-const canUseAsyncClipboard = () =>
-  typeof window !== 'undefined' &&
-  window.isSecureContext &&
-  typeof navigator !== 'undefined' &&
-  typeof navigator.clipboard?.writeText === 'function';
-
-const selectInputText = (
-  input: HTMLInputElement | HTMLTextAreaElement | null,
-  textLength: number
-): boolean => {
-  if (!input) return false;
-
-  input.focus();
-  input.select();
-
-  try {
-    input.setSelectionRange(0, textLength);
-  } catch {
-    // Some input types may not support explicit selection range updates.
-  }
-
-  return true;
-};
-
-const fallbackCopyFromInput = (
-  input: HTMLInputElement | HTMLTextAreaElement | null,
-  text: string
-) => {
-  const selected = selectInputText(input, text.length);
-  if (!selected || typeof document === 'undefined') {
-    return { selected, copied: false };
-  }
-
-  try {
-    return { selected, copied: document.execCommand('copy') };
-  } catch {
-    return { selected, copied: false };
-  }
-};
-
-const copyTextToClipboard = async (
-  text: string,
-  input: HTMLInputElement | HTMLTextAreaElement | null
-): Promise<ClipboardCopyResult> => {
-  if (!text) return 'failed';
-
-  try {
-    if (canUseAsyncClipboard()) {
-      await navigator.clipboard.writeText(text);
-      return 'copied';
-    }
-  } catch {
-    // noop, fallback below
-  }
-
-  const { selected, copied } = fallbackCopyFromInput(input, text);
-  if (copied && typeof window !== 'undefined' && window.isSecureContext) {
-    return 'copied';
-  }
-  if (selected) {
-    return 'manual';
-  }
-
-  return 'failed';
-};
-
 export const ApiKeysPanel: React.FC = () => {
   const {
     items: tokens,
@@ -165,12 +93,8 @@ export const ApiKeysPanel: React.FC = () => {
     resetCreationState,
     resetDeletionState,
   } = useApiKeys();
-  const { items: mcpTokens, status: mcpStatus, loadMcpTokens } = useMcpTokens();
 
-  const [activeTab, setActiveTab] = useState<AccessKeysTab>('api');
   const [searchValue, setSearchValue] = useState('');
-  const [statusFilter, setStatusFilter] =
-    useState<AccessKeysStatusFilter>('all');
 
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -215,12 +139,6 @@ export const ApiKeysPanel: React.FC = () => {
   useEffect(() => {
     void fetchTokens();
   }, [fetchTokens]);
-
-  useEffect(() => {
-    if (mcpStatus === 'idle') {
-      void loadMcpTokens().catch(() => undefined);
-    }
-  }, [loadMcpTokens, mcpStatus]);
 
   const resetCreateForm = () => {
     setName('');
@@ -348,46 +266,17 @@ export const ApiKeysPanel: React.FC = () => {
   };
 
   const normalizedSearch = searchValue.trim().toLocaleLowerCase('ru');
-  const visibleTokens = tokens.filter(token => {
-    const visualStatus = getAccessKeyVisualStatus(token.expires_at);
-    const matchesSearch =
+  const visibleTokens = tokens.filter(
+    token =>
       !normalizedSearch ||
       (token.name ?? 'Без названия')
         .toLocaleLowerCase('ru')
-        .includes(normalizedSearch);
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'expired'
-        ? visualStatus === 'expired'
-        : visualStatus !== 'expired');
-
-    return matchesSearch && matchesStatus;
-  });
-
-  if (activeTab === 'mcp') {
-    return (
-      <McpTokensSection
-        apiKeyCount={tokens.length}
-        onShowApiKeys={() => {
-          setSearchValue('');
-          setStatusFilter('all');
-          setActiveTab('api');
-        }}
-      />
-    );
-  }
+        .includes(normalizedSearch)
+  );
 
   return (
     <>
       <AccessKeysPageLayout
-        activeTab='api'
-        apiKeyCount={tokens.length}
-        mcpTokenCount={mcpTokens.length}
-        onTabChange={tab => {
-          setSearchValue('');
-          setStatusFilter('all');
-          setActiveTab(tab);
-        }}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         createLabel='Новый ключ'
@@ -396,8 +285,7 @@ export const ApiKeysPanel: React.FC = () => {
         <Paper
           variant='outlined'
           sx={{
-            mt: 2.75,
-            overflow: 'hidden',
+            overflow: 'clip',
             borderRadius: '16px',
             borderColor: 'divider',
             boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
@@ -410,6 +298,10 @@ export const ApiKeysPanel: React.FC = () => {
 
           <Box
             sx={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 1,
+              bgcolor: 'background.paper',
               display: { xs: 'none', md: 'grid' },
               gridTemplateColumns: 'minmax(280px, 1fr) 166px 176px 44px',
               alignItems: 'center',
@@ -435,7 +327,7 @@ export const ApiKeysPanel: React.FC = () => {
             ))}
           </Box>
 
-          {isLoading && <AccessKeysTableSkeleton variant='api' />}
+          {isLoading && <AccessKeysTableSkeleton />}
 
           {!isLoading && visibleTokens.length === 0 && (
             <Box sx={{ px: 3, py: 5, textAlign: 'center' }}>
@@ -476,7 +368,7 @@ export const ApiKeysPanel: React.FC = () => {
                   gap={1.35}
                   minWidth={0}
                 >
-                  <AccessKeyIconBox tone='api'>
+                  <AccessKeyIconBox>
                     <KeyIcon />
                   </AccessKeyIconBox>
                   <Box minWidth={0}>
@@ -619,7 +511,7 @@ export const ApiKeysPanel: React.FC = () => {
           gap={1.5}
           sx={{ px: 2.75, py: 2, borderBottom: 1, borderColor: 'divider' }}
         >
-          <AccessKeyIconBox tone='api'>
+          <AccessKeyIconBox>
             <KeyIcon />
           </AccessKeyIconBox>
           <Box sx={{ flex: 1, minWidth: 0 }}>

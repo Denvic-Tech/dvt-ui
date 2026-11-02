@@ -5,6 +5,7 @@ export {
   fetchMcpTokens,
   mcpTokenReducer,
   type McpTokenSliceState,
+  renameMcpToken,
   resetMcpTokenCreationState,
   resetMcpTokenDeletionState,
   revokeMcpToken,

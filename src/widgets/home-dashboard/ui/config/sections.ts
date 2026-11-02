@@ -1,17 +1,19 @@
-import type { SvgIconComponent } from '@mui/icons-material';
-import ApartmentRoundedIcon from '@mui/icons-material/ApartmentRounded';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
-import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-import DnsOutlinedIcon from '@mui/icons-material/DnsOutlined';
-import ExtensionOutlinedIcon from '@mui/icons-material/ExtensionOutlined';
 import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
-import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import PlayCircleOutlineRoundedIcon from '@mui/icons-material/PlayCircleOutlineRounded';
 import PowerOutlinedIcon from '@mui/icons-material/PowerOutlined';
-import SystemUpdateAltRoundedIcon from '@mui/icons-material/SystemUpdateAltRounded';
-import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
-import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
+import {
+  IconActivity,
+  IconAdjustmentsHorizontal,
+  IconCalendarTime,
+  IconCircleArrowUp,
+  IconKey,
+  IconLayoutSidebar,
+  IconPuzzle,
+  IconUsers,
+} from '@tabler/icons-react';
+import type { ElementType } from 'react';
 
 import { PROFILE_SECTION_PATHS } from '@/features/profile/user-profile-navigation';
 
@@ -19,7 +21,7 @@ export type HomeRole = 'user' | 'admin' | 'superadmin';
 
 export type HomeSection = {
   group: string;
-  icon: SvgIconComponent;
+  icon: ElementType;
   id: string;
   label: string;
   /** Section is planned but has no screen yet. */
@@ -47,7 +49,7 @@ const HOME_SECTIONS: readonly HomeSectionConfig[] = [
     id: 'scheduler',
     label: 'Планировщик',
     group: 'Работа',
-    icon: CalendarMonthOutlinedIcon,
+    icon: IconCalendarTime,
     to: PROFILE_SECTION_PATHS.schedule,
     roles: ADMINS,
   },
@@ -55,14 +57,14 @@ const HOME_SECTIONS: readonly HomeSectionConfig[] = [
     id: 'api-keys',
     label: 'API-ключи',
     group: 'Профиль',
-    icon: VpnKeyOutlinedIcon,
+    icon: IconKey,
     to: PROFILE_SECTION_PATHS.apiKeys,
   },
   {
     id: 'preferences',
     label: 'Preferences',
     group: 'Профиль',
-    icon: TuneRoundedIcon,
+    icon: IconAdjustmentsHorizontal,
     to: PROFILE_SECTION_PATHS.preferences,
   },
   {
@@ -76,7 +78,7 @@ const HOME_SECTIONS: readonly HomeSectionConfig[] = [
     id: 'admin',
     label: 'Admin Panel',
     group: 'Администрирование',
-    icon: GroupOutlinedIcon,
+    icon: IconLayoutSidebar,
     to: PROFILE_SECTION_PATHS.admin,
     roles: ADMINS,
   },
@@ -84,7 +86,7 @@ const HOME_SECTIONS: readonly HomeSectionConfig[] = [
     id: 'services',
     label: 'Сервисная панель',
     group: 'Администрирование',
-    icon: DnsOutlinedIcon,
+    icon: IconActivity,
     to: PROFILE_SECTION_PATHS.services,
     roles: SUPERADMINS,
   },
@@ -92,7 +94,7 @@ const HOME_SECTIONS: readonly HomeSectionConfig[] = [
     id: 'organizations',
     label: 'Организации',
     group: 'Администрирование',
-    icon: ApartmentRoundedIcon,
+    icon: IconUsers,
     to: PROFILE_SECTION_PATHS.organizations,
     roles: SUPERADMINS,
   },
@@ -100,7 +102,7 @@ const HOME_SECTIONS: readonly HomeSectionConfig[] = [
     id: 'extensions',
     label: 'Расширения',
     group: 'Система',
-    icon: ExtensionOutlinedIcon,
+    icon: IconPuzzle,
     to: PROFILE_SECTION_PATHS.extensions,
     roles: SUPERADMINS,
   },
@@ -108,7 +110,7 @@ const HOME_SECTIONS: readonly HomeSectionConfig[] = [
     id: 'update',
     label: 'Обновление',
     group: 'Система',
-    icon: SystemUpdateAltRoundedIcon,
+    icon: IconCircleArrowUp,
     to: PROFILE_SECTION_PATHS.update,
     roles: SUPERADMINS,
   },

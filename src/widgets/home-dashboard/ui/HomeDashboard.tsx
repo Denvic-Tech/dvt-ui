@@ -25,7 +25,6 @@ import {
   rankHomeSections,
 } from './config/sections';
 import { HomeWidgetsSection } from './home-widgets/HomeWidgetsSection';
-import { getUserDisplayName } from './lib/user';
 import { getHomeCssVars, hc, homeSectionTitleSx } from './styles/tokens';
 
 export const HomeDashboard = () => {
@@ -51,10 +50,6 @@ export const HomeDashboard = () => {
   // The scheduler route is admin+; wait for the real role before asking.
   const scheduledProjects = useScheduledProjects(
     !userLoading && (role === 'admin' || role === 'superadmin')
-  );
-  const displayName = getUserDisplayName(
-    currentUser?.user_name,
-    currentUser?.email
   );
 
   const sections = React.useMemo(() => getHomeSections(role), [role]);
@@ -171,7 +166,6 @@ export const HomeDashboard = () => {
         }}
       >
         <HomeHeader
-          displayName={displayName}
           onPickSection={handlePickSection}
           recentProjects={projects}
           sections={sections}

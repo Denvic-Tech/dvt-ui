@@ -1,20 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ProfileSidebar } from '@/widgets/profile/user-pofile-sidebar';
 
 import type { UserReadSchema } from '@/shared/gatewayClient';
-
-const { logoutMock } = vi.hoisted(() => ({
-  logoutMock: vi.fn(),
-}));
-
-vi.mock('@/contexts/AuthContext.tsx', () => ({
-  useAuth: () => ({
-    logout: logoutMock,
-  }),
-}));
 
 vi.mock('@/entities/config/app-settings', () => ({
   useAppSettings: () => ({
@@ -49,10 +39,6 @@ const renderSidebar = (role: UserReadSchema['role']) => {
 };
 
 describe('widgets/user-pofile-sidebar', () => {
-  beforeEach(() => {
-    logoutMock.mockReset();
-  });
-
   it('renders only public profile sections for regular users', () => {
     renderSidebar('user');
 
@@ -67,7 +53,7 @@ describe('widgets/user-pofile-sidebar', () => {
     expect(screen.queryByText('Настройки')).not.toBeInTheDocument();
     expect(screen.queryByText('Runtime')).not.toBeInTheDocument();
     expect(screen.queryByText('Extensions')).not.toBeInTheDocument();
-    expect(screen.queryByText('Обновление')).not.toBeInTheDocument();
+    expect(screen.queryByText('Update')).not.toBeInTheDocument();
   });
 
   it('renders only admin-level sections for admin users', () => {
@@ -78,7 +64,7 @@ describe('widgets/user-pofile-sidebar', () => {
     expect(screen.queryByText('Organizations')).not.toBeInTheDocument();
     expect(screen.queryByText('Services Stats Panel')).not.toBeInTheDocument();
     expect(screen.queryByText('Настройки')).not.toBeInTheDocument();
-    expect(screen.queryByText('Обновление')).not.toBeInTheDocument();
+    expect(screen.queryByText('Update')).not.toBeInTheDocument();
   });
 
   it('renders superadmin-only sections for superadmin users', () => {
@@ -91,6 +77,6 @@ describe('widgets/user-pofile-sidebar', () => {
     expect(screen.getByText('Настройки')).toBeInTheDocument();
     expect(screen.getByText('Runtime')).toBeInTheDocument();
     expect(screen.getByText('DCC')).toBeInTheDocument();
-    expect(screen.getByText('Обновление')).toBeInTheDocument();
+    expect(screen.getByText('Update')).toBeInTheDocument();
   });
 });

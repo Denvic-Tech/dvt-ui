@@ -9,6 +9,7 @@ import {
   Stack,
   Tooltip,
 } from '@mui/material';
+import { IconCalendarTime } from '@tabler/icons-react';
 
 import { useAlert } from '@/app/notifications';
 
@@ -34,6 +35,7 @@ import {
 } from '@/shared/gatewayClient';
 import { isApiError } from '@/shared/lib/errors';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { PageLayout, PageToolbar } from '@/shared/ui/page-layout';
 import { SingleOptionDropdownSelect } from '@/shared/ui/select/SingleOptionDropdownSelect';
 
 import * as S from './styles';
@@ -738,223 +740,214 @@ export const SchedulePanel: React.FC = () => {
   );
 
   return (
-    <Box sx={{ width: '100%', height: '100%', minHeight: 0 }}>
-      <S.Container>
-        <S.Content>
-          <S.PanelHeader>
-            <S.PanelHeaderCopy>
-              <S.PanelTitle>Активные расписания</S.PanelTitle>
-              <S.PanelDescription>
-                Управление расписаниями запуска проектов.
-              </S.PanelDescription>
-            </S.PanelHeaderCopy>
-            <S.CreateActionButton
-              onClick={() => handleOpenDialog()}
-              disabled={Boolean(schedulerUnavailableMessage)}
-            >
-              <PlusSvg />
-              <span>Создать запуск</span>
-            </S.CreateActionButton>
-          </S.PanelHeader>
+    <>
+      <PageLayout
+        width='default'
+        title='Schedule Projects'
+        icon={IconCalendarTime}
+      >
+        <PageToolbar>
+          <S.CreateActionButton
+            onClick={() => handleOpenDialog()}
+            disabled={Boolean(schedulerUnavailableMessage)}
+          >
+            <PlusSvg />
+            <span>Создать запуск</span>
+          </S.CreateActionButton>
+        </PageToolbar>
 
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress size={24} sx={{ color: S.colors.indigo500 }} />
-            </Box>
-          ) : (
-            <S.ScheduleList>
-              {schedulerUnavailableMessage ? (
-                <S.SchedulerWarning>
-                  <S.SchedulerWarningTitle>
-                    Сервис расписаний недоступен
-                  </S.SchedulerWarningTitle>
-                  <S.SchedulerWarningText>
-                    {schedulerUnavailableMessage}
-                  </S.SchedulerWarningText>
-                </S.SchedulerWarning>
-              ) : null}
-              {schedules.length === 0 ? (
-                <Box
-                  sx={{ textAlign: 'center', py: 8, color: S.colors.gray400 }}
-                >
-                  <p style={{ fontSize: '13px', margin: 0 }}>
-                    {schedulerUnavailableMessage
-                      ? 'Пока невозможно загрузить список расписаний.'
-                      : 'Нет активных запланированных задач'}
-                  </p>
-                </Box>
-              ) : (
-                schedules.map(schedule => {
-                  const enabled = resolveEnabled(schedule);
-                  const nextRun = formatNextRun(schedule.next_run_time);
-                  const isPending =
-                    pendingByProjectId[schedule.project_id] === true;
-                  const runGroups = getDisplayRunGroups(schedule.recent_runs);
-                  const lastRunInfo = getLastRunInfo(schedule);
-                  const lastRunDuration =
-                    lastRunInfo && lastRunInfo.finishedAt
-                      ? formatDuration(
-                          lastRunInfo.startedAt,
-                          lastRunInfo.finishedAt
-                        )
-                      : null;
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress size={24} sx={{ color: S.colors.indigo500 }} />
+          </Box>
+        ) : (
+          <S.ScheduleList>
+            {schedulerUnavailableMessage ? (
+              <S.SchedulerWarning>
+                <S.SchedulerWarningTitle>
+                  Сервис расписаний недоступен
+                </S.SchedulerWarningTitle>
+                <S.SchedulerWarningText>
+                  {schedulerUnavailableMessage}
+                </S.SchedulerWarningText>
+              </S.SchedulerWarning>
+            ) : null}
+            {schedules.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 8, color: S.colors.gray400 }}>
+                <p style={{ fontSize: '13px', margin: 0 }}>
+                  {schedulerUnavailableMessage
+                    ? 'Пока невозможно загрузить список расписаний.'
+                    : 'Нет активных запланированных задач'}
+                </p>
+              </Box>
+            ) : (
+              schedules.map(schedule => {
+                const enabled = resolveEnabled(schedule);
+                const nextRun = formatNextRun(schedule.next_run_time);
+                const isPending =
+                  pendingByProjectId[schedule.project_id] === true;
+                const runGroups = getDisplayRunGroups(schedule.recent_runs);
+                const lastRunInfo = getLastRunInfo(schedule);
+                const lastRunDuration =
+                  lastRunInfo && lastRunInfo.finishedAt
+                    ? formatDuration(
+                        lastRunInfo.startedAt,
+                        lastRunInfo.finishedAt
+                      )
+                    : null;
 
-                  return (
-                    <S.ScheduleCard
-                      key={`${schedule.project_id}-${schedule.cron}`}
-                      disabled={!enabled}
-                    >
-                      <S.ScheduleTopRow>
-                        <S.CalendarIconBox active={enabled}>
-                          <CalendarSvg active={enabled} />
-                        </S.CalendarIconBox>
+                return (
+                  <S.ScheduleCard
+                    key={`${schedule.project_id}-${schedule.cron}`}
+                    disabled={!enabled}
+                  >
+                    <S.ScheduleTopRow>
+                      <S.CalendarIconBox active={enabled}>
+                        <CalendarSvg active={enabled} />
+                      </S.CalendarIconBox>
 
-                        <S.InfoBlock>
-                          <S.NameRow>
-                            <S.ScheduleName
-                              title={projectNames[schedule.project_id]}
-                            >
-                              {projectNames[schedule.project_id] ||
-                                schedule.project_id}
-                            </S.ScheduleName>
-                            <S.ModePill>{schedule.mode ?? 'full'}</S.ModePill>
-                          </S.NameRow>
-
-                          <S.MetaRow>
-                            <S.CronText>{schedule.cron}</S.CronText>
-                            <S.InlineDivider />
-                            <S.NextRunText active={enabled && !!nextRun}>
-                              <ClockSvg active={enabled && !!nextRun} />
-                              {enabled ? (
-                                nextRun ? (
-                                  <S.NextRunValue>
-                                    <span>{nextRun.date}</span>
-                                    {nextRun.time ? (
-                                      <span>{nextRun.time}</span>
-                                    ) : null}
-                                  </S.NextRunValue>
-                                ) : (
-                                  <span>Не рассчитано</span>
-                                )
-                              ) : (
-                                <span>Отключено</span>
-                              )}
-                            </S.NextRunText>
-                            {schedule.force_exec ? (
-                              <S.Badge variant='warning'>FORCE</S.Badge>
-                            ) : null}
-                          </S.MetaRow>
-                        </S.InfoBlock>
-
-                        <S.ActionsGroup>
-                          <S.ToggleTrack
-                            type='button'
-                            enabled={enabled}
-                            aria-label={
-                              enabled
-                                ? 'Выключить расписание'
-                                : 'Включить расписание'
-                            }
-                            aria-pressed={enabled}
-                            onClick={() => void handleToggle(schedule)}
-                            style={{
-                              opacity: isPending ? 0.5 : 1,
-                              pointerEvents: isPending ? 'none' : 'auto',
-                            }}
+                      <S.InfoBlock>
+                        <S.NameRow>
+                          <S.ScheduleName
+                            title={projectNames[schedule.project_id]}
                           >
-                            <S.ToggleThumb enabled={enabled} />
-                          </S.ToggleTrack>
+                            {projectNames[schedule.project_id] ||
+                              schedule.project_id}
+                          </S.ScheduleName>
+                          <S.ModePill>{schedule.mode ?? 'full'}</S.ModePill>
+                        </S.NameRow>
 
-                          <S.ActionsDivider />
+                        <S.MetaRow>
+                          <S.CronText>{schedule.cron}</S.CronText>
+                          <S.InlineDivider />
+                          <S.NextRunText active={enabled && !!nextRun}>
+                            <ClockSvg active={enabled && !!nextRun} />
+                            {enabled ? (
+                              nextRun ? (
+                                <S.NextRunValue>
+                                  <span>{nextRun.date}</span>
+                                  {nextRun.time ? (
+                                    <span>{nextRun.time}</span>
+                                  ) : null}
+                                </S.NextRunValue>
+                              ) : (
+                                <span>Не рассчитано</span>
+                              )
+                            ) : (
+                              <span>Отключено</span>
+                            )}
+                          </S.NextRunText>
+                          {schedule.force_exec ? (
+                            <S.Badge variant='warning'>FORCE</S.Badge>
+                          ) : null}
+                        </S.MetaRow>
+                      </S.InfoBlock>
 
-                          <S.ActionsRow>
-                            <Tooltip title='Редактировать'>
-                              <S.ScheduleActionButton
-                                type='button'
-                                onClick={() => handleOpenDialog(schedule)}
-                              >
-                                <EditSvg />
-                              </S.ScheduleActionButton>
-                            </Tooltip>
-                            <Tooltip title='Удалить'>
-                              <S.ScheduleActionButton
-                                type='button'
-                                danger
-                                onClick={() =>
-                                  handleDelete(schedule.project_id)
-                                }
-                              >
-                                <TrashSvg />
-                              </S.ScheduleActionButton>
-                            </Tooltip>
-                          </S.ActionsRow>
-                        </S.ActionsGroup>
-                      </S.ScheduleTopRow>
+                      <S.ActionsGroup>
+                        <S.ToggleTrack
+                          type='button'
+                          enabled={enabled}
+                          aria-label={
+                            enabled
+                              ? 'Выключить расписание'
+                              : 'Включить расписание'
+                          }
+                          aria-pressed={enabled}
+                          onClick={() => void handleToggle(schedule)}
+                          style={{
+                            opacity: isPending ? 0.5 : 1,
+                            pointerEvents: isPending ? 'none' : 'auto',
+                          }}
+                        >
+                          <S.ToggleThumb enabled={enabled} />
+                        </S.ToggleTrack>
 
-                      <S.ScheduleBottomRow>
-                        <S.HistorySection>
-                          <S.HistoryLabel>History</S.HistoryLabel>
-                          <S.RunCirclesViewport>
-                            <S.RunCirclesRow>
-                              {runGroups.map((group, index) => {
-                                const statusConfig =
-                                  STATUS_CONFIG[group.status];
+                        <S.ActionsDivider />
 
-                                return (
-                                  <S.RunCircleButton
-                                    key={`${schedule.project_id}-${group.status}-${index}`}
-                                    type='button'
-                                    statusColor={statusConfig.bg}
-                                    statusColorHover={statusConfig.bgHover}
-                                    isRunning={group.status === 'RUNNING'}
-                                    title={`${statusConfig.label}${
-                                      group.count > 1 ? ` × ${group.count}` : ''
-                                    }`}
-                                    aria-label={`Run details: ${statusConfig.label}${
-                                      group.count > 1 ? ` × ${group.count}` : ''
-                                    }`}
-                                    onClick={event => {
-                                      event.stopPropagation();
-                                      handleOpenRunGroup(group);
-                                    }}
-                                  >
-                                    {group.count > 1 ? group.count : ''}
-                                  </S.RunCircleButton>
-                                );
-                              })}
-                            </S.RunCirclesRow>
-                          </S.RunCirclesViewport>
-                        </S.HistorySection>
+                        <S.ActionsRow>
+                          <Tooltip title='Редактировать'>
+                            <S.ScheduleActionButton
+                              type='button'
+                              onClick={() => handleOpenDialog(schedule)}
+                            >
+                              <EditSvg />
+                            </S.ScheduleActionButton>
+                          </Tooltip>
+                          <Tooltip title='Удалить'>
+                            <S.ScheduleActionButton
+                              type='button'
+                              danger
+                              onClick={() => handleDelete(schedule.project_id)}
+                            >
+                              <TrashSvg />
+                            </S.ScheduleActionButton>
+                          </Tooltip>
+                        </S.ActionsRow>
+                      </S.ActionsGroup>
+                    </S.ScheduleTopRow>
 
-                        {lastRunInfo ? (
-                          <S.LastRunInfoBlock>
-                            <S.StatusDot
-                              statusColor={STATUS_CONFIG[lastRunInfo.status].bg}
-                            />
-                            <span>last run</span>
-                            <S.LastRunSeparator>·</S.LastRunSeparator>
-                            <span>{formatRelative(lastRunInfo.timestamp)}</span>
-                            {lastRunDuration ? (
-                              <>
-                                <S.LastRunSeparator>·</S.LastRunSeparator>
-                                <S.LastRunDuration>
-                                  {lastRunDuration}
-                                </S.LastRunDuration>
-                              </>
-                            ) : null}
-                          </S.LastRunInfoBlock>
-                        ) : (
-                          <S.NoRunsHint>Запусков ещё не было</S.NoRunsHint>
-                        )}
-                      </S.ScheduleBottomRow>
-                    </S.ScheduleCard>
-                  );
-                })
-              )}
-            </S.ScheduleList>
-          )}
-        </S.Content>
-      </S.Container>
+                    <S.ScheduleBottomRow>
+                      <S.HistorySection>
+                        <S.HistoryLabel>History</S.HistoryLabel>
+                        <S.RunCirclesViewport>
+                          <S.RunCirclesRow>
+                            {runGroups.map((group, index) => {
+                              const statusConfig = STATUS_CONFIG[group.status];
+
+                              return (
+                                <S.RunCircleButton
+                                  key={`${schedule.project_id}-${group.status}-${index}`}
+                                  type='button'
+                                  statusColor={statusConfig.bg}
+                                  statusColorHover={statusConfig.bgHover}
+                                  isRunning={group.status === 'RUNNING'}
+                                  title={`${statusConfig.label}${
+                                    group.count > 1 ? ` × ${group.count}` : ''
+                                  }`}
+                                  aria-label={`Run details: ${statusConfig.label}${
+                                    group.count > 1 ? ` × ${group.count}` : ''
+                                  }`}
+                                  onClick={event => {
+                                    event.stopPropagation();
+                                    handleOpenRunGroup(group);
+                                  }}
+                                >
+                                  {group.count > 1 ? group.count : ''}
+                                </S.RunCircleButton>
+                              );
+                            })}
+                          </S.RunCirclesRow>
+                        </S.RunCirclesViewport>
+                      </S.HistorySection>
+
+                      {lastRunInfo ? (
+                        <S.LastRunInfoBlock>
+                          <S.StatusDot
+                            statusColor={STATUS_CONFIG[lastRunInfo.status].bg}
+                          />
+                          <span>last run</span>
+                          <S.LastRunSeparator>·</S.LastRunSeparator>
+                          <span>{formatRelative(lastRunInfo.timestamp)}</span>
+                          {lastRunDuration ? (
+                            <>
+                              <S.LastRunSeparator>·</S.LastRunSeparator>
+                              <S.LastRunDuration>
+                                {lastRunDuration}
+                              </S.LastRunDuration>
+                            </>
+                          ) : null}
+                        </S.LastRunInfoBlock>
+                      ) : (
+                        <S.NoRunsHint>Запусков ещё не было</S.NoRunsHint>
+                      )}
+                    </S.ScheduleBottomRow>
+                  </S.ScheduleCard>
+                );
+              })
+            )}
+          </S.ScheduleList>
+        )}
+      </PageLayout>
 
       <Dialog
         open={dialogOpen}
@@ -1324,6 +1317,6 @@ export const SchedulePanel: React.FC = () => {
           </>
         ) : null}
       </S.RunDetailsDialog>
-    </Box>
+    </>
   );
 };

@@ -1,20 +1,24 @@
 import * as React from 'react';
 import {
   Box,
-  Paper,
+  Button,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  Radio,
+  RadioGroup,
   Stack,
   Typography,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  Button,
-  FormControl,
-  FormLabel,
-  Divider,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { IconAdjustmentsHorizontal } from '@tabler/icons-react';
+
 import { useLanguageContext } from '@/app/i18n';
+
 import { useThemeModePreference } from '@/entities/ui-preferences';
+
+import { PageLayout } from '@/shared/ui/page-layout';
 
 type Lang = { value: string; label: string };
 
@@ -54,78 +58,84 @@ export const PreferencesPanel: React.FC = () => {
   };
 
   return (
-    <Box>
-      {/* ================== THEME MODE BOX ================== */}
-      <Paper variant='outlined' sx={{ p: 3, mb: 3 }}>
-        <FormControl component='fieldset'>
-          <FormLabel
-            component='legend'
-            sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}
-          >
-            Mode
-          </FormLabel>
-          <Typography variant='body2' color='text.secondary' sx={{ mb: 1 }}>
-            Choose a color mode.
-          </Typography>
-        </FormControl>
-
-        <RadioGroup
-          value={theme?.palette?.mode}
-          onChange={e => {
-            const next = e.target.value as 'light' | 'dark';
-            setThemeMode(next);
-          }}
-        >
-          <FormControlLabel
-            value='light'
-            control={<Radio size='small' />}
-            label='Light'
-          />
-          <FormControlLabel
-            value='dark'
-            control={<Radio size='small' disabled />}
-            label='Dark (скоро)'
-          />
-        </RadioGroup>
-      </Paper>
-
-      {/* ================== LANGUAGE BOX ================== */}
-      <Paper variant='outlined' sx={{ p: 3 }}>
-        <Stack spacing={4}>
+    <PageLayout
+      width='narrow'
+      title='Preferences'
+      icon={IconAdjustmentsHorizontal}
+    >
+      <Stack spacing={3} divider={<Divider sx={{ borderColor: '#EEF0F4' }} />}>
+        {/* ================== THEME MODE BOX ================== */}
+        <Box>
           <FormControl component='fieldset'>
             <FormLabel
               component='legend'
               sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}
             >
-              Language
+              Mode
             </FormLabel>
             <Typography variant='body2' color='text.secondary' sx={{ mb: 1 }}>
-              Choose an interface language.
+              Choose a color mode.
             </Typography>
-            <RadioGroup
-              value={pendingLang}
-              onChange={e => setPendingLang(e.target.value)}
-            >
-              {langs.map(opt => (
-                <FormControlLabel
-                  key={opt.value}
-                  value={opt.value}
-                  control={<Radio size='small' />}
-                  label={opt.label}
-                />
-              ))}
-            </RadioGroup>
           </FormControl>
 
-          <Divider />
+          <RadioGroup
+            value={theme?.palette?.mode}
+            onChange={e => {
+              const next = e.target.value as 'light' | 'dark';
+              setThemeMode(next);
+            }}
+          >
+            <FormControlLabel
+              value='light'
+              control={<Radio size='small' />}
+              label='Light'
+            />
+            <FormControlLabel
+              value='dark'
+              control={<Radio size='small' disabled />}
+              label='Dark (скоро)'
+            />
+          </RadioGroup>
+        </Box>
 
-          <Box>
-            <Button variant='contained' onClick={save}>
-              Сохранить
-            </Button>
-          </Box>
-        </Stack>
-      </Paper>
-    </Box>
+        {/* ================== LANGUAGE BOX ================== */}
+        <Box>
+          <Stack spacing={4}>
+            <FormControl component='fieldset'>
+              <FormLabel
+                component='legend'
+                sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}
+              >
+                Language
+              </FormLabel>
+              <Typography variant='body2' color='text.secondary' sx={{ mb: 1 }}>
+                Choose an interface language.
+              </Typography>
+              <RadioGroup
+                value={pendingLang}
+                onChange={e => setPendingLang(e.target.value)}
+              >
+                {langs.map(opt => (
+                  <FormControlLabel
+                    key={opt.value}
+                    value={opt.value}
+                    control={<Radio size='small' />}
+                    label={opt.label}
+                  />
+                ))}
+              </RadioGroup>
+            </FormControl>
+
+            <Divider />
+
+            <Box>
+              <Button variant='contained' onClick={save}>
+                Сохранить
+              </Button>
+            </Box>
+          </Stack>
+        </Box>
+      </Stack>
+    </PageLayout>
   );
 };

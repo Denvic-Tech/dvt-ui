@@ -15,6 +15,7 @@ import {
 import {
   createMcpToken,
   fetchMcpTokens,
+  renameMcpToken,
   resetMcpTokenCreationState,
   resetMcpTokenDeletionState,
   revokeMcpToken,
@@ -30,6 +31,11 @@ export const useMcpTokens = () => {
   const createMcpTokenMutation = useCallback(
     (payload: McpTokenCreateSchema) =>
       dispatch(createMcpToken(payload)).unwrap(),
+    [dispatch]
+  );
+  const renameMcpTokenMutation = useCallback(
+    (tokenId: string, name: string) =>
+      dispatch(renameMcpToken({ tokenId, name })).unwrap(),
     [dispatch]
   );
   const revokeMcpTokenMutation = useCallback(
@@ -54,6 +60,7 @@ export const useMcpTokens = () => {
     deletionStatus: useAppSelector(selectMcpTokenDeletionStatus),
     loadMcpTokens,
     createMcpToken: createMcpTokenMutation,
+    renameMcpToken: renameMcpTokenMutation,
     revokeMcpToken: revokeMcpTokenMutation,
     resetCreationState,
     resetDeletionState,

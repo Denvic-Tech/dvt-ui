@@ -25,6 +25,7 @@ type PythonCodeInputProps = {
   projectVariables?: VariableOutput[] | undefined;
   height?: string | number;
   helperText?: string;
+  placeholder?: string | undefined;
   completionProviders?: Array<CodeEditorCompletionProvider<void>> | undefined;
   onMount?: OnMount | undefined;
 };
@@ -37,6 +38,7 @@ export const PythonCodeInput: React.FC<PythonCodeInputProps> = ({
   projectVariables,
   height = 320,
   helperText,
+  placeholder,
   completionProviders: externalCompletionProviders = EMPTY_COMPLETION_PROVIDERS,
   onMount,
 }) => {
@@ -178,6 +180,7 @@ export const PythonCodeInput: React.FC<PythonCodeInputProps> = ({
       language='python'
       height={height}
       helperText={helperText}
+      placeholder={placeholder}
       completionProviders={completionProviders}
       onMount={onMount}
     />

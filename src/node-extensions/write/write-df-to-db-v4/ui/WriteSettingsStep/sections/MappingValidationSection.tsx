@@ -24,6 +24,10 @@ import type {
 } from '@/shared/gatewayClient';
 
 import {
+  type CatalogDescriptions,
+  resolveCommentBaseline,
+} from '../../../lib/catalogDescriptions';
+import {
   type CommentOverrides,
   commentValue,
 } from '../../../lib/columnComments';
@@ -32,6 +36,7 @@ import {
   getColumnActionLabel,
   normalizeName,
 } from '../../../lib/helpers';
+import { CatalogDescriptionNote } from '../../CatalogDescriptionNote';
 import { ColumnCommentEditor } from '../../ColumnCommentEditor';
 import {
   ChangedNullableSwitch,
@@ -87,6 +92,8 @@ type MappingValidationSectionProps = {
     nullable: boolean,
     baseline: boolean | null
   ) => void;
+  /** Описания каталога по имени колонки DF: baseline комментария источника. */
+  catalogDescriptions?: CatalogDescriptions | null;
   commentsSupported?: boolean | undefined;
   onCommentChange?:
     | ((name: string, value: string | null, isNew: boolean) => void)
@@ -397,6 +404,7 @@ export const MappingValidationSection: React.FC<
   dbColumns,
   commentOverrides,
   sourceCommentOverrides,
+  catalogDescriptions,
   nullableOverrides,
   onExistingNullableChange,
   commentsSupported,
@@ -483,6 +491,11 @@ export const MappingValidationSection: React.FC<
   );
 
   const renderRowCells = (_index: number, row: ColumnDiffRow) => {
+    const sourceBaseline = resolveCommentBaseline(
+      row.dfName,
+      catalogDescriptions,
+      row.sourceComment
+    );
     const targetName = row.requestedTargetName ?? row.dbName ?? '';
     const isTargetNameEmpty = Boolean(row.dfName) && !targetName.trim();
     const resolveStateKey = normalizeName(row.dfName ?? row.dbName);
@@ -754,13 +767,13 @@ export const MappingValidationSection: React.FC<
             baseline={
               row.dbComment !== undefined ? row.dbComment : (dbComment ?? null)
             }
-            sourceComment={row.sourceComment ?? null}
+            sourceComment={sourceBaseline}
             value={
               row.status === 'missing_in_db'
                 ? commentValue(
                     sourceCommentOverrides,
                     row.dfName ?? '',
-                    row.sourceComment
+                    sourceBaseline
                   )
                 : commentValue(
                     commentOverrides,
@@ -780,6 +793,13 @@ export const MappingValidationSection: React.FC<
               !commentsSupported
                 ? 'Редактирование комментариев недоступно для этой СУБД'
                 : ''
+            }
+            adornment={
+              <CatalogDescriptionNote
+                field={
+                  row.dfName ? catalogDescriptions?.[row.dfName] : undefined
+                }
+              />
             }
             onChange={value =>
               onCommentChange?.(

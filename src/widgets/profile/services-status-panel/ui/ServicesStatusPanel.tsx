@@ -2,21 +2,18 @@ import React, { useEffect, useMemo, useState } from 'react';
 import DnsRoundedIcon from '@mui/icons-material/DnsRounded';
 import PrecisionManufacturingRoundedIcon from '@mui/icons-material/PrecisionManufacturingRounded';
 import { Box } from '@mui/material';
+import { IconActivity } from '@tabler/icons-react';
 
 import { useBuildVersion } from '@/features/profile/build-version-info';
 import { useServicesStatus } from '@/features/profile/services-status';
 
 import { Alert, Spinner } from '@/shared/ui';
+import { PageLayout } from '@/shared/ui/page-layout';
 
 import { sortByStatus } from './lib/sortByStatus.ts';
 import { ServicesStatusHeader } from './ServicesStatusHeader.tsx';
 import { ServicesStatusSection } from './ServicesStatusSection.tsx';
-import {
-  LoadingState,
-  PanelCard,
-  PanelInner,
-  SectionsStack,
-} from './styled.ts';
+import { LoadingState, PanelInner, SectionsStack } from './styled.ts';
 import type { ServiceStatusRowItem } from './types.ts';
 
 export const ServicesStatusPanel: React.FC = () => {
@@ -87,16 +84,16 @@ export const ServicesStatusPanel: React.FC = () => {
   }, [servicesStatus]);
 
   return (
-    <PanelCard>
-      <PanelInner>
-        <ServicesStatusHeader
-          autoRefreshEnabled={autoRefreshEnabled}
-          isLoading={isLoading}
-          onRefresh={() => void loadServicesStatus()}
-          onToggleAutoRefresh={() => setAutoRefreshEnabled(prev => !prev)}
-          version={versionInfo?.version ?? null}
-        />
+    <PageLayout width='fluid' title='Services Stats Panel' icon={IconActivity}>
+      <ServicesStatusHeader
+        autoRefreshEnabled={autoRefreshEnabled}
+        isLoading={isLoading}
+        onRefresh={() => void loadServicesStatus()}
+        onToggleAutoRefresh={() => setAutoRefreshEnabled(prev => !prev)}
+        version={versionInfo?.version ?? null}
+      />
 
+      <PanelInner>
         {error ? <Alert variant='destructive'>{error.message}</Alert> : null}
 
         {isLoading && !servicesStatus ? (
@@ -121,6 +118,6 @@ export const ServicesStatusPanel: React.FC = () => {
           </SectionsStack>
         )}
       </PanelInner>
-    </PanelCard>
+    </PageLayout>
   );
 };

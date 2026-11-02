@@ -19,49 +19,6 @@ type StatusBadgeVariant = 'verified' | 'unverified' | 'active' | 'blocked';
 type RoleBadgeVariant = 'superadmin' | 'admin' | 'user' | 'unknown';
 type ActionButtonVariant = 'default' | 'danger' | 'success';
 
-export const PanelContainer = styled(Box)(() => ({
-  backgroundColor: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: 16,
-  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
-  overflow: 'hidden',
-}));
-
-export const PanelHeader = styled(Box)(() => ({
-  padding: '20px 24px',
-  borderBottom: '1px solid #f3f4f6',
-}));
-
-export const HeaderTop = styled(Box)(() => ({
-  display: 'flex',
-  alignItems: 'flex-start',
-  justifyContent: 'space-between',
-  gap: 16,
-  marginBottom: 4,
-  '@media (max-width: 900px)': {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-  },
-}));
-
-export const HeaderCopy = styled(Box)(() => ({
-  minWidth: 0,
-}));
-
-export const HeaderTitle = styled(Typography)(() => ({
-  fontSize: 20,
-  lineHeight: 1.2,
-  fontWeight: 600,
-  color: '#111827',
-  marginBottom: 4,
-}));
-
-export const HeaderDescription = styled(Typography)(() => ({
-  fontSize: 14,
-  lineHeight: 1.5,
-  color: '#6b7280',
-}));
-
 export const HeaderActions = styled(Box)(() => ({
   display: 'flex',
   alignItems: 'center',
@@ -117,9 +74,7 @@ export const NewUserButton = styled('button')(() => ({
 }));
 
 export const SearchSection = styled(Box)(() => ({
-  padding: '16px 24px',
-  backgroundColor: '#f9fafb',
-  borderBottom: '1px solid #f3f4f6',
+  marginTop: 16,
 }));
 
 export const SearchSectionContent = styled(Box)(() => ({
@@ -220,29 +175,16 @@ export const SearchButton = styled('button')(() => ({
 }));
 
 export const AlertSection = styled(Box)(() => ({
-  padding: '16px 24px 0',
+  paddingBottom: 16,
 }));
 
 export const TableSection = styled(Box)(() => ({
   backgroundColor: '#ffffff',
 }));
 
+// PageLayout owns the scroll, the sticky table head attaches to it.
 export const StyledTableContainer = styled(TableContainer)(() => ({
-  maxHeight: 620,
-  '&::-webkit-scrollbar': {
-    width: 6,
-    height: 6,
-  },
-  '&::-webkit-scrollbar-track': {
-    background: 'transparent',
-  },
-  '&::-webkit-scrollbar-thumb': {
-    backgroundColor: '#e5e7eb',
-    borderRadius: 999,
-  },
-  '&::-webkit-scrollbar-thumb:hover': {
-    backgroundColor: '#d1d5db',
-  },
+  overflow: 'visible',
 }));
 
 export const StyledTable = styled(Table)(() => ({
@@ -538,7 +480,7 @@ export const EmptyStateCell = styled(TableCell)(() => ({
 }));
 
 export const PaginationSection = styled(Box)(() => ({
-  padding: '16px 24px',
+  paddingTop: 16,
   borderTop: '1px solid #f3f4f6',
   display: 'flex',
   alignItems: 'center',

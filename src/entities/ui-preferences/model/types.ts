@@ -23,11 +23,17 @@ export interface NodeFieldsViewerUIPreferences {
   showFullPath: boolean;
 }
 
+export interface ProfilePageUIPreferences {
+  /** Path of the last opened `/profile` tab. */
+  lastSectionPath: string | null;
+}
+
 export interface UIPreferencesState {
   themeMode: ThemeMode;
   projectsPage: {
     viewMode: ProjectsViewMode;
   };
+  profilePage: ProfilePageUIPreferences;
   nodeLibrary: NodeLibraryUIPreferences;
   nodeModalWorkspace: NodeModalWorkspaceUIPreferences;
   homeDashboard: HomeDashboardUIPreferences;

@@ -364,6 +364,7 @@ const NodeDataModalInner = ({
     useNodeMetadata(selectedNodeID);
 
   const nodeModalExtensions = useNodeModalExtensions(nodeDefinition);
+  const dialogSize = nodeModalExtensions[0]?.dialogSize;
   const nodeModalStepperExtensions =
     useNodeModalStepperExtensions(nodeDefinition);
   const { inputVariables, projectVariables, variables } = useNodeVariableGroups(
@@ -643,7 +644,11 @@ const NodeDataModalInner = ({
     : nodeDefinition.display_name || nodeDefinition.name || 'Настройка ноды';
 
   return (
-    <NodeDataModalDialog open={uiIsOpen} onClose={openUnsavedDialogOrClose}>
+    <NodeDataModalDialog
+      open={uiIsOpen}
+      onClose={openUnsavedDialogOrClose}
+      size={dialogSize}
+    >
       <NodeDataModalContent
         editorSubtitle={editorSubtitle}
         editorTitle={editorTitle}
