@@ -7,9 +7,11 @@ export {
 export {
   canAccessProfilePath,
   canAccessProfileSection,
+  DEFAULT_PROFILE_SECTION_PATH,
   getAvailableProfileSectionGroups,
   getAvailableProfileSections,
   getProfileSectionByPath,
+  resolveProfileEntryPath,
 } from '@/features/profile/user-profile-navigation/model/helpers.ts';
 export type {
   ProfileNavigationRole,

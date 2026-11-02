@@ -10,6 +10,7 @@ import {
   selectNodeFieldsViewerShowFullPath,
   selectNodeModalWorkspacePreviewWidth,
   selectPinnedNodeNames,
+  selectProfileLastSectionPath,
   selectProjectsViewMode,
   selectSkipHardStopConfirm,
   selectThemeMode,
@@ -52,6 +53,23 @@ export const useProjectsViewModePreference = () => {
   return {
     viewMode,
     setViewMode,
+  };
+};
+
+export const useProfileLastSectionPreference = () => {
+  const dispatch = useAppDispatch();
+  const lastSectionPath = useAppSelector(selectProfileLastSectionPath);
+
+  const setLastSectionPath = useCallback(
+    (nextPath: string) => {
+      dispatch(uiPreferencesActions.setProfileLastSectionPath(nextPath));
+    },
+    [dispatch]
+  );
+
+  return {
+    lastSectionPath,
+    setLastSectionPath,
   };
 };
 

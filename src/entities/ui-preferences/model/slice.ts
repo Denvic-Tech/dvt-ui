@@ -118,6 +118,9 @@ const initialState: UIPreferencesState = {
   projectsPage: {
     viewMode: getInitialProjectsViewMode(),
   },
+  profilePage: {
+    lastSectionPath: null,
+  },
   nodeLibrary: createInitialNodeLibraryPreferences(),
   nodeModalWorkspace: createInitialNodeModalWorkspacePreferences(),
   homeDashboard: createInitialHomeDashboardPreferences(),
@@ -135,6 +138,9 @@ const uiPreferencesSlice = createSlice({
     },
     setProjectsViewMode(state, action: PayloadAction<ProjectsViewMode>) {
       state.projectsPage.viewMode = action.payload;
+    },
+    setProfileLastSectionPath(state, action: PayloadAction<string>) {
+      state.profilePage = { lastSectionPath: action.payload };
     },
     toggleNodeLibraryPinnedNode(state, action: PayloadAction<string>) {
       const nodeLibrary = ensureNodeLibraryPreferences(state);

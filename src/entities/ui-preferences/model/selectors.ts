@@ -45,6 +45,9 @@ export const selectThemeMode = (state: RootState) =>
 export const selectProjectsViewMode = (state: RootState) =>
   selectProjectsPagePreferences(state).viewMode;
 
+export const selectProfileLastSectionPath = (state: RootState) =>
+  selectUIPreferences(state).profilePage?.lastSectionPath ?? null;
+
 export const selectPinnedNodeNames = (state: RootState) =>
   selectNodeLibraryPreferences(state).pinnedNodeNames ??
   EMPTY_PINNED_NODE_NAMES;

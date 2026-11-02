@@ -12,6 +12,8 @@ import {
   type ProfileSectionGroup,
 } from './types';
 
+export const DEFAULT_PROFILE_SECTION_PATH = PROFILE_SECTION_PATHS.preferences;
+
 export const canAccessProfileSection = (
   role: ProfileNavigationRole,
   section: ProfileSectionConfig
@@ -70,3 +72,10 @@ export const canAccessProfilePath = (
 
   return section != null && canAccessProfileSection(role, section);
 };
+export const resolveProfileEntryPath = (
+  role: ProfileNavigationRole,
+  lastSectionPath: string | null
+): string =>
+  lastSectionPath != null && canAccessProfilePath(role, lastSectionPath)
+    ? lastSectionPath
+    : DEFAULT_PROFILE_SECTION_PATH;

@@ -7,15 +7,35 @@ import {
   getAvailableProfileSections,
   getProfileSectionByPath,
   PROFILE_SECTION_PATHS,
+  resolveProfileEntryPath,
 } from '@/features/profile/user-profile-navigation';
 
 describe('features/user-profile-navigation', () => {
+  it('opens the saved section only when the role can access it', () => {
+    expect(resolveProfileEntryPath('user', PROFILE_SECTION_PATHS.mcp)).toBe(
+      PROFILE_SECTION_PATHS.mcp
+    );
+    expect(resolveProfileEntryPath('user', PROFILE_SECTION_PATHS.admin)).toBe(
+      PROFILE_SECTION_PATHS.preferences
+    );
+    expect(resolveProfileEntryPath('user', '/profile/unknown')).toBe(
+      PROFILE_SECTION_PATHS.preferences
+    );
+    expect(resolveProfileEntryPath('user', null)).toBe(
+      PROFILE_SECTION_PATHS.preferences
+    );
+    expect(
+      resolveProfileEntryPath('superadmin', '/profile/app-settings/runtime')
+    ).toBe('/profile/app-settings/runtime');
+  });
+
   it('allows public sections for regular users', () => {
     const items = getAvailableProfileSections('user');
 
     expect(items.map(item => item.to)).toEqual([
       PROFILE_SECTION_PATHS.preferences,
       PROFILE_SECTION_PATHS.apiKeys,
+      PROFILE_SECTION_PATHS.mcp,
     ]);
   });
 
@@ -31,6 +51,10 @@ describe('features/user-profile-navigation', () => {
           }),
           expect.objectContaining({
             to: PROFILE_SECTION_PATHS.apiKeys,
+            group: 'general',
+          }),
+          expect.objectContaining({
+            to: PROFILE_SECTION_PATHS.mcp,
             group: 'general',
           }),
         ],
