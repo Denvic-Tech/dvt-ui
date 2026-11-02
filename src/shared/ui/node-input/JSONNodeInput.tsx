@@ -28,8 +28,11 @@ import {
   makeVariableExpressionValue,
 } from '@/shared/lib/node-input-values';
 import type { VariableOutput, VariableType } from '@/shared/lib/variables';
+import { remeasureFontsWhenReady } from '@/shared/ui/code-editor/fontMeasurement';
+import { attachEditorPlaceholder } from '@/shared/ui/code-editor/placeholder';
 import { VariableOption } from '@/shared/ui/variable-option';
 
+import { CompactVariablePicker } from './CompactVariablePicker';
 import {
   buildExpressionAutocompleteCatalog,
   getInlineExpressionDiagnostics,
@@ -48,13 +51,17 @@ type JSONNodeInputProps = {
   onChange: (value: unknown) => void;
   onValidationErrorChange?: ((nextError: string | null) => void) | undefined;
   hint?: string | undefined;
-  title?: string | undefined;
-  height?: number | undefined;
+  title?: React.ReactNode | undefined;
+  height?: number | string | undefined;
   errorText?: string | null | undefined;
   variables?: VariableOutput[] | undefined;
   inputVariables?: VariableOutput[] | undefined;
   projectVariables?: VariableOutput[] | undefined;
   allowVariableBinding?: boolean | undefined;
+  showLineNumbers?: boolean | undefined;
+  formatButtonIcon?: React.ReactNode | undefined;
+  toolbarVariant?: 'default' | 'compact' | undefined;
+  placeholder?: string | undefined;
 };
 
 type TemplateExpressionRange = {
@@ -78,6 +85,25 @@ type EditorDiagnostic = {
 };
 
 const JSON_VARIABLE_TYPES: VariableType[] = ['DICT', 'JSON'];
+
+const CompactVariablesIcon: React.FC = () => (
+  <svg
+    aria-hidden
+    width='14'
+    height='14'
+    viewBox='0 0 24 24'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth='1.8'
+    strokeLinecap='round'
+    strokeLinejoin='round'
+  >
+    <path d='M8 21s-4-3-4-9 4-9 4-9' />
+    <path d='M16 3s4 3 4 9-4 9-4 9' />
+    <line x1='15' y1='9' x2='9' y2='15' />
+    <line x1='9' y1='9' x2='15' y2='15' />
+  </svg>
+);
 const TEMPLATE_MARKER_OWNER = 'dvt-json-template-expressions';
 const JSON_FORMAT_ERROR_TEXT = 'Некорректный JSON формат.';
 
@@ -274,6 +300,10 @@ export const JSONNodeInput: React.FC<JSONNodeInputProps> = ({
   inputVariables,
   projectVariables,
   allowVariableBinding = true,
+  showLineNumbers = false,
+  formatButtonIcon,
+  toolbarVariant = 'default',
+  placeholder,
 }) => {
   const { expressionsConfig } = useExpressionsConfigContext();
   const selectedVariableBinding = useMemo(
@@ -302,6 +332,18 @@ export const JSONNodeInput: React.FC<JSONNodeInputProps> = ({
   );
   const lastSelectionOffsetsRef = useRef<EditorSelectionOffsets | null>(null);
   const monacoRef = useRef<typeof monacoTypes | null>(null);
+  const [editorInstance, setEditorInstance] =
+    useState<monacoTypes.editor.IStandaloneCodeEditor | null>(null);
+
+  useEffect(() => {
+    const monaco = monacoRef.current;
+    if (!editorInstance || !monaco || !placeholder) {
+      return undefined;
+    }
+    const widget = attachEditorPlaceholder(editorInstance, monaco, placeholder);
+    return () => widget.dispose();
+  }, [editorInstance, placeholder]);
+
   const lastReportedValidationErrorRef = useRef<string | null>(null);
   const templateModeRef = useRef(false);
 
@@ -742,6 +784,8 @@ export const JSONNodeInput: React.FC<JSONNodeInputProps> = ({
         monaco.editor.setModelLanguage(model, editorLanguage);
       }
       registerTemplateCompletions(monaco);
+      remeasureFontsWhenReady(monaco);
+      setEditorInstance(editor);
       editorDisposeRef.current.push(
         editor.onDidChangeCursorSelection(() => {
           updateSelectionOffsets();
@@ -823,7 +867,35 @@ export const JSONNodeInput: React.FC<JSONNodeInputProps> = ({
           {title}
         </Typography>
         <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-          {variableBindingSupported && (
+          {variableBindingSupported && toolbarVariant === 'compact' && (
+            <>
+              <Tooltip
+                title={
+                  isTemplateMode
+                    ? 'Вставить переменную как {{ variable_name }}'
+                    : 'Выбрать переменную'
+                }
+              >
+                <Button
+                  size='small'
+                  variant='outlined'
+                  aria-label='Выбрать переменную'
+                  aria-expanded={variablePickerOpen}
+                  startIcon={<CompactVariablesIcon />}
+                  onClick={event => openVariablePicker(event.currentTarget)}
+                >
+                  Переменные
+                </Button>
+              </Tooltip>
+              {!selectedVariableBinding && !isTemplateMode && (
+                <Box
+                  aria-hidden
+                  sx={{ width: '1px', height: 14, backgroundColor: 'divider' }}
+                />
+              )}
+            </>
+          )}
+          {variableBindingSupported && toolbarVariant === 'default' && (
             <Tooltip
               title={
                 isTemplateMode
@@ -844,7 +916,9 @@ export const JSONNodeInput: React.FC<JSONNodeInputProps> = ({
             <Button
               size='small'
               variant='outlined'
-              startIcon={<AutoFixHighRoundedIcon fontSize='small' />}
+              startIcon={
+                formatButtonIcon ?? <AutoFixHighRoundedIcon fontSize='small' />
+              }
               onClick={handleFormat}
             >
               Форматировать
@@ -902,7 +976,15 @@ export const JSONNodeInput: React.FC<JSONNodeInputProps> = ({
               scrollBeyondLastLine: false,
               renderWhitespace: 'none',
               renderValidationDecorations: 'on',
-              lineNumbers: 'off',
+              lineNumbers: showLineNumbers ? 'on' : 'off',
+              ...(showLineNumbers
+                ? {
+                    fontFamily:
+                      '"JetBrains Mono", "Fira Code", "SFMono-Regular", monospace',
+                    lineNumbersMinChars: 3,
+                    padding: { top: 8, bottom: 8 },
+                  }
+                : {}),
             }}
             theme='vs'
           />
@@ -913,41 +995,67 @@ export const JSONNodeInput: React.FC<JSONNodeInputProps> = ({
         open={variablePickerOpen}
         anchorEl={variablePopoverAnchorEl}
         onClose={closeVariablePicker}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: toolbarVariant === 'compact' ? 'right' : 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: toolbarVariant === 'compact' ? 'right' : 'left',
+        }}
         slotProps={{
           paper: {
-            sx: {
-              width: 320,
-              p: 1,
-              borderRadius: 2,
-            },
+            sx:
+              toolbarVariant === 'compact'
+                ? theme => ({
+                    mt: 0.75,
+                    width: 340,
+                    p: 0,
+                    borderRadius: '10px',
+                    border: `1px solid ${theme.palette.divider}`,
+                    boxShadow:
+                      '0 12px 32px -8px rgba(24, 24, 27, 0.18), 0 2px 6px rgba(24, 24, 27, 0.06)',
+                    overflow: 'hidden',
+                  })
+                : {
+                    width: 320,
+                    p: 1,
+                    borderRadius: 2,
+                  },
           },
         }}
       >
-        <List dense sx={{ maxHeight: 280, overflowY: 'auto', p: 0 }}>
-          {pickerVariables.length > 0 ? (
-            groupVariablesByScope(pickerVariables).map(section => (
-              <Box key={section.key}>
-                {buildScopeSectionHeader(section.label)}
-                {section.items.map(variable => (
-                  <ListItemButton
-                    key={`${section.key}:${variable.name}:${variable.type}`}
-                    selected={selectedVariableBinding === variable.name}
-                    onClick={() => handleVariableSelection(variable)}
-                  >
-                    <VariableOption variable={variable} />
-                  </ListItemButton>
-                ))}
-              </Box>
-            ))
-          ) : (
-            <ListItemText
-              sx={{ px: 1.5, py: 1.25 }}
-              secondary='Нет доступных переменных'
-            />
-          )}
-        </List>
+        {toolbarVariant === 'compact' ? (
+          <CompactVariablePicker
+            variables={pickerVariables}
+            selectedName={selectedVariableBinding}
+            onSelect={handleVariableSelection}
+          />
+        ) : (
+          <List dense sx={{ maxHeight: 280, overflowY: 'auto', p: 0 }}>
+            {pickerVariables.length > 0 ? (
+              groupVariablesByScope(pickerVariables).map(section => (
+                <Box key={section.key}>
+                  {buildScopeSectionHeader(section.label)}
+                  {section.items.map(variable => (
+                    <ListItemButton
+                      key={`${section.key}:${variable.name}:${variable.type}`}
+                      selected={selectedVariableBinding === variable.name}
+                      onClick={() => handleVariableSelection(variable)}
+                    >
+                      <VariableOption variable={variable} />
+                    </ListItemButton>
+                  ))}
+                </Box>
+              ))
+            ) : (
+              <ListItemText
+                sx={{ px: 1.5, py: 1.25 }}
+                secondary='Нет доступных переменных'
+              />
+            )}
+          </List>
+        )}
       </Popover>
 
       {resolvedHint && (

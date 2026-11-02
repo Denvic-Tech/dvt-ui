@@ -17,6 +17,8 @@ import {
   getWordRangeAtPosition,
   toMonacoCompletionItems,
 } from './completion';
+import { remeasureFontsWhenReady } from './fontMeasurement';
+import { attachEditorPlaceholder } from './placeholder';
 import type {
   CodeEditorCompletionProvider,
   CodeEditorLanguage,
@@ -34,6 +36,7 @@ type CodeEditorProps<TContext = unknown> = {
   markerOwner?: string | undefined;
   height?: string | number | undefined;
   helperText?: React.ReactNode | undefined;
+  placeholder?: string | undefined;
   error?: boolean | undefined;
   className?: string | undefined;
   options?: CodeEditorOptions | undefined;
@@ -120,6 +123,7 @@ export function CodeEditor<TContext = unknown>({
   markerOwner = DEFAULT_MARKER_OWNER,
   height = 280,
   helperText,
+  placeholder,
   error = false,
   className,
   options,
@@ -134,6 +138,17 @@ export function CodeEditor<TContext = unknown>({
   const editorDisposablesRef = useRef<monacoTypes.IDisposable[]>([]);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const [focused, setFocused] = useState(false);
+  const [editorInstance, setEditorInstance] =
+    useState<monacoTypes.editor.IStandaloneCodeEditor | null>(null);
+
+  useEffect(() => {
+    const monaco = monacoRef.current;
+    if (!editorInstance || !monaco || !placeholder) {
+      return undefined;
+    }
+    const widget = attachEditorPlaceholder(editorInstance, monaco, placeholder);
+    return () => widget.dispose();
+  }, [editorInstance, placeholder]);
 
   const typedCompletionProviders = completionProviders as Array<
     CodeEditorCompletionProvider<unknown>
@@ -243,6 +258,8 @@ export function CodeEditor<TContext = unknown>({
 
       registerCompletionProviders(monaco);
       syncMarkers();
+      remeasureFontsWhenReady(monaco);
+      setEditorInstance(editor);
 
       const focusDisposable = editor.onDidFocusEditorText?.(() => {
         setFocused(true);
