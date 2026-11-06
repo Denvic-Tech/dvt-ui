@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildResourceScope, isResourceScopeValid } from './mcpTokenScope';
+import {
+  buildResourceScope,
+  formatAccessSummary,
+  isResourceScopeValid,
+} from './mcpTokenScope';
 
 describe('mcpTokenScope', () => {
   it('не передаёт ids для доступа ко всем ресурсам', () => {
@@ -20,5 +24,34 @@ describe('mcpTokenScope', () => {
     expect(isResourceScopeValid('all', [])).toBe(true);
     expect(isResourceScopeValid('selected', [])).toBe(false);
     expect(isResourceScopeValid('selected', ['connection-1'])).toBe(true);
+  });
+});
+
+describe('formatAccessSummary', () => {
+  it('collapses full access into one phrase', () => {
+    expect(
+      formatAccessSummary({
+        projects: { mode: 'all' },
+        db_connections: { mode: 'all' },
+      })
+    ).toBe('Все проекты и подключения');
+  });
+
+  it('counts selected resources', () => {
+    expect(
+      formatAccessSummary({
+        projects: { mode: 'selected', ids: ['a', 'b'] },
+        db_connections: { mode: 'selected', ids: ['c'] },
+      })
+    ).toBe('2 проекта, 1 подключение');
+  });
+
+  it('mixes full and selected access', () => {
+    expect(
+      formatAccessSummary({
+        projects: { mode: 'all' },
+        db_connections: { mode: 'selected', ids: ['a', 'b', 'c', 'd', 'e'] },
+      })
+    ).toBe('Все проекты, 5 подключений');
   });
 });

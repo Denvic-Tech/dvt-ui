@@ -4,28 +4,28 @@ import { Box, Stack, Typography } from '@mui/material';
 
 import { useMcpTokens } from '@/entities/admin/mcp-token';
 
+import { resolveTokenExpiresAt } from '@/shared/lib/token/tokenExpiryForm';
 import {
   CancelButton,
   CreateButton,
 } from '@/shared/ui/create-entity-dialog/styles';
+import {
+  TokenDialog,
+  TokenFieldRow,
+  TokenNameInput,
+} from '@/shared/ui/token-form';
 
 import {
   buildTokenAccessScope,
   createDefaultTokenAccessForm,
   defaultTokenName,
   isTokenAccessFormValid,
-  resolveTokenExpiresAt,
   type TokenAccessForm,
 } from '../lib/tokenForm';
 import { MCP_AGENTS } from '../model/agents';
 
 import { ManualConnectTab } from './ManualConnectTab';
-import { McpDialog } from './McpDialog';
-import {
-  TokenAccessFields,
-  TokenFieldRow,
-  TokenNameInput,
-} from './TokenFormFields';
+import { TokenAccessFields } from './TokenFormFields';
 import { TokenSecretField } from './TokenSecretField';
 
 const NAME_INPUT_ID = 'mcp-create-token-name';
@@ -84,7 +84,7 @@ export const CreateMcpTokenDialog = ({
 
   if (createdSecret) {
     return (
-      <McpDialog
+      <TokenDialog
         open={open}
         icon={<CheckRoundedIcon />}
         title='Токен создан'
@@ -124,12 +124,12 @@ export const CreateMcpTokenDialog = ({
             />
           </Box>
         </Stack>
-      </McpDialog>
+      </TokenDialog>
     );
   }
 
   return (
-    <McpDialog
+    <TokenDialog
       open={open}
       icon={<PlusIcon />}
       title='Новый MCP-токен'
@@ -163,6 +163,6 @@ export const CreateMcpTokenDialog = ({
         </TokenFieldRow>
         <TokenAccessFields form={form} onChange={setForm} />
       </Stack>
-    </McpDialog>
+    </TokenDialog>
   );
 };

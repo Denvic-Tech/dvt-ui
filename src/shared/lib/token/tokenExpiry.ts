@@ -1,6 +1,6 @@
 import dayjs, { type Dayjs } from 'dayjs';
 
-import { pluralizeRu } from './mcpTokenScope';
+import { pluralizeRu } from '@/shared/lib/string/pluralizeRu';
 
 const EXPIRING_SOON_DAYS = 14;
 const HOURS_IN_DAY = 24;

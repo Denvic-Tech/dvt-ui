@@ -1,9 +1,11 @@
 import { Box, Stack, Typography } from '@mui/material';
 
+import { TokenNameInput } from '@/shared/ui/token-form';
+
 import type { ConnectAgentState } from '../model/useConnectAgentState';
 
 import { PromptField } from './PromptField';
-import { TokenAccessFields, TokenNameInput } from './TokenFormFields';
+import { TokenAccessFields } from './TokenFormFields';
 
 const NAME_INPUT_ID = 'mcp-connect-token-name';
 

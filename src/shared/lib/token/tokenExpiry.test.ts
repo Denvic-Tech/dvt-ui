@@ -1,7 +1,6 @@
 import dayjs from 'dayjs';
 import { describe, expect, it } from 'vitest';
 
-import { formatAccessSummary } from './mcpTokenScope';
 import { getTokenExpiry } from './tokenExpiry';
 
 const NOW = dayjs('2026-10-30T12:00:00');
@@ -39,34 +38,5 @@ describe('getTokenExpiry', () => {
       tone: 'expired',
       label: 'Истёк',
     });
-  });
-});
-
-describe('formatAccessSummary', () => {
-  it('collapses full access into one phrase', () => {
-    expect(
-      formatAccessSummary({
-        projects: { mode: 'all' },
-        db_connections: { mode: 'all' },
-      })
-    ).toBe('Все проекты и подключения');
-  });
-
-  it('counts selected resources', () => {
-    expect(
-      formatAccessSummary({
-        projects: { mode: 'selected', ids: ['a', 'b'] },
-        db_connections: { mode: 'selected', ids: ['c'] },
-      })
-    ).toBe('2 проекта, 1 подключение');
-  });
-
-  it('mixes full and selected access', () => {
-    expect(
-      formatAccessSummary({
-        projects: { mode: 'all' },
-        db_connections: { mode: 'selected', ids: ['a', 'b', 'c', 'd', 'e'] },
-      })
-    ).toBe('Все проекты, 5 подключений');
   });
 });

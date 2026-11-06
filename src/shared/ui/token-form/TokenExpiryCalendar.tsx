@@ -6,9 +6,9 @@ import dayjs, { type Dayjs } from 'dayjs';
 
 import {
   EXPIRY_PRESETS,
-  type TokenAccessForm,
   type TokenExpiryMode,
-} from '../lib/tokenForm';
+  type TokenExpiryValue,
+} from '@/shared/lib/token/tokenExpiryForm';
 
 const WEEK_DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
@@ -27,17 +27,17 @@ const monthButtonSx = {
   '&.Mui-disabled': { opacity: 0.35, color: '#6B7385' },
 };
 
-type TokenExpiryCalendarProps = {
-  form: TokenAccessForm;
-  onChange: (form: TokenAccessForm) => void;
+type TokenExpiryCalendarProps<T extends TokenExpiryValue> = {
+  form: T;
+  onChange: (form: T) => void;
   onClose: () => void;
 };
 
-export const TokenExpiryCalendar = ({
+export const TokenExpiryCalendar = <T extends TokenExpiryValue>({
   form,
   onChange,
   onClose,
-}: TokenExpiryCalendarProps) => {
+}: TokenExpiryCalendarProps<T>) => {
   const today = dayjs();
   const selectedDate = form.expiryMode === 'date' ? form.expiryDate : null;
   const [month, setMonth] = React.useState(() =>

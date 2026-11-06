@@ -12,9 +12,9 @@ import {
   ModalHeader,
 } from '@/shared/ui/create-entity-dialog/styles';
 
-import { headerIconButtonSx } from './styles';
+import { dialogIconButtonSx } from './styles';
 
-type McpDialogProps = {
+type TokenDialogProps = {
   open: boolean;
   icon: React.ReactNode;
   title: string;
@@ -26,7 +26,7 @@ type McpDialogProps = {
   onExited?: () => void;
 };
 
-export const McpDialog = ({
+export const TokenDialog = ({
   open,
   icon,
   title,
@@ -35,7 +35,7 @@ export const McpDialog = ({
   actions,
   onClose,
   onExited,
-}: McpDialogProps) => (
+}: TokenDialogProps) => (
   <Dialog
     open={open}
     maxWidth={false}
@@ -59,9 +59,19 @@ export const McpDialog = ({
       sx={{ alignItems: 'center', borderBottom: '1px solid #f3f4f6' }}
     >
       <HeaderIcon>{icon}</HeaderIcon>
-      <HeaderContent>
-        <HeaderTitle sx={{ mb: 0, lineHeight: '22px' }}>{title}</HeaderTitle>
-        <HeaderDescription sx={{ lineHeight: '18px' }}>
+      {/* Title and subtitle together are as tall as the 48px icon. */}
+      <HeaderContent
+        sx={{
+          height: 48,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}
+      >
+        <HeaderTitle noWrap sx={{ mb: 0, lineHeight: '26px' }}>
+          {title}
+        </HeaderTitle>
+        <HeaderDescription noWrap sx={{ lineHeight: '22px' }}>
           {subtitle}
         </HeaderDescription>
       </HeaderContent>
@@ -70,7 +80,7 @@ export const McpDialog = ({
           disableRipple
           aria-label='Закрыть'
           onClick={onClose}
-          sx={{ ...headerIconButtonSx, alignSelf: 'flex-start' }}
+          sx={{ ...dialogIconButtonSx, alignSelf: 'flex-start' }}
         >
           <CloseRoundedIcon sx={{ fontSize: 18 }} />
         </IconButton>
