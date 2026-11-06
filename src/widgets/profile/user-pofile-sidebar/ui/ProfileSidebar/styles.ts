@@ -27,7 +27,7 @@ export const MenuSection = styled(Box)(() => ({
 const MENU_FONT_FAMILY = 'Inter, sans-serif';
 const MENU_FOREGROUND = '#0F1117';
 const MENU_ICON_COLOR = '#7C8191';
-const MENU_ACTIVE_FOREGROUND = '#5B5BD6';
+const MENU_ACTIVE_FOREGROUND = '#4343D6';
 const MENU_TRANSITION = '120ms ease';
 
 export const MenuGroup = styled(Box)(() => ({
@@ -58,7 +58,6 @@ export const MenuItem = styled(ListItemButton)(() => ({
   '& .MuiListItemIcon-root': {
     minWidth: 18,
     color: MENU_ICON_COLOR,
-    transition: `color ${MENU_TRANSITION}`,
   },
   '& .MuiListItemIcon-root svg': {
     width: 18,
@@ -73,15 +72,20 @@ export const MenuItem = styled(ListItemButton)(() => ({
     fontWeight: 400,
     lineHeight: '20px',
     color: MENU_FOREGROUND,
-    transition: `color ${MENU_TRANSITION}`,
   },
+  // The font weight can not be animated, so the selected state is applied
+  // in one frame: background, color and weight switch together.
   '&.Mui-selected, &.Mui-selected:hover': {
-    backgroundColor: '#EEF0FD',
+    backgroundColor: '#EEF0FF',
+    transition: 'none',
   },
   '&.Mui-selected .MuiListItemIcon-root, &.Mui-selected .MuiListItemText-primary':
     {
       color: MENU_ACTIVE_FOREGROUND,
     },
+  '&.Mui-selected .MuiListItemText-primary': {
+    fontWeight: 600,
+  },
 }));
 
 export const MenuItemIcon = styled(ListItemIcon)(() => ({

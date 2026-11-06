@@ -17,7 +17,7 @@ import { useCurrentUser } from '@/entities/user';
 
 import { useAuth } from '@/contexts/AuthContext.tsx';
 
-const MENU_WIDTH = 248;
+const MENU_WIDTH = 228;
 const MENU_GROUP_IDS = new Set(['general', 'admin']);
 const ITEM_ICON_SIZE = 15;
 const MENU_FONT_FAMILY = 'Inter, sans-serif';
@@ -48,14 +48,14 @@ const avatarSx = {
 // Explicit height and pixel paddings: MenuItem and the theme reset `minHeight`
 // and paddings on wider breakpoints.
 const itemSx = {
-  height: 32,
-  minHeight: '32px !important',
+  height: 28,
+  minHeight: '28px !important',
   gap: '10px',
   padding: '0 10px',
   borderRadius: '7px',
   fontFamily: MENU_FONT_FAMILY,
   color: '#1B1F2A',
-  fontSize: 13.5,
+  fontSize: 13,
   '& svg': { flexShrink: 0, color: '#6B7385' },
   '&:hover, &.Mui-focusVisible': { bgcolor: '#F5F6FA' },
 } as const;
