@@ -35,6 +35,7 @@ import UserProfilePage from '@/pages/UserProfilePage';
 
 import { MenuAppBar } from '@/widgets/menu-app-bar';
 
+import { useBuildVersion } from '@/features/profile/build-version-info';
 import { SystemUpdateOverlayHost } from '@/features/profile/system-update';
 import { SystemAvailabilityGate } from '@/features/system-availability';
 
@@ -152,6 +153,8 @@ const RoutedAppContent = () => {
     location.pathname === '/' || location.pathname === '/home';
   // The profile shell scrolls inside and needs room for its shadow.
   const isProfileRoute = location.pathname.startsWith('/profile');
+  // Known once the profile has loaded it; the update dialog shows it.
+  const { versionInfo: buildVersion } = useBuildVersion();
 
   return (
     <LanguageProvider>
@@ -326,7 +329,7 @@ const RoutedAppContent = () => {
             </NodeInputExpressionsConfigProvider>
           </RuntimeConfigProvider>
         </SystemAvailabilityGate>
-        <SystemUpdateOverlayHost />
+        <SystemUpdateOverlayHost currentVersion={buildVersion?.version} />
         <AlertStack />
       </AuthProvider>
     </LanguageProvider>
