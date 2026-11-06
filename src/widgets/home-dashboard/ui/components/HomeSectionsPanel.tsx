@@ -2,16 +2,17 @@ import * as React from 'react';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import { Box, ButtonBase } from '@mui/material';
 
-import { groupHomeSections, type HomeSection } from '../config/sections';
-import { useDismiss } from '../lib/useDismiss';
-import { homeAppearSx, homePopAppearSx } from '../styles/motion';
+import { useDismiss } from '@/shared/lib/hooks/useDismiss';
+import { homeAppearSx, homePopAppearSx } from '@/shared/ui/home-theme/motion';
 import {
   hc,
   homeCaptionSx,
   homeCardSx,
   homePopoverSx,
   homeSectionTitleSx,
-} from '../styles/tokens';
+} from '@/shared/ui/home-theme/tokens';
+
+import { groupHomeSections, type HomeSection } from '../config/sections';
 
 import { SectionLink } from './SectionLink';
 

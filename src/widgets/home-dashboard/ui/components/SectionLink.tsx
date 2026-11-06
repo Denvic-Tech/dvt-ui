@@ -2,8 +2,9 @@ import { Box } from '@mui/material';
 import type * as React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
+import { hc, homeEllipsisSx } from '@/shared/ui/home-theme/tokens';
+
 import type { HomeSection } from '../config/sections';
-import { hc, homeEllipsisSx } from '../styles/tokens';
 
 type SectionLinkProps = {
   onPick: (section: HomeSection) => void;

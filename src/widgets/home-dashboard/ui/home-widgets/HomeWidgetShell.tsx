@@ -4,7 +4,7 @@ import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import { Box } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
-import { hc, homeCardSx, homeEllipsisSx } from '../styles/tokens';
+import { hc, homeCardSx, homeEllipsisSx } from '@/shared/ui/home-theme/tokens';
 
 import type { HomeWidgetDefinition } from './types';
 

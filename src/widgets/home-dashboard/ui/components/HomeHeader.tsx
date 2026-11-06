@@ -5,6 +5,7 @@ import { useBuildVersion } from '@/features/profile/build-version-info';
 import { UserMenu } from '@/features/profile/user-menu';
 
 import type { ProjectReadSchema } from '@/shared/gatewayClient';
+import { homeAppearSx } from '@/shared/ui/home-theme/motion';
 
 import type { HomeSection } from '../config/sections';
 import {
@@ -14,7 +15,6 @@ import {
   productTitleSx,
   productVersionSx,
 } from '../styles/brand';
-import { homeAppearSx } from '../styles/motion';
 
 import { HomeSearch } from './HomeSearch';
 

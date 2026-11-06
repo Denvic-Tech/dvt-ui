@@ -1,11 +1,23 @@
 import * as React from 'react';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
-import { Box, ButtonBase } from '@mui/material';
+import { Box, ButtonBase, useTheme } from '@mui/material';
 
 import type { ProjectLastRunSchema } from '@/shared/gatewayClient';
+import { useDismiss } from '@/shared/lib/hooks/useDismiss';
+import { HomePortal } from '@/shared/ui/home-theme/HomePortal';
+import {
+  homePopAppearSx,
+  homeSideAppearSx,
+} from '@/shared/ui/home-theme/motion';
+import {
+  getHomeCssVars,
+  hc,
+  homeEllipsisSx,
+  homeMonoFont,
+  homePopoverSx,
+} from '@/shared/ui/home-theme/tokens';
 
-import type { HomeProject } from '../../model/types';
-import { formatClock, formatRunDay } from '../lib/date';
+import { formatClock, formatRunDay } from './date';
 import {
   getRecentRuns,
   getRunDuration,
@@ -14,19 +26,9 @@ import {
   getRunTicks,
   getRunTone,
   getRunToneLabel,
-  type HomeRunTone,
   RUN_TICKS_COUNT,
-} from '../lib/runs';
-import { useDismiss } from '../lib/useDismiss';
-import { homePopAppearSx, homeSideAppearSx } from '../styles/motion';
-import {
-  hc,
-  homeEllipsisSx,
-  homeMonoFont,
-  homePopoverSx,
-} from '../styles/tokens';
-
-import { HomePortal } from './HomePortal';
+  type RunTone,
+} from './runs';
 import { StatusDot } from './StatusDot';
 
 const ERROR_LOG_ATTR = 'data-home-run-error-log';
@@ -35,7 +37,7 @@ const ERROR_LOG_MIN_ROWS = 6;
 /** Vertical padding (6px × 2) and border (1px × 2) of the runs popover. */
 const POPOVER_CHROME = 14;
 
-const TICK_COLORS: Record<HomeRunTone, string> = {
+const TICK_COLORS: Record<RunTone, string> = {
   ok: hc.okTick,
   err: hc.err,
   warn: hc.warn,
@@ -49,14 +51,22 @@ const stopEvent = (event: React.SyntheticEvent) => {
   event.stopPropagation();
 };
 
-type ProjectRunTicksProps = {
-  project: HomeProject;
+type RunTicksProps = {
+  /** Latest runs first, as returned by the backend. */
+  runs: readonly ProjectLastRunSchema[] | null | undefined;
+  /** Name of the runs owner shown in the popover and the error log. */
+  name: string;
 };
 
-export const ProjectRunTicks = ({ project }: ProjectRunTicksProps) => {
+/**
+ * Last runs as ticks with a popover of run details. Declares the home theme
+ * tokens itself, so it can be rendered outside the home dashboard tree.
+ */
+export const RunTicks = ({ runs, name }: RunTicksProps) => {
+  const theme = useTheme();
   const anchorRef = React.useRef<HTMLButtonElement>(null);
   const [anchorRect, setAnchorRect] = React.useState<DOMRect | null>(null);
-  const ticks = getRunTicks(project);
+  const ticks = getRunTicks(runs);
   const runsCount = ticks.filter(Boolean).length;
 
   const handleToggle = (event: React.MouseEvent) => {
@@ -67,7 +77,10 @@ export const ProjectRunTicks = ({ project }: ProjectRunTicksProps) => {
   };
 
   return (
-    <Box component='span' sx={{ display: 'flex' }}>
+    <Box
+      component='span'
+      sx={{ display: 'flex', ...getHomeCssVars(theme.palette.mode) }}
+    >
       <ButtonBase
         ref={anchorRef}
         disableRipple
@@ -111,8 +124,9 @@ export const ProjectRunTicks = ({ project }: ProjectRunTicksProps) => {
         <RunsPopover
           anchorRect={anchorRect}
           anchorRef={anchorRef}
+          name={name}
           onClose={() => setAnchorRect(null)}
-          project={project}
+          runs={runs}
         />
       ) : null}
     </Box>
@@ -122,18 +136,20 @@ export const ProjectRunTicks = ({ project }: ProjectRunTicksProps) => {
 type RunsPopoverProps = {
   anchorRect: DOMRect;
   anchorRef: React.RefObject<HTMLButtonElement | null>;
+  name: string;
   onClose: () => void;
-  project: HomeProject;
+  runs: RunTicksProps['runs'];
 };
 
 const RunsPopover = ({
   anchorRect,
   anchorRef,
+  name,
   onClose,
-  project,
+  runs: allRuns,
 }: RunsPopoverProps) => {
   const popoverRef = React.useRef<HTMLDivElement>(null);
-  const runs = getRecentRuns(project);
+  const runs = getRecentRuns(allRuns);
 
   useDismiss(true, [popoverRef, anchorRef], onClose, {
     closeOnScroll: true,
@@ -156,7 +172,7 @@ const RunsPopover = ({
       <Box
         ref={popoverRef}
         role='dialog'
-        aria-label={`Последние запуски ${project.name}`}
+        aria-label={`Последние запуски ${name}`}
         onClick={event => event.stopPropagation()}
         sx={{
           ...homePopoverSx,
@@ -186,7 +202,7 @@ const RunsPopover = ({
               <RunRow
                 key={run.task_id}
                 popoverRef={popoverRef}
-                projectName={project.name}
+                projectName={name}
                 run={run}
               />
             ))

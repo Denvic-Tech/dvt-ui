@@ -4,14 +4,14 @@ import { Box, ButtonBase } from '@mui/material';
 import type * as React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
+import { homeRowAppearSx } from '@/shared/ui/home-theme/motion';
+import { hc, homeEllipsisSx } from '@/shared/ui/home-theme/tokens';
+import { getRunTone } from '@/shared/ui/run-ticks/runs';
+import { RunTicks } from '@/shared/ui/run-ticks/RunTicks';
+import { StatusDot } from '@/shared/ui/run-ticks/StatusDot';
+
 import type { HomeProject } from '../../model/types';
 import { formatOpenedAt } from '../lib/date';
-import { isProjectRunning } from '../lib/runs';
-import { homeRowAppearSx } from '../styles/motion';
-import { hc, homeEllipsisSx } from '../styles/tokens';
-
-import { ProjectRunTicks } from './ProjectRunTicks';
-import { StatusDot } from './StatusDot';
 
 export const RECENT_ROW_COLUMNS = 'minmax(0, 1fr) 92px 110px 28px';
 export const RECENT_ROW_HEIGHT = 44;
@@ -45,7 +45,7 @@ export const RecentProjectRow = ({
   project,
   time,
 }: RecentProjectRowProps) => {
-  const running = isProjectRunning(project);
+  const running = getRunTone(project.last_runs?.[0]?.status) === 'run';
   const openedAt = project.updated_at ?? project.created_at ?? null;
   const timeSlot: RecentProjectRowTime = time ?? {
     label: formatOpenedAt(openedAt),
@@ -107,7 +107,7 @@ export const RecentProjectRow = ({
           {shortenName(project.name)}
         </Box>
       </Box>
-      <ProjectRunTicks project={project} />
+      <RunTicks runs={project.last_runs} name={project.name} />
       <Box
         component='span'
         title={timeSlot.title}

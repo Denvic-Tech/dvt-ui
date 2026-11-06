@@ -7,13 +7,14 @@ import type {
   RunsBucketSchema,
   RunsLast24hWidgetSchema,
 } from '@/shared/gatewayClient';
+import { useDismiss } from '@/shared/lib/hooks/useDismiss';
+import { HomePortal } from '@/shared/ui/home-theme/HomePortal';
+import { homePopAppearSx } from '@/shared/ui/home-theme/motion';
+import { hc, homeMonoFont, homePopoverSx } from '@/shared/ui/home-theme/tokens';
+import { formatClock } from '@/shared/ui/run-ticks/date';
+import { StatusDot, type StatusDotTone } from '@/shared/ui/run-ticks/StatusDot';
 
-import { HomePortal } from '../components/HomePortal';
-import { StatusDot, type StatusDotTone } from '../components/StatusDot';
-import { formatClock, pluralRu } from '../lib/date';
-import { useDismiss } from '../lib/useDismiss';
-import { homePopAppearSx } from '../styles/motion';
-import { hc, homeMonoFont, homePopoverSx } from '../styles/tokens';
+import { pluralRu } from '../lib/date';
 
 import { WidgetQueryView } from './WidgetQueryView';
 import { widgetBigNumberSx, widgetMetaSx } from './widgetStyles';

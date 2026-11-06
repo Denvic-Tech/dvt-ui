@@ -3,15 +3,13 @@ import type {
   TaskExecutionStatus,
 } from '@/shared/gatewayClient';
 
-import type { HomeProject } from '../../model/types';
-
-export type HomeRunTone = 'ok' | 'err' | 'warn' | 'run' | 'queue' | 'none';
+export type RunTone = 'ok' | 'err' | 'warn' | 'run' | 'queue' | 'none';
 
 export const RUN_TICKS_COUNT = 7;
 
 export const getRunTone = (
   status: TaskExecutionStatus | null | undefined
-): HomeRunTone => {
+): RunTone => {
   switch (status) {
     case 'SUCCESS':
       return 'ok';
@@ -32,7 +30,7 @@ export const getRunTone = (
   }
 };
 
-const RUN_TONE_LABELS: Record<HomeRunTone, string> = {
+const RUN_TONE_LABELS: Record<RunTone, string> = {
   ok: 'успешно',
   err: 'ошибка',
   warn: 'отменён',
@@ -41,27 +39,24 @@ const RUN_TONE_LABELS: Record<HomeRunTone, string> = {
   none: 'нет данных',
 };
 
-export const getRunToneLabel = (tone: HomeRunTone): string =>
-  RUN_TONE_LABELS[tone];
+export const getRunToneLabel = (tone: RunTone): string => RUN_TONE_LABELS[tone];
 
 /** Latest runs first, as returned by the backend. */
-export const getRecentRuns = (project: HomeProject): ProjectLastRunSchema[] =>
-  (project.last_runs ?? []).slice(0, RUN_TICKS_COUNT);
+export const getRecentRuns = (
+  runs: readonly ProjectLastRunSchema[] | null | undefined
+): ProjectLastRunSchema[] => (runs ?? []).slice(0, RUN_TICKS_COUNT);
 
 /** Oldest → newest, left-padded with `null` up to {@link RUN_TICKS_COUNT}. */
 export const getRunTicks = (
-  project: HomeProject
+  runs: readonly ProjectLastRunSchema[] | null | undefined
 ): (ProjectLastRunSchema | null)[] => {
-  const runs = getRecentRuns(project).slice().reverse();
+  const recentRuns = getRecentRuns(runs).slice().reverse();
   const padding = Array.from<null>({
-    length: Math.max(RUN_TICKS_COUNT - runs.length, 0),
+    length: Math.max(RUN_TICKS_COUNT - recentRuns.length, 0),
   }).fill(null);
 
-  return [...padding, ...runs];
+  return [...padding, ...recentRuns];
 };
-
-export const isProjectRunning = (project: HomeProject): boolean =>
-  getRunTone(project.last_runs?.[0]?.status) === 'run';
 
 const toTime = (value: string | null | undefined): number | null => {
   if (!value) {

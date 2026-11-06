@@ -4,11 +4,15 @@ import { Link as RouterLink } from 'react-router-dom';
 import { useGetScheduledRunsQuery } from '@/entities/home-widget';
 
 import type { ScheduledRunsWidgetSchema } from '@/shared/gatewayClient';
+import {
+  hc,
+  homeEllipsisSx,
+  homeMonoFont,
+} from '@/shared/ui/home-theme/tokens';
+import { getRunTone, getRunToneLabel } from '@/shared/ui/run-ticks/runs';
+import { StatusDot } from '@/shared/ui/run-ticks/StatusDot';
 
-import { StatusDot } from '../components/StatusDot';
 import { formatUntil, pluralRu } from '../lib/date';
-import { getRunTone, getRunToneLabel } from '../lib/runs';
-import { hc, homeEllipsisSx, homeMonoFont } from '../styles/tokens';
 
 import { WidgetQueryView } from './WidgetQueryView';
 import { widgetEmptySx, widgetRowSx } from './widgetStyles';

@@ -1,7 +1,7 @@
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { Box, ButtonBase, Drawer, useTheme } from '@mui/material';
 
-import { getHomeCssVars, hc } from '../styles/tokens';
+import { getHomeCssVars, hc } from '@/shared/ui/home-theme/tokens';
 
 import type { HomeWidgetDefinition, HomeWidgetId } from './types';
 

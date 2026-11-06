@@ -2,10 +2,9 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { Box, ButtonBase } from '@mui/material';
 
-import { homeAppearSx, homeFadeInSx } from '../styles/motion';
-import { hc, homeCardSx, homeEllipsisSx } from '../styles/tokens';
-
-import { StatusDot } from './StatusDot';
+import { homeAppearSx, homeFadeInSx } from '@/shared/ui/home-theme/motion';
+import { hc, homeCardSx, homeEllipsisSx } from '@/shared/ui/home-theme/tokens';
+import { StatusDot } from '@/shared/ui/run-ticks/StatusDot';
 
 type SampleRun = 'ok' | 'err';
 

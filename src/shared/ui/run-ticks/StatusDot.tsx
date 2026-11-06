@@ -1,10 +1,11 @@
 import { Box } from '@mui/material';
 
-import type { HomeRunTone } from '../lib/runs';
-import { homeLiveRingSx } from '../styles/motion';
-import { hc } from '../styles/tokens';
+import { homeLiveRingSx } from '@/shared/ui/home-theme/motion';
+import { hc } from '@/shared/ui/home-theme/tokens';
 
-export type StatusDotTone = HomeRunTone | 'idle';
+import type { RunTone } from './runs';
+
+export type StatusDotTone = RunTone | 'idle';
 
 const DOT_COLORS: Record<StatusDotTone, string> = {
   ok: hc.ok,
