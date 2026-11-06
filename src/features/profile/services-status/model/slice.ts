@@ -1,22 +1,28 @@
 import { createSlice } from '@reduxjs/toolkit';
-import {
-  ensureApiErrorPayload,
-  type ApiErrorPayload,
-} from '@/shared/lib/errors';
-import type { ServicesStatus } from '@/shared/gatewayClient';
+
 import { createAppAsyncThunk } from '@/app/providers/store/helpers';
+
+import type { ServicesStatus } from '@/shared/gatewayClient';
+import {
+  type ApiErrorPayload,
+  ensureApiErrorPayload,
+} from '@/shared/lib/errors';
+
 import { servicesStatusApi } from '../api';
 
 export interface ServicesStatusState {
   servicesStatus: ServicesStatus | null;
   isLoading: boolean;
   error: ApiErrorPayload | null;
+  // Time of the last successful response, ms.
+  updatedAt: number | null;
 }
 
 const initialState: ServicesStatusState = {
   servicesStatus: null,
   isLoading: false,
   error: null,
+  updatedAt: null,
 };
 
 export const fetchServicesStatus = createAppAsyncThunk<ServicesStatus>(
@@ -40,6 +46,7 @@ const servicesStatusSlice = createSlice({
         state.isLoading = false;
         state.error = null;
         state.servicesStatus = action.payload;
+        state.updatedAt = Date.now();
       })
       .addCase(fetchServicesStatus.rejected, (state, action) => {
         state.isLoading = false;
