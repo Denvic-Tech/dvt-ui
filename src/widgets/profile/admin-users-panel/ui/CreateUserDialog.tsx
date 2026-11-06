@@ -1,32 +1,22 @@
-import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import { Alert, CircularProgress } from '@mui/material';
+import * as React from 'react';
+import { Alert, Stack } from '@mui/material';
+import { IconUserPlus } from '@tabler/icons-react';
 
 import { getRoleLabel, normalizeRole, roleOptions } from '@/entities/user';
 
 import type { DvtDefaultRoles } from '@/shared/gatewayClient';
+import {
+  CancelButton,
+  CreateButton,
+} from '@/shared/ui/create-entity-dialog/styles';
+import {
+  TokenDialog,
+  TokenSelectField,
+  TokenTextField,
+} from '@/shared/ui/token-form';
 
 import { passwordRequirementsHint } from '../model/helpers';
 import type { CreateUserDialogProps } from '../model/types';
-
-import {
-  CancelButton,
-  DialogMenuItem,
-  DialogSelect,
-  DialogSelectControl,
-  FieldError,
-  FieldHint,
-  FieldLabel,
-  FormField,
-  ModalContent,
-  ModalDescription,
-  ModalFooter,
-  ModalHeader,
-  ModalTitle,
-  RequiredMark,
-  SaveButton,
-  StyledDialog,
-  TextInput,
-} from './styles';
 
 const getAvailableRoles = (
   currentUserRole: CreateUserDialogProps['currentUserRole']
@@ -36,20 +26,6 @@ const getAvailableRoles = (
   }
 
   return roleOptions.filter(role => role !== 'superadmin');
-};
-
-const dialogSelectMenuProps = {
-  PaperProps: {
-    sx: {
-      mt: 1,
-      borderRadius: '14px',
-      border: '1px solid #f3f4f6',
-      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
-      '& .MuiList-root': {
-        padding: '6px 0',
-      },
-    },
-  },
 };
 
 export const CreateUserDialog = ({
@@ -66,153 +42,102 @@ export const CreateUserDialog = ({
   organizationsError,
   organizationsLoading,
 }: CreateUserDialogProps) => {
-  const availableRoles = getAvailableRoles(currentUserRole);
+  const roleSelectOptions = React.useMemo(
+    () =>
+      getAvailableRoles(currentUserRole).map(role => ({
+        value: role,
+        label: getRoleLabel(role),
+      })),
+    [currentUserRole]
+  );
+  const organizationOptions = React.useMemo(
+    () =>
+      organizations.map(organization => ({
+        value: organization.id ?? '',
+        label: organization.name,
+      })),
+    [organizations]
+  );
 
   return (
-    <StyledDialog
+    <TokenDialog
       open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth='sm'
-      TransitionProps={{
-        onExited,
-      }}
+      icon={<IconUserPlus stroke={1.5} />}
+      title='Новый пользователь'
+      subtitle='Создание учётной записи'
+      onExited={onExited}
+      actions={
+        <>
+          <CancelButton type='button' onClick={onClose}>
+            Отмена
+          </CancelButton>
+          <CreateButton
+            type='button'
+            onClick={onSubmit}
+            disabled={
+              isCreating || organizationsLoading || organizations.length === 0
+            }
+          >
+            {isCreating ? 'Создание…' : 'Создать'}
+          </CreateButton>
+        </>
+      }
     >
-      <ModalHeader>
-        <ModalTitle>Создание пользователя</ModalTitle>
-        <ModalDescription>Создание новой учётной записи</ModalDescription>
-      </ModalHeader>
-
-      <ModalContent>
+      <Stack spacing={1.5}>
         {organizationsError ? (
           <Alert severity='error'>{organizationsError}</Alert>
         ) : null}
 
-        <FormField>
-          <FieldLabel htmlFor='create-user-email'>
-            Email
-            <RequiredMark>*</RequiredMark>
-          </FieldLabel>
-          <TextInput
-            id='create-user-email'
-            value={form.email}
-            onChange={event => onFieldChange('email', event.target.value)}
-            type='email'
-            fullWidth
-            error={Boolean(errors.email)}
-            placeholder='new_user@gmail.com'
-          />
-          {errors.email ? <FieldError>{errors.email}</FieldError> : null}
-        </FormField>
+        <TokenTextField
+          id='create-user-email'
+          label='Email'
+          type='email'
+          value={form.email}
+          placeholder='new_user@gmail.com'
+          error={errors.email}
+          onChange={value => onFieldChange('email', value)}
+        />
 
-        <FormField>
-          <FieldLabel htmlFor='create-user-name'>
-            Username
-            <RequiredMark>*</RequiredMark>
-          </FieldLabel>
-          <TextInput
-            id='create-user-name'
-            value={form.user_name}
-            onChange={event => onFieldChange('user_name', event.target.value)}
-            fullWidth
-            error={Boolean(errors.user_name)}
-            placeholder='new_user'
-          />
-          {errors.user_name ? (
-            <FieldError>{errors.user_name}</FieldError>
-          ) : null}
-        </FormField>
+        <TokenTextField
+          id='create-user-name'
+          label='Username'
+          value={form.user_name}
+          placeholder='new_user'
+          error={errors.user_name}
+          onChange={value => onFieldChange('user_name', value)}
+        />
 
-        <FormField>
-          <FieldLabel htmlFor='create-user-password'>
-            Пароль
-            <RequiredMark>*</RequiredMark>
-          </FieldLabel>
-          <TextInput
-            id='create-user-password'
-            value={form.password}
-            onChange={event => onFieldChange('password', event.target.value)}
-            type='password'
-            fullWidth
-            error={Boolean(errors.password)}
-            placeholder={passwordRequirementsHint}
-          />
-          {errors.password ? (
-            <FieldError>{errors.password}</FieldError>
-          ) : (
-            <FieldHint>{passwordRequirementsHint}</FieldHint>
-          )}
-        </FormField>
+        <TokenTextField
+          id='create-user-password'
+          label='Пароль'
+          type='password'
+          value={form.password}
+          placeholder='Введите пароль'
+          hint={passwordRequirementsHint}
+          error={errors.password}
+          onChange={value => onFieldChange('password', value)}
+        />
 
-        <FormField>
-          <FieldLabel id='create-user-organization-label'>
-            Организация
-            <RequiredMark>*</RequiredMark>
-          </FieldLabel>
-          <DialogSelectControl error={Boolean(errors.organization_id)}>
-            <DialogSelect
-              labelId='create-user-organization-label'
-              value={form.organization_id}
-              onChange={event =>
-                onFieldChange('organization_id', String(event.target.value))
-              }
-              disabled={organizationsLoading || organizations.length === 0}
-              error={Boolean(errors.organization_id)}
-              IconComponent={ExpandMoreRoundedIcon}
-              MenuProps={dialogSelectMenuProps}
-            >
-              {organizations.map(organization => (
-                <DialogMenuItem
-                  key={organization.id ?? organization.name}
-                  value={organization.id ?? ''}
-                >
-                  {organization.name}
-                </DialogMenuItem>
-              ))}
-            </DialogSelect>
-          </DialogSelectControl>
-          {errors.organization_id ? (
-            <FieldError>{errors.organization_id}</FieldError>
-          ) : null}
-        </FormField>
+        <TokenSelectField
+          label='Организация'
+          value={form.organization_id}
+          options={organizationOptions}
+          placeholder='Выберите организацию'
+          disabled={organizationsLoading || organizations.length === 0}
+          loading={organizationsLoading}
+          searchable
+          error={errors.organization_id}
+          onChange={value => onFieldChange('organization_id', value)}
+        />
 
-        <FormField>
-          <FieldLabel id='create-user-role-label'>Роль</FieldLabel>
-          <DialogSelectControl>
-            <DialogSelect
-              labelId='create-user-role-label'
-              value={form.role}
-              onChange={event =>
-                onFieldChange('role', event.target.value as DvtDefaultRoles)
-              }
-              IconComponent={ExpandMoreRoundedIcon}
-              MenuProps={dialogSelectMenuProps}
-              renderValue={value => getRoleLabel(String(value))}
-            >
-              {availableRoles.map(role => (
-                <DialogMenuItem key={role} value={role}>
-                  {getRoleLabel(role)}
-                </DialogMenuItem>
-              ))}
-            </DialogSelect>
-          </DialogSelectControl>
-        </FormField>
-      </ModalContent>
-
-      <ModalFooter>
-        <CancelButton type='button' onClick={onClose}>
-          Отмена
-        </CancelButton>
-        <SaveButton
-          type='button'
-          onClick={onSubmit}
-          disabled={
-            isCreating || organizationsLoading || organizations.length === 0
-          }
-        >
-          {isCreating ? <CircularProgress size={18} /> : 'Создать'}
-        </SaveButton>
-      </ModalFooter>
-    </StyledDialog>
+        <TokenSelectField
+          label='Роль'
+          value={form.role}
+          options={roleSelectOptions}
+          placeholder='Выберите роль'
+          onChange={value => onFieldChange('role', value as DvtDefaultRoles)}
+        />
+      </Stack>
+    </TokenDialog>
   );
 };

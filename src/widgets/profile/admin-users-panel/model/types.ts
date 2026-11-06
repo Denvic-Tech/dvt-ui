@@ -9,11 +9,6 @@ export type AdminUsersPanelProps = {
   currentUser: UserReadSchema | null;
 };
 
-export type PanelHeaderProps = {
-  onOpenCreate: () => void;
-  onRefresh: () => void;
-};
-
 export type CreateFormState = {
   email: string;
   user_name: string;
@@ -28,7 +23,6 @@ export type EditFormState = {
   password: string;
   role: DvtDefaultRoles | '';
   organization_id: string;
-  is_verified: boolean;
 };
 
 export type CreateEditFormErrors = {
@@ -41,28 +35,6 @@ export type CreateEditFormErrors = {
 export type SortKey = 'email' | 'signed_up_at' | 'verified' | 'active' | 'role';
 
 export type SortDir = 'asc' | 'desc';
-
-export type UsersTableProps = {
-  currentUserEmail: string | null;
-  isUpdating: boolean;
-  isSuperAdmin: boolean;
-  onEdit: (user: AdminUserReadSchema) => void;
-  onRequestSort: (key: SortKey) => void;
-  onToggleActive: (user: AdminUserReadSchema) => void;
-  organizations: OrganizationReadSchema[];
-  sortBy: SortKey;
-  sortDir: SortDir;
-  updatingUserId: string | null;
-  users: AdminUserReadSchema[];
-  usersLoading: boolean;
-};
-
-export type UsersToolbarProps = {
-  onApplySearch: () => void;
-  onClearSearch: () => void;
-  searchInput: string;
-  setSearchInput: (value: string) => void;
-};
 
 export type CreateUserDialogProps = {
   currentUserRole: UserReadSchema['role'] | null | undefined;
