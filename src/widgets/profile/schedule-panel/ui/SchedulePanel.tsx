@@ -1,15 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Close as CloseIcon } from '@mui/icons-material';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
-import {
-  Box,
-  CircularProgress,
-  Dialog,
-  Menu,
-  Stack,
-  Tooltip,
-} from '@mui/material';
-import { IconCalendarTime } from '@tabler/icons-react';
+import { Box, Divider, Menu, Stack, Tooltip } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material/styles';
+import { IconCalendarTime, IconPencil, IconPlus } from '@tabler/icons-react';
 
 import { useAlert } from '@/app/notifications';
 
@@ -30,40 +30,53 @@ import {
   type ProjectSchedulePatchRequest,
   type ProjectScheduleRequest,
   type ProjectScheduleResponse,
-  type ProjectScheduleRunResponse,
-  type TaskExecutionStatus,
 } from '@/shared/gatewayClient';
 import { isApiError } from '@/shared/lib/errors';
+import { useDelayedLoading } from '@/shared/lib/hooks/useDelayedLoading';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { PageLayout, PageToolbar } from '@/shared/ui/page-layout';
+import {
+  CancelButton,
+  CreateButton,
+} from '@/shared/ui/create-entity-dialog/styles';
+import { PageLayout } from '@/shared/ui/page-layout';
 import { SingleOptionDropdownSelect } from '@/shared/ui/select/SingleOptionDropdownSelect';
+import { TokenDialog } from '@/shared/ui/token-form';
+import {
+  getTokenListBoxHeight,
+  TokenListBox,
+  TokenListCreateButton,
+  TokenListEmptyLink,
+  TokenListEmptyState,
+  TokenListScroll,
+} from '@/shared/ui/token-list';
 
+import { ScheduleRow, ScheduleRowSkeleton } from './ScheduleRow';
 import * as S from './styles';
 
 type ScheduleEntry = ProjectScheduleResponse;
 type ScheduleFormData = ProjectScheduleRequest;
 type SchedulePatchData = ProjectSchedulePatchRequest;
 type ProjectOption = Pick<ProjectReadSchema, 'id' | 'name' | 'user_email'>;
-type RunStatus = 'SUCCESS' | 'FAILED' | 'RUNNING' | 'TERMINATED';
-type HistoryRun = ProjectScheduleRunResponse & { historyStatus: RunStatus };
-type RunGroup = {
-  status: RunStatus;
-  count: number;
-  runs: HistoryRun[];
-};
-type LastRunInfo = {
-  status: RunStatus;
-  timestamp: string;
-  startedAt: string | null;
-  finishedAt: string | null;
-};
 
-const MAX_RUN_CIRCLES = 10;
+const SKELETON_ROWS = [
+  { nameWidth: 180 },
+  { nameWidth: 132 },
+  { nameWidth: 216 },
+  { nameWidth: 156 },
+];
 
 const RETRY_BACKOFF_OPTIONS = [
   { value: 'fixed', label: 'Фиксированная' },
   { value: 'exponential', label: 'Экспоненциальная' },
 ];
+
+// Options use the same text as the select trigger.
+const retryBackoffOptionTextSx: SxProps<Theme> = theme => ({
+  fontFamily: theme.typography.fontFamily,
+  fontSize: 13,
+  fontWeight: 400,
+  color: 'text.primary',
+});
 
 type RetryFieldLabelProps = {
   children: React.ReactNode;
@@ -87,129 +100,6 @@ const RetryFieldLabel: React.FC<RetryFieldLabelProps> = ({
       </S.RetryHelpIcon>
     </Tooltip>
   </S.RetryFieldLabel>
-);
-
-const STATUS_CONFIG: Record<
-  RunStatus,
-  { bg: string; bgHover: string; label: string }
-> = {
-  SUCCESS: { bg: '#10b981', bgHover: '#059669', label: 'SUCCESS' },
-  FAILED: { bg: '#ef4444', bgHover: '#dc2626', label: 'FAILED' },
-  RUNNING: { bg: '#6366f1', bgHover: '#4f46e5', label: 'RUNNING' },
-  TERMINATED: { bg: '#9ca3af', bgHover: '#6b7280', label: 'TERMINATED' },
-};
-
-const CalendarSvg: React.FC<{ active: boolean }> = ({ active }) => (
-  <svg
-    width='18'
-    height='18'
-    viewBox='0 0 18 18'
-    fill='none'
-    xmlns='http://www.w3.org/2000/svg'
-    style={{ color: active ? '#6366f1' : '#9ca3af' }}
-  >
-    <rect
-      x='2'
-      y='3'
-      width='14'
-      height='13'
-      rx='2'
-      stroke='currentColor'
-      strokeWidth='1.3'
-      fill='none'
-    />
-    <path d='M2 7h14' stroke='currentColor' strokeWidth='1.3' />
-    <path
-      d='M6 1v3M12 1v3'
-      stroke='currentColor'
-      strokeWidth='1.3'
-      strokeLinecap='round'
-    />
-  </svg>
-);
-
-const ClockSvg: React.FC<{ active: boolean }> = ({ active }) => (
-  <svg
-    width='11'
-    height='11'
-    viewBox='0 0 12 12'
-    fill='none'
-    xmlns='http://www.w3.org/2000/svg'
-    style={{ color: active ? '#10b981' : '#9ca3af' }}
-  >
-    <circle
-      cx='6'
-      cy='6'
-      r='5'
-      stroke='currentColor'
-      strokeWidth='1.2'
-      fill='none'
-    />
-    <path
-      d='M6 3v3.5l2 1.5'
-      stroke='currentColor'
-      strokeWidth='1.2'
-      strokeLinecap='round'
-    />
-  </svg>
-);
-
-const EditSvg = () => (
-  <svg
-    width='15'
-    height='15'
-    viewBox='0 0 16 16'
-    fill='none'
-    xmlns='http://www.w3.org/2000/svg'
-  >
-    <path
-      d='M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z'
-      stroke='#9ca3af'
-      strokeWidth='1.3'
-      strokeLinejoin='round'
-      fill='none'
-    />
-  </svg>
-);
-
-const TrashSvg = () => (
-  <svg
-    width='15'
-    height='15'
-    viewBox='0 0 16 16'
-    fill='none'
-    xmlns='http://www.w3.org/2000/svg'
-  >
-    <path
-      d='M3 4h10M6 4V3a1 1 0 011-1h2a1 1 0 011 1v1'
-      stroke='#9ca3af'
-      strokeWidth='1.3'
-      strokeLinecap='round'
-    />
-    <path
-      d='M4 4l.5 9a1 1 0 001 1h5a1 1 0 001-1L12 4'
-      stroke='#9ca3af'
-      strokeWidth='1.3'
-      fill='none'
-    />
-  </svg>
-);
-
-const PlusSvg = () => (
-  <svg
-    width='14'
-    height='14'
-    viewBox='0 0 14 14'
-    fill='none'
-    xmlns='http://www.w3.org/2000/svg'
-  >
-    <path
-      d='M7 2v10M2 7h10'
-      stroke='white'
-      strokeWidth='2'
-      strokeLinecap='round'
-    />
-  </svg>
 );
 
 const defaultFormData: ScheduleFormData = {
@@ -247,240 +137,6 @@ const buildSchedulePatchPayload = (
 
 const resolveEnabled = (schedule: ScheduleEntry) => !schedule.disabled;
 
-const formatNextRun = (value?: string | null) => {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return { date: value, time: '' };
-  }
-
-  const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-  const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  const dateText = dateFormatter.format(date).replace(/\.$/, '');
-  const normalizedDateText =
-    dateText.length > 0
-      ? `${dateText.charAt(0).toUpperCase()}${dateText.slice(1)}`
-      : dateText;
-
-  return {
-    date: normalizedDateText,
-    time: timeFormatter.format(date),
-  };
-};
-
-const normalizeRunStatus = (
-  status: TaskExecutionStatus | null | undefined
-): RunStatus | null => {
-  switch (status) {
-    case 'SUCCESS':
-      return 'SUCCESS';
-    case 'ERROR':
-      return 'FAILED';
-    case 'CANCELLED':
-    case 'CANCEL_REQUESTED':
-      return 'TERMINATED';
-    case 'QUEUED':
-    case 'ASSIGNED':
-    case 'PENDING':
-    case 'STARTED':
-    case 'RUNNING':
-      return 'RUNNING';
-    default:
-      return null;
-  }
-};
-
-const resolveRunTimestamp = (run: ProjectScheduleRunResponse): string =>
-  run.started_at ?? run.queued_at;
-
-const toTimestamp = (value: string | null | undefined): number => {
-  if (!value) {
-    return Number.NEGATIVE_INFINITY;
-  }
-
-  const timestamp = new Date(value).getTime();
-  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
-};
-
-const sortRunsNewestFirst = (
-  runs: Array<ProjectScheduleRunResponse> | null | undefined
-): HistoryRun[] =>
-  [...(runs ?? [])]
-    .sort(
-      (left, right) =>
-        toTimestamp(resolveRunTimestamp(right)) -
-        toTimestamp(resolveRunTimestamp(left))
-    )
-    .reduce<HistoryRun[]>((acc, run) => {
-      const historyStatus = normalizeRunStatus(run.status);
-      if (!historyStatus) {
-        return acc;
-      }
-
-      acc.push({ ...run, historyStatus });
-      return acc;
-    }, []);
-
-const groupRuns = (runs: HistoryRun[]): RunGroup[] => {
-  const groups: RunGroup[] = [];
-
-  for (const run of runs) {
-    const lastGroup = groups[groups.length - 1];
-
-    if (lastGroup && lastGroup.status === run.historyStatus) {
-      lastGroup.count += 1;
-      lastGroup.runs.push(run);
-      continue;
-    }
-
-    groups.push({
-      status: run.historyStatus,
-      count: 1,
-      runs: [run],
-    });
-  }
-
-  return groups;
-};
-
-const getDisplayRunGroups = (
-  runs: Array<ProjectScheduleRunResponse> | null | undefined
-): RunGroup[] =>
-  groupRuns(sortRunsNewestFirst(runs)).slice(0, MAX_RUN_CIRCLES).reverse();
-
-const getLastRunInfo = (schedule: ScheduleEntry): LastRunInfo | null => {
-  const latestRun = sortRunsNewestFirst(schedule.recent_runs)[0];
-
-  if (latestRun) {
-    return {
-      status: latestRun.historyStatus,
-      timestamp: resolveRunTimestamp(latestRun),
-      startedAt: latestRun.started_at ?? latestRun.queued_at,
-      finishedAt: latestRun.finished_at ?? null,
-    };
-  }
-
-  const fallbackStatus = normalizeRunStatus(schedule.last_run_status);
-
-  if (!fallbackStatus || !schedule.last_run_time) {
-    return null;
-  }
-
-  return {
-    status: fallbackStatus,
-    timestamp: schedule.last_run_time,
-    startedAt: null,
-    finishedAt: null,
-  };
-};
-
-const formatRelative = (iso: string): string => {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return iso;
-  }
-
-  const diffMs = Date.now() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHr = Math.floor(diffMs / 3600000);
-
-  if (diffMin < 1) {
-    return 'только что';
-  }
-
-  if (diffMin < 60) {
-    return `${diffMin} мин назад`;
-  }
-
-  if (diffHr < 24) {
-    return `${diffHr} ч назад`;
-  }
-
-  return date
-    .toLocaleString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-    .replace(',', '');
-};
-
-const formatDuration = (
-  start: string | null | undefined,
-  end: string | null | undefined,
-  fallbackEndMs?: number
-): string | null => {
-  if (!start) {
-    return null;
-  }
-
-  const startMs = new Date(start).getTime();
-  if (Number.isNaN(startMs)) {
-    return null;
-  }
-
-  const endMs =
-    end == null
-      ? fallbackEndMs
-      : Number.isNaN(new Date(end).getTime())
-        ? null
-        : new Date(end).getTime();
-  if (endMs == null) {
-    return null;
-  }
-
-  const durationMs = endMs - startMs;
-  if (durationMs < 0) {
-    return null;
-  }
-
-  if (durationMs < 1000) {
-    return `${durationMs}мс`;
-  }
-
-  if (durationMs < 60000) {
-    return `${(durationMs / 1000).toFixed(1)}с`;
-  }
-
-  const minutes = Math.floor(durationMs / 60000);
-  const seconds = Math.floor((durationMs % 60000) / 1000);
-
-  return `${minutes}м ${seconds}с`;
-};
-
-const formatRunDateTime = (value: string | null | undefined): string => {
-  if (!value) {
-    return '—';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date
-    .toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-    .replace(',', '');
-};
-
 export const SchedulePanel: React.FC = () => {
   const { showAlert } = useAlert();
   const { confirm } = useConfirmDialog();
@@ -505,12 +161,6 @@ export const SchedulePanel: React.FC = () => {
   const [retrySettings, setRetrySettings] = useState<RetrySettingsFormData>(
     DEFAULT_RETRY_SETTINGS
   );
-  const [selectedRunGroup, setSelectedRunGroup] = useState<RunGroup | null>(
-    null
-  );
-  const [selectedRunGroupOpenedAtMs, setSelectedRunGroupOpenedAtMs] = useState<
-    number | null
-  >(null);
 
   const currentUserRole = normalizeRole(currentUser?.role);
   const canShowProjectAuthor =
@@ -631,16 +281,6 @@ export const SchedulePanel: React.FC = () => {
     setProjectSearch('');
   };
 
-  const handleOpenRunGroup = (group: RunGroup) => {
-    setSelectedRunGroup(group);
-    setSelectedRunGroupOpenedAtMs(Date.now());
-  };
-
-  const handleCloseRunGroup = () => {
-    setSelectedRunGroup(null);
-    setSelectedRunGroupOpenedAtMs(null);
-  };
-
   const handleSave = async () => {
     try {
       if (editingEntry) {
@@ -739,584 +379,370 @@ export const SchedulePanel: React.FC = () => {
     [showAlert]
   );
 
+  // Reloads after saving must not bring the skeleton back over the list.
+  const hasLoadedRef = useRef(false);
+  if (!loading) {
+    hasLoadedRef.current = true;
+  }
+  const isLoadingList = !hasLoadedRef.current;
+  const showSkeleton = useDelayedLoading(isLoadingList);
+
   return (
     <>
       <PageLayout
         width='default'
         title='Schedule Projects'
         icon={IconCalendarTime}
-      >
-        <PageToolbar>
-          <S.CreateActionButton
-            onClick={() => handleOpenDialog()}
+        headerActions={
+          <TokenListCreateButton
+            disableRipple
             disabled={Boolean(schedulerUnavailableMessage)}
+            onClick={() => handleOpenDialog()}
           >
-            <PlusSvg />
-            <span>Создать запуск</span>
-          </S.CreateActionButton>
-        </PageToolbar>
+            <AddRoundedIcon sx={{ fontSize: 16 }} />
+            Создать запуск
+          </TokenListCreateButton>
+        }
+        fitContent
+      >
+        {schedulerUnavailableMessage ? (
+          <S.SchedulerWarning>
+            <S.SchedulerWarningTitle>
+              Сервис расписаний недоступен
+            </S.SchedulerWarningTitle>
+            <S.SchedulerWarningText>
+              {schedulerUnavailableMessage}
+            </S.SchedulerWarningText>
+          </S.SchedulerWarning>
+        ) : null}
 
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress size={24} sx={{ color: S.colors.indigo500 }} />
-          </Box>
-        ) : (
-          <S.ScheduleList>
-            {schedulerUnavailableMessage ? (
-              <S.SchedulerWarning>
-                <S.SchedulerWarningTitle>
-                  Сервис расписаний недоступен
-                </S.SchedulerWarningTitle>
-                <S.SchedulerWarningText>
-                  {schedulerUnavailableMessage}
-                </S.SchedulerWarningText>
-              </S.SchedulerWarning>
-            ) : null}
-            {schedules.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 8, color: S.colors.gray400 }}>
-                <p style={{ fontSize: '13px', margin: 0 }}>
-                  {schedulerUnavailableMessage
-                    ? 'Пока невозможно загрузить список расписаний.'
-                    : 'Нет активных запланированных задач'}
-                </p>
-              </Box>
-            ) : (
-              schedules.map(schedule => {
-                const enabled = resolveEnabled(schedule);
-                const nextRun = formatNextRun(schedule.next_run_time);
-                const isPending =
-                  pendingByProjectId[schedule.project_id] === true;
-                const runGroups = getDisplayRunGroups(schedule.recent_runs);
-                const lastRunInfo = getLastRunInfo(schedule);
-                const lastRunDuration =
-                  lastRunInfo && lastRunInfo.finishedAt
-                    ? formatDuration(
-                        lastRunInfo.startedAt,
-                        lastRunInfo.finishedAt
-                      )
-                    : null;
-
-                return (
-                  <S.ScheduleCard
-                    key={`${schedule.project_id}-${schedule.cron}`}
-                    disabled={!enabled}
-                  >
-                    <S.ScheduleTopRow>
-                      <S.CalendarIconBox active={enabled}>
-                        <CalendarSvg active={enabled} />
-                      </S.CalendarIconBox>
-
-                      <S.InfoBlock>
-                        <S.NameRow>
-                          <S.ScheduleName
-                            title={projectNames[schedule.project_id]}
-                          >
-                            {projectNames[schedule.project_id] ||
-                              schedule.project_id}
-                          </S.ScheduleName>
-                          <S.ModePill>{schedule.mode ?? 'full'}</S.ModePill>
-                        </S.NameRow>
-
-                        <S.MetaRow>
-                          <S.CronText>{schedule.cron}</S.CronText>
-                          <S.InlineDivider />
-                          <S.NextRunText active={enabled && !!nextRun}>
-                            <ClockSvg active={enabled && !!nextRun} />
-                            {enabled ? (
-                              nextRun ? (
-                                <S.NextRunValue>
-                                  <span>{nextRun.date}</span>
-                                  {nextRun.time ? (
-                                    <span>{nextRun.time}</span>
-                                  ) : null}
-                                </S.NextRunValue>
-                              ) : (
-                                <span>Не рассчитано</span>
-                              )
-                            ) : (
-                              <span>Отключено</span>
-                            )}
-                          </S.NextRunText>
-                          {schedule.force_exec ? (
-                            <S.Badge variant='warning'>FORCE</S.Badge>
-                          ) : null}
-                        </S.MetaRow>
-                      </S.InfoBlock>
-
-                      <S.ActionsGroup>
-                        <S.ToggleTrack
-                          type='button'
-                          enabled={enabled}
-                          aria-label={
-                            enabled
-                              ? 'Выключить расписание'
-                              : 'Включить расписание'
-                          }
-                          aria-pressed={enabled}
-                          onClick={() => void handleToggle(schedule)}
-                          style={{
-                            opacity: isPending ? 0.5 : 1,
-                            pointerEvents: isPending ? 'none' : 'auto',
-                          }}
-                        >
-                          <S.ToggleThumb enabled={enabled} />
-                        </S.ToggleTrack>
-
-                        <S.ActionsDivider />
-
-                        <S.ActionsRow>
-                          <Tooltip title='Редактировать'>
-                            <S.ScheduleActionButton
-                              type='button'
-                              onClick={() => handleOpenDialog(schedule)}
-                            >
-                              <EditSvg />
-                            </S.ScheduleActionButton>
-                          </Tooltip>
-                          <Tooltip title='Удалить'>
-                            <S.ScheduleActionButton
-                              type='button'
-                              danger
-                              onClick={() => handleDelete(schedule.project_id)}
-                            >
-                              <TrashSvg />
-                            </S.ScheduleActionButton>
-                          </Tooltip>
-                        </S.ActionsRow>
-                      </S.ActionsGroup>
-                    </S.ScheduleTopRow>
-
-                    <S.ScheduleBottomRow>
-                      <S.HistorySection>
-                        <S.HistoryLabel>History</S.HistoryLabel>
-                        <S.RunCirclesViewport>
-                          <S.RunCirclesRow>
-                            {runGroups.map((group, index) => {
-                              const statusConfig = STATUS_CONFIG[group.status];
-
-                              return (
-                                <S.RunCircleButton
-                                  key={`${schedule.project_id}-${group.status}-${index}`}
-                                  type='button'
-                                  statusColor={statusConfig.bg}
-                                  statusColorHover={statusConfig.bgHover}
-                                  isRunning={group.status === 'RUNNING'}
-                                  title={`${statusConfig.label}${
-                                    group.count > 1 ? ` × ${group.count}` : ''
-                                  }`}
-                                  aria-label={`Run details: ${statusConfig.label}${
-                                    group.count > 1 ? ` × ${group.count}` : ''
-                                  }`}
-                                  onClick={event => {
-                                    event.stopPropagation();
-                                    handleOpenRunGroup(group);
-                                  }}
-                                >
-                                  {group.count > 1 ? group.count : ''}
-                                </S.RunCircleButton>
-                              );
-                            })}
-                          </S.RunCirclesRow>
-                        </S.RunCirclesViewport>
-                      </S.HistorySection>
-
-                      {lastRunInfo ? (
-                        <S.LastRunInfoBlock>
-                          <S.StatusDot
-                            statusColor={STATUS_CONFIG[lastRunInfo.status].bg}
-                          />
-                          <span>last run</span>
-                          <S.LastRunSeparator>·</S.LastRunSeparator>
-                          <span>{formatRelative(lastRunInfo.timestamp)}</span>
-                          {lastRunDuration ? (
-                            <>
-                              <S.LastRunSeparator>·</S.LastRunSeparator>
-                              <S.LastRunDuration>
-                                {lastRunDuration}
-                              </S.LastRunDuration>
-                            </>
-                          ) : null}
-                        </S.LastRunInfoBlock>
-                      ) : (
-                        <S.NoRunsHint>Запусков ещё не было</S.NoRunsHint>
-                      )}
-                    </S.ScheduleBottomRow>
-                  </S.ScheduleCard>
-                );
-              })
-            )}
-          </S.ScheduleList>
-        )}
+        <TokenListBox
+          aria-label='Расписания'
+          sx={{ flex: `0 1 ${getTokenListBoxHeight(schedules.length)}px` }}
+        >
+          {showSkeleton ? (
+            SKELETON_ROWS.map(row => (
+              <ScheduleRowSkeleton
+                key={row.nameWidth}
+                nameWidth={row.nameWidth}
+              />
+            ))
+          ) : isLoadingList ? null : schedulerUnavailableMessage &&
+            schedules.length === 0 ? (
+            <TokenListEmptyState title='Список недоступен'>
+              Пока невозможно загрузить список расписаний.
+            </TokenListEmptyState>
+          ) : schedules.length === 0 ? (
+            <TokenListEmptyState title='Расписаний пока нет'>
+              <TokenListEmptyLink
+                type='button'
+                onClick={() => handleOpenDialog()}
+              >
+                Создайте запуск
+              </TokenListEmptyLink>
+              , чтобы проект выполнялся по расписанию.
+            </TokenListEmptyState>
+          ) : (
+            <TokenListScroll>
+              {schedules.map(schedule => (
+                <ScheduleRow
+                  key={`${schedule.project_id}-${schedule.cron}`}
+                  schedule={schedule}
+                  name={
+                    projectNames[schedule.project_id] || schedule.project_id
+                  }
+                  isPending={pendingByProjectId[schedule.project_id] === true}
+                  onToggle={() => void handleToggle(schedule)}
+                  onEdit={() => handleOpenDialog(schedule)}
+                  onDelete={() => void handleDelete(schedule.project_id)}
+                />
+              ))}
+            </TokenListScroll>
+          )}
+        </TokenListBox>
       </PageLayout>
 
-      <Dialog
+      <TokenDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        PaperProps={{
-          style: {
-            borderRadius: 16,
-            overflow: 'hidden',
-            width: '100%',
-            maxWidth: 500,
-            maxHeight: 'calc(100vh - 32px)',
-            display: 'flex',
-            flexDirection: 'column',
-          },
-        }}
+        icon={
+          editingEntry ? <IconPencil stroke={1.5} /> : <IconPlus stroke={1.5} />
+        }
+        title={editingEntry ? 'Настройка' : 'Новый запуск'}
+        subtitle={
+          editingEntry
+            ? projectNames[editingEntry.project_id] || editingEntry.project_id
+            : 'Выберите проект и расписание запуска'
+        }
+        actions={
+          <>
+            <CancelButton type='button' onClick={() => setDialogOpen(false)}>
+              Отмена
+            </CancelButton>
+            <CreateButton
+              type='button'
+              onClick={() => void handleSave()}
+              disabled={
+                !formData.project_id || !isRetrySettingsValid(retrySettings)
+              }
+            >
+              {editingEntry ? 'Сохранить изменения' : 'Создать'}
+            </CreateButton>
+          </>
+        }
       >
-        <S.Header>
-          <S.HeaderTitle>
-            {editingEntry ? 'Настройка' : 'Новый запуск'}
-          </S.HeaderTitle>
-          <S.IconButton onClick={() => setDialogOpen(false)}>
-            <CloseIcon sx={{ fontSize: 18 }} />
-          </S.IconButton>
-        </S.Header>
-        <S.Content style={{ overflowY: 'auto', minHeight: 0 }}>
-          <Stack spacing={2.5}>
-            <Box>
-              <S.Label>ПРОЕКТ</S.Label>
-              <S.ProjectSelectButton
-                type='button'
-                disabled={!!editingEntry}
-                onClick={handleOpenProjectMenu}
-              >
-                <S.ProjectSelectText placeholder={!formData.project_id}>
-                  {formData.project_id
-                    ? projectNames[formData.project_id] || formData.project_id
-                    : 'Выберите проект...'}
-                </S.ProjectSelectText>
-                <S.ChevronIcon
-                  open={Boolean(projectMenuAnchor)}
-                  hidden={!!editingEntry}
-                >
-                  <svg
-                    width='16'
-                    height='16'
-                    viewBox='0 0 16 16'
-                    fill='none'
-                    xmlns='http://www.w3.org/2000/svg'
-                  >
-                    <path
-                      d='M4 6.5L8 10L12 6.5'
-                      stroke='currentColor'
-                      strokeWidth='1.6'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    />
-                  </svg>
-                </S.ChevronIcon>
-              </S.ProjectSelectButton>
-              <Menu
-                anchorEl={projectMenuAnchor}
+        <Stack
+          spacing={2.5}
+          divider={<Divider flexItem sx={{ borderColor: '#f3f4f6' }} />}
+        >
+          <Box>
+            <S.ProjectSelectButton
+              type='button'
+              aria-label='Проект'
+              disabled={!!editingEntry}
+              onClick={handleOpenProjectMenu}
+            >
+              <S.ProjectSelectText placeholder={!formData.project_id}>
+                {formData.project_id
+                  ? projectNames[formData.project_id] || formData.project_id
+                  : 'Выберите проект...'}
+              </S.ProjectSelectText>
+              <S.ChevronIcon
                 open={Boolean(projectMenuAnchor)}
-                onClose={handleCloseProjectMenu}
-                variant='menu'
-                disableAutoFocusItem
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'left',
-                }}
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'left',
-                }}
-                MenuListProps={{ disablePadding: true }}
-                PaperProps={{
-                  style: {
-                    width: projectMenuWidth,
-                    borderRadius: 12,
-                    border: `1px solid ${S.colors.gray200}`,
-                    boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12)',
-                    marginTop: 6,
-                    overflow: 'hidden',
-                    maxHeight: 340,
-                  },
-                }}
+                hidden={!!editingEntry}
               >
-                <S.ProjectMenuContent>
-                  <S.ProjectSearchWrap>
-                    <S.ProjectSearchInput
-                      autoFocus={Boolean(projectMenuAnchor)}
-                      type='text'
-                      value={projectSearch}
-                      placeholder='Поиск проекта...'
-                      onChange={event => setProjectSearch(event.target.value)}
-                      onKeyDown={event => event.stopPropagation()}
-                    />
-                  </S.ProjectSearchWrap>
-                  <S.ProjectMenuScrollArea>
-                    {filteredProjects.length > 0 ? (
-                      filteredProjects.map(project => (
-                        <S.ProjectMenuButton
-                          key={project.id}
-                          type='button'
-                          selected={formData.project_id === project.id}
-                          onClick={() => {
-                            setFormData({
-                              ...formData,
-                              project_id: project.id,
-                            });
-                            handleCloseProjectMenu();
-                          }}
-                        >
-                          <S.ProjectMenuLabel>
-                            {project.name || project.id}
-                          </S.ProjectMenuLabel>
-                          {canShowProjectAuthor && project.user_email ? (
-                            <S.ProjectAuthorBadge title={project.user_email}>
-                              {project.user_email}
-                            </S.ProjectAuthorBadge>
-                          ) : null}
-                        </S.ProjectMenuButton>
-                      ))
-                    ) : (
-                      <S.ProjectMenuEmptyState>
-                        Ничего не найдено
-                      </S.ProjectMenuEmptyState>
-                    )}
-                  </S.ProjectMenuScrollArea>
-                </S.ProjectMenuContent>
-              </Menu>
-            </Box>
-            <S.RetrySection>
-              <S.RetryToggleRow>
-                <S.RetryToggleCopy>
-                  <S.RetryToggleTitle>Повторять при ошибке</S.RetryToggleTitle>
-                  <S.RetryToggleDescription>
-                    Повторно запускать задачу после неудачного выполнения.
-                  </S.RetryToggleDescription>
-                </S.RetryToggleCopy>
-                <S.ToggleTrack
-                  type='button'
-                  enabled={retrySettings.enabled}
-                  aria-label='Повторять при ошибке'
-                  aria-pressed={retrySettings.enabled}
-                  onClick={() =>
-                    setRetrySettings(current => ({
-                      ...current,
-                      enabled: !current.enabled,
-                    }))
-                  }
+                <svg
+                  width='16'
+                  height='16'
+                  viewBox='0 0 16 16'
+                  fill='none'
+                  xmlns='http://www.w3.org/2000/svg'
                 >
-                  <S.ToggleThumb enabled={retrySettings.enabled} />
-                </S.ToggleTrack>
-              </S.RetryToggleRow>
+                  <path
+                    d='M4 6.5L8 10L12 6.5'
+                    stroke='currentColor'
+                    strokeWidth='1.6'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                  />
+                </svg>
+              </S.ChevronIcon>
+            </S.ProjectSelectButton>
+            <Menu
+              anchorEl={projectMenuAnchor}
+              open={Boolean(projectMenuAnchor)}
+              onClose={handleCloseProjectMenu}
+              variant='menu'
+              disableAutoFocusItem
+              transitionDuration={{ enter: 100, exit: 0 }}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'left',
+              }}
+              MenuListProps={{ disablePadding: true }}
+              PaperProps={{
+                style: {
+                  width: projectMenuWidth,
+                  borderRadius: 12,
+                  border: `1px solid ${S.colors.gray200}`,
+                  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12)',
+                  marginTop: 6,
+                  overflow: 'hidden',
+                  maxHeight: 340,
+                },
+              }}
+            >
+              <S.ProjectMenuContent>
+                <S.ProjectSearchWrap>
+                  <S.ProjectSearchInput
+                    autoFocus={Boolean(projectMenuAnchor)}
+                    type='text'
+                    value={projectSearch}
+                    placeholder='Поиск проекта...'
+                    onChange={event => setProjectSearch(event.target.value)}
+                    onKeyDown={event => event.stopPropagation()}
+                  />
+                </S.ProjectSearchWrap>
+                <S.ProjectMenuScrollArea>
+                  {filteredProjects.length > 0 ? (
+                    filteredProjects.map(project => (
+                      <S.ProjectMenuButton
+                        key={project.id}
+                        type='button'
+                        selected={formData.project_id === project.id}
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            project_id: project.id,
+                          });
+                          handleCloseProjectMenu();
+                        }}
+                      >
+                        <S.ProjectMenuLabel>
+                          {project.name || project.id}
+                        </S.ProjectMenuLabel>
+                        {canShowProjectAuthor && project.user_email ? (
+                          <S.ProjectAuthorBadge title={project.user_email}>
+                            {project.user_email}
+                          </S.ProjectAuthorBadge>
+                        ) : null}
+                      </S.ProjectMenuButton>
+                    ))
+                  ) : (
+                    <S.ProjectMenuEmptyState>
+                      Ничего не найдено
+                    </S.ProjectMenuEmptyState>
+                  )}
+                </S.ProjectMenuScrollArea>
+              </S.ProjectMenuContent>
+            </Menu>
+          </Box>
+          <S.RetrySection>
+            <S.RetryToggleRow>
+              <S.RetryToggleCopy>
+                <S.RetryToggleTitle>Повторять при ошибке</S.RetryToggleTitle>
+                <S.RetryToggleDescription>
+                  Повторно запускать задачу после неудачного выполнения.
+                </S.RetryToggleDescription>
+              </S.RetryToggleCopy>
+              <S.ToggleTrack
+                type='button'
+                enabled={retrySettings.enabled}
+                aria-label='Повторять при ошибке'
+                aria-pressed={retrySettings.enabled}
+                onClick={() =>
+                  setRetrySettings(current => ({
+                    ...current,
+                    enabled: !current.enabled,
+                  }))
+                }
+              >
+                <S.ToggleThumb enabled={retrySettings.enabled} />
+              </S.ToggleTrack>
+            </S.RetryToggleRow>
 
-              {retrySettings.enabled ? (
-                <S.RetrySettingsGrid>
+            {retrySettings.enabled ? (
+              <S.RetrySettingsGrid>
+                <S.RetryField>
+                  <RetryFieldLabel
+                    htmlFor='schedule-max-retries'
+                    tooltip='Сколько раз система повторит запуск после неудачного основного запуска.'
+                  >
+                    КОЛИЧЕСТВО ПОВТОРОВ
+                  </RetryFieldLabel>
+                  <S.Input
+                    id='schedule-max-retries'
+                    type='number'
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={retrySettings.maxRetries}
+                    onChange={event =>
+                      setRetrySettings(current => ({
+                        ...current,
+                        maxRetries: event.target.value,
+                      }))
+                    }
+                  />
+                </S.RetryField>
+
+                <S.RetryField>
+                  <RetryFieldLabel
+                    tooltip={
+                      'Фиксированная задержка — одинаковая пауза перед ' +
+                      'каждой повторной попыткой. Экспоненциальная — ' +
+                      'пауза удваивается после каждой неудачной попытки.'
+                    }
+                  >
+                    ТИП ЗАДЕРЖКИ
+                  </RetryFieldLabel>
+                  <SingleOptionDropdownSelect
+                    ariaLabel='Тип задержки'
+                    value={retrySettings.backoff}
+                    options={RETRY_BACKOFF_OPTIONS}
+                    optionTextSx={retryBackoffOptionTextSx}
+                    popperMinWidth={0}
+                    textFieldSx={{
+                      height: 38,
+                      minHeight: 38,
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      fontSize: 13,
+                    }}
+                    onChange={backoff =>
+                      setRetrySettings(current => ({
+                        ...current,
+                        backoff: backoff as 'fixed' | 'exponential',
+                      }))
+                    }
+                  />
+                </S.RetryField>
+
+                <S.RetryField>
+                  <RetryFieldLabel
+                    htmlFor='schedule-retry-delay'
+                    tooltip={
+                      'Через сколько секунд выполнить первую повторную ' +
+                      'попытку. При фиксированной задержке это время ' +
+                      'используется для всех повторов.'
+                    }
+                  >
+                    ЗАДЕРЖКА, СЕКУНДЫ
+                  </RetryFieldLabel>
+                  <S.Input
+                    id='schedule-retry-delay'
+                    type='number'
+                    min={1}
+                    max={86400}
+                    step={1}
+                    value={retrySettings.delaySeconds}
+                    onChange={event =>
+                      setRetrySettings(current => ({
+                        ...current,
+                        delaySeconds: event.target.value,
+                      }))
+                    }
+                  />
+                </S.RetryField>
+
+                {retrySettings.backoff === 'exponential' ? (
                   <S.RetryField>
                     <RetryFieldLabel
-                      htmlFor='schedule-max-retries'
-                      tooltip='Сколько раз система повторит запуск после неудачного основного запуска.'
+                      htmlFor='schedule-retry-max-delay'
+                      tooltip='Максимальная пауза между повторными попытками при экспоненциальной задержке.'
                     >
-                      КОЛИЧЕСТВО ПОВТОРОВ
+                      МАКС. ЗАДЕРЖКА, СЕКУНДЫ
                     </RetryFieldLabel>
                     <S.Input
-                      id='schedule-max-retries'
-                      type='number'
-                      min={1}
-                      max={10}
-                      step={1}
-                      value={retrySettings.maxRetries}
-                      onChange={event =>
-                        setRetrySettings(current => ({
-                          ...current,
-                          maxRetries: event.target.value,
-                        }))
-                      }
-                    />
-                  </S.RetryField>
-
-                  <S.RetryField>
-                    <RetryFieldLabel
-                      tooltip={
-                        'Фиксированная задержка — одинаковая пауза перед ' +
-                        'каждой повторной попыткой. Экспоненциальная — ' +
-                        'пауза удваивается после каждой неудачной попытки.'
-                      }
-                    >
-                      ТИП ЗАДЕРЖКИ
-                    </RetryFieldLabel>
-                    <SingleOptionDropdownSelect
-                      ariaLabel='Тип задержки'
-                      value={retrySettings.backoff}
-                      options={RETRY_BACKOFF_OPTIONS}
-                      popperMinWidth={0}
-                      textFieldSx={{
-                        height: 38,
-                        minHeight: 38,
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        fontSize: 13,
-                      }}
-                      onChange={backoff =>
-                        setRetrySettings(current => ({
-                          ...current,
-                          backoff: backoff as 'fixed' | 'exponential',
-                        }))
-                      }
-                    />
-                  </S.RetryField>
-
-                  <S.RetryField>
-                    <RetryFieldLabel
-                      htmlFor='schedule-retry-delay'
-                      tooltip={
-                        'Через сколько секунд выполнить первую повторную ' +
-                        'попытку. При фиксированной задержке это время ' +
-                        'используется для всех повторов.'
-                      }
-                    >
-                      ЗАДЕРЖКА, СЕКУНДЫ
-                    </RetryFieldLabel>
-                    <S.Input
-                      id='schedule-retry-delay'
+                      id='schedule-retry-max-delay'
                       type='number'
                       min={1}
                       max={86400}
                       step={1}
-                      value={retrySettings.delaySeconds}
+                      value={retrySettings.maxDelaySeconds}
                       onChange={event =>
                         setRetrySettings(current => ({
                           ...current,
-                          delaySeconds: event.target.value,
+                          maxDelaySeconds: event.target.value,
                         }))
                       }
                     />
                   </S.RetryField>
-
-                  {retrySettings.backoff === 'exponential' ? (
-                    <S.RetryField>
-                      <RetryFieldLabel
-                        htmlFor='schedule-retry-max-delay'
-                        tooltip='Максимальная пауза между повторными попытками при экспоненциальной задержке.'
-                      >
-                        МАКС. ЗАДЕРЖКА, СЕКУНДЫ
-                      </RetryFieldLabel>
-                      <S.Input
-                        id='schedule-retry-max-delay'
-                        type='number'
-                        min={1}
-                        max={86400}
-                        step={1}
-                        value={retrySettings.maxDelaySeconds}
-                        onChange={event =>
-                          setRetrySettings(current => ({
-                            ...current,
-                            maxDelaySeconds: event.target.value,
-                          }))
-                        }
-                      />
-                    </S.RetryField>
-                  ) : null}
-                </S.RetrySettingsGrid>
-              ) : null}
-            </S.RetrySection>
-            <Box>
-              <S.Label style={{ marginBottom: 8 }}>РАСПИСАНИЕ</S.Label>
-              <CronBuilder
-                value={formData.cron}
-                onChange={newCron =>
-                  setFormData({ ...formData, cron: newCron })
-                }
-              />
-            </Box>
-          </Stack>
-        </S.Content>
-        <S.Footer>
-          <S.PrimaryButton
-            onClick={handleSave}
-            disabled={
-              !formData.project_id || !isRetrySettingsValid(retrySettings)
-            }
-          >
-            {editingEntry ? 'Сохранить изменения' : 'Создать'}
-          </S.PrimaryButton>
-        </S.Footer>
-      </Dialog>
-
-      <S.RunDetailsDialog
-        open={selectedRunGroup !== null}
-        onClose={handleCloseRunGroup}
-        fullWidth
-      >
-        {selectedRunGroup ? (
-          <>
-            <S.RunDetailsHeader>
-              <S.RunDetailsHeaderMeta>
-                <S.RunDetailsStatusBadge
-                  statusColor={STATUS_CONFIG[selectedRunGroup.status].bg}
-                >
-                  {STATUS_CONFIG[selectedRunGroup.status].label}
-                </S.RunDetailsStatusBadge>
-                {selectedRunGroup.count > 1 ? (
-                  <S.RunDetailsCount>
-                    × {selectedRunGroup.count} подряд
-                  </S.RunDetailsCount>
                 ) : null}
-              </S.RunDetailsHeaderMeta>
-              <S.IconButton
-                type='button'
-                aria-label='Close'
-                onClick={handleCloseRunGroup}
-              >
-                <CloseIcon sx={{ fontSize: 18 }} />
-              </S.IconButton>
-            </S.RunDetailsHeader>
-
-            <S.RunDetailsBody>
-              {selectedRunGroup.runs.map(run => {
-                const duration = formatDuration(
-                  run.started_at ?? run.queued_at,
-                  run.finished_at,
-                  selectedRunGroupOpenedAtMs ?? undefined
-                );
-
-                return (
-                  <S.RunCard key={run.task_id}>
-                    <S.RunCardTopRow>
-                      <S.RunTaskId title={run.task_id}>
-                        {run.task_id}
-                      </S.RunTaskId>
-                      {duration ? (
-                        <S.RunDuration>{duration}</S.RunDuration>
-                      ) : null}
-                    </S.RunCardTopRow>
-
-                    <S.RunTimeGrid>
-                      <S.RunTimeBlock>
-                        <div className='label'>Started:</div>
-                        <div className='value'>
-                          {formatRunDateTime(run.started_at ?? run.queued_at)}
-                        </div>
-                      </S.RunTimeBlock>
-                      <S.RunTimeBlock>
-                        <div className='label'>Finished:</div>
-                        <div className='value'>
-                          {formatRunDateTime(run.finished_at)}
-                        </div>
-                      </S.RunTimeBlock>
-                    </S.RunTimeGrid>
-
-                    {run.historyStatus === 'FAILED' && run.message ? (
-                      <S.RunErrorBlock>{run.message}</S.RunErrorBlock>
-                    ) : null}
-
-                    {run.historyStatus === 'TERMINATED' &&
-                    run.termination_reason ? (
-                      <S.RunReasonText>
-                        Reason:{' '}
-                        <span className='value'>{run.termination_reason}</span>
-                      </S.RunReasonText>
-                    ) : null}
-                  </S.RunCard>
-                );
-              })}
-            </S.RunDetailsBody>
-          </>
-        ) : null}
-      </S.RunDetailsDialog>
+              </S.RetrySettingsGrid>
+            ) : null}
+          </S.RetrySection>
+          <Box>
+            <CronBuilder
+              value={formData.cron}
+              onChange={newCron => setFormData({ ...formData, cron: newCron })}
+            />
+          </Box>
+        </Stack>
+      </TokenDialog>
     </>
   );
 };
