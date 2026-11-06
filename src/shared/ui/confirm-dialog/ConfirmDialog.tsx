@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
 import InfoIcon from '@mui/icons-material/Info';
@@ -22,6 +22,7 @@ interface VisualAction {
 
 interface RenderedDialogState {
   actions: ConfirmDialogActionConfig[];
+  checkbox: ConfirmDialogProps['checkbox'];
   maxWidth: ConfirmDialogProps['maxWidth'];
   width: number;
   message: string;
@@ -98,6 +99,88 @@ const DialogDescription = styled(Typography)(() => ({
     fontWeight: 600,
     color: '#374151',
   },
+}));
+
+type OptionTone = 'danger' | 'primary';
+
+const OPTION_TONES: Record<
+  OptionTone,
+  { accent: string; background: string; border: string }
+> = {
+  danger: { accent: '#E5484D', background: '#FEF5F5', border: '#F8D9D9' },
+  primary: { accent: '#5B5BEF', background: '#F5F5FF', border: '#DCDDFB' },
+};
+
+const Option = styled('button', {
+  shouldForwardProp: prop => prop !== 'tone' && prop !== 'checked',
+})<{ tone: OptionTone; checked: boolean }>(({ tone, checked }) => ({
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: 10,
+  width: '100%',
+  boxSizing: 'border-box',
+  // Collapses with the bottom margin of the title or the description.
+  margin: '18px 0 20px',
+  padding: '12px 14px',
+  border: `1px solid ${checked ? OPTION_TONES[tone].border : '#EEF0F4'}`,
+  borderRadius: 12,
+  backgroundColor: checked ? OPTION_TONES[tone].background : '#fff',
+  font: 'inherit',
+  color: '#1B1F2A',
+  textAlign: 'left',
+  cursor: 'pointer',
+  transition: 'background-color 150ms ease, border-color 150ms ease',
+  '&:hover': checked ? {} : { borderColor: '#DDE2EA' },
+  '&:focus-visible': {
+    outline: 'none',
+    boxShadow: '0 0 0 3px rgba(156, 163, 175, 0.3)',
+  },
+  '&:disabled': {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+  },
+  '&:hover .option-box': checked ? {} : { borderColor: '#8C93A3' },
+}));
+
+const OptionBoxMark = styled('span', {
+  shouldForwardProp: prop => prop !== 'tone' && prop !== 'checked',
+})<{ tone: OptionTone; checked: boolean }>(({ tone, checked }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flex: 'none',
+  width: 16,
+  height: 16,
+  marginTop: 1,
+  boxSizing: 'border-box',
+  borderRadius: 4,
+  border: `1.5px solid ${checked ? OPTION_TONES[tone].accent : '#C3C9D4'}`,
+  backgroundColor: checked ? OPTION_TONES[tone].accent : '#fff',
+  transition: 'background-color 120ms ease, border-color 120ms ease',
+  '& svg': {
+    opacity: checked ? 1 : 0,
+    transition: 'opacity 120ms ease',
+  },
+}));
+
+const OptionText = styled('span')(() => ({
+  display: 'flex',
+  flexDirection: 'column',
+  minWidth: 0,
+}));
+
+const OptionLabel = styled('span')(() => ({
+  fontSize: 13.5,
+  fontWeight: 500,
+  lineHeight: '18px',
+}));
+
+const OptionWarning = styled('span')(() => ({
+  display: 'block',
+  paddingTop: 4,
+  fontSize: 12.5,
+  lineHeight: '18px',
+  color: '#B42318',
 }));
 
 const ButtonsContainer = styled(Box)(() => ({
@@ -402,6 +485,9 @@ export const ConfirmDialog = ({
   actions,
   maxWidth,
   width = 320,
+  checkbox,
+  checked = false,
+  onCheckedChange,
   onAction,
   onClose,
   onExited,
@@ -410,6 +496,7 @@ export const ConfirmDialog = ({
   const [isListExpanded, setIsListExpanded] = useState(false);
   const [renderedState, setRenderedState] = useState<RenderedDialogState>({
     actions,
+    checkbox,
     maxWidth,
     width,
     message,
@@ -423,14 +510,16 @@ export const ConfirmDialog = ({
 
     setRenderedState({
       actions,
+      checkbox,
       maxWidth,
       width,
       message,
       title,
     });
-  }, [actions, maxWidth, width, message, open, title]);
+  }, [actions, checkbox, maxWidth, width, message, open, title]);
 
   const renderedActions = renderedState.actions;
+  const renderedCheckbox = renderedState.checkbox;
   const renderedMessage = renderedState.message;
   const renderedTitle = renderedState.title;
   const renderedMaxWidth = renderedState.maxWidth;
@@ -500,6 +589,10 @@ export const ConfirmDialog = ({
       primaryAction,
     });
   }, [primaryActionIndex, renderedActions, renderedMessage, renderedTitle]);
+
+  const optionLabelId = useId();
+  const optionTone: OptionTone =
+    dialogVariant === 'danger' ? 'danger' : 'primary';
 
   return (
     <StyledDialog
@@ -575,6 +668,48 @@ export const ConfirmDialog = ({
             </Collapse>
           </>
         )}
+
+        {renderedCheckbox ? (
+          <Option
+            type='button'
+            role='checkbox'
+            aria-checked={checked}
+            aria-labelledby={optionLabelId}
+            tone={optionTone}
+            checked={checked}
+            disabled={busy}
+            onClick={() => onCheckedChange?.(!checked)}
+          >
+            <OptionBoxMark
+              className='option-box'
+              tone={optionTone}
+              checked={checked}
+              aria-hidden
+            >
+              <svg width='10' height='10' viewBox='0 0 16 16' fill='none'>
+                <path
+                  d='M3.5 8.5l3 3 6-7'
+                  stroke='#fff'
+                  strokeWidth='2.6'
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                />
+              </svg>
+            </OptionBoxMark>
+            <OptionText>
+              <OptionLabel id={optionLabelId}>
+                {renderedCheckbox.label}
+              </OptionLabel>
+              {renderedCheckbox.checkedWarning ? (
+                <Collapse in={checked}>
+                  <OptionWarning>
+                    {renderedCheckbox.checkedWarning}
+                  </OptionWarning>
+                </Collapse>
+              ) : null}
+            </OptionText>
+          </Option>
+        ) : null}
 
         {visualActions.length > 0 && (
           <ButtonsContainer>

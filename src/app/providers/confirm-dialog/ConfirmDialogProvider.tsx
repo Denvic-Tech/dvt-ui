@@ -10,20 +10,23 @@ import {
 import {
   ConfirmDialog,
   type ConfirmDialogActionId,
+  type ConfirmDialogCheckbox,
   ConfirmDialogContext,
   type ConfirmDialogContextValue,
   type ConfirmDialogMaxWidth,
+  type ConfirmDialogResult,
   type CustomDialogAction,
   type CustomDialogOptions,
 } from '@/shared/ui/confirm-dialog';
 
 interface DialogRequest {
   actions: CustomDialogAction[];
+  checkbox: ConfirmDialogCheckbox | undefined;
   maxWidth: ConfirmDialogMaxWidth;
   width: number;
   message: string;
   requestId: number;
-  resolve: (actionId: ConfirmDialogActionId) => void;
+  resolve: (result: ConfirmDialogResult) => void;
   reject: (reason?: unknown) => void;
   title: string;
 }
@@ -39,7 +42,7 @@ const getFallbackActionId = (request: DialogRequest) =>
 const normalizeDialogRequest = (
   options: CustomDialogOptions,
   requestId: number,
-  resolve: (actionId: ConfirmDialogActionId) => void,
+  resolve: (result: ConfirmDialogResult) => void,
   reject: (reason?: unknown) => void
 ): DialogRequest => ({
   requestId,
@@ -49,6 +52,7 @@ const normalizeDialogRequest = (
   message: options.message ?? '',
   maxWidth: options.maxWidth ?? 'xs',
   width: options.width ?? 320,
+  checkbox: options.checkbox,
   actions: options.actions,
 });
 
@@ -62,12 +66,29 @@ export const ConfirmDialogProvider = ({ children }: PropsWithChildren) => {
     null
   );
   const [isResolving, setIsResolving] = useState(false);
+  // Read by handleAction, which may run before a re-render.
+  const checkedRef = useRef(false);
+  const [checked, setChecked] = useState(false);
+
+  const updateChecked = useCallback((value: boolean) => {
+    checkedRef.current = value;
+    setChecked(value);
+  }, []);
+
+  const showRequest = useCallback(
+    (request: DialogRequest | null) => {
+      activeRequestRef.current = request;
+      setActiveRequest(request);
+      if (request) {
+        updateChecked(request.checkbox?.defaultChecked ?? false);
+      }
+    },
+    [updateChecked]
+  );
 
   const activateNextRequest = useCallback(() => {
-    const nextRequest = queueRef.current.shift() ?? null;
-    activeRequestRef.current = nextRequest;
-    setActiveRequest(nextRequest);
-  }, []);
+    showRequest(queueRef.current.shift() ?? null);
+  }, [showRequest]);
 
   const settleCurrentRequest = useCallback(() => {
     isResolvingRef.current = false;
@@ -75,9 +96,9 @@ export const ConfirmDialogProvider = ({ children }: PropsWithChildren) => {
     activateNextRequest();
   }, [activateNextRequest]);
 
-  const openDialog = useCallback(
+  const openDialogWithResult = useCallback(
     (options: CustomDialogOptions) =>
-      new Promise<ConfirmDialogActionId>((resolve, reject) => {
+      new Promise<ConfirmDialogResult>((resolve, reject) => {
         const request = normalizeDialogRequest(
           options,
           ++nextRequestIdRef.current,
@@ -90,10 +111,15 @@ export const ConfirmDialogProvider = ({ children }: PropsWithChildren) => {
           return;
         }
 
-        activeRequestRef.current = request;
-        setActiveRequest(request);
+        showRequest(request);
       }),
-    []
+    [showRequest]
+  );
+
+  const openDialog = useCallback(
+    (options: CustomDialogOptions) =>
+      openDialogWithResult(options).then(result => result.actionId),
+    [openDialogWithResult]
   );
 
   const handleAction = useCallback(
@@ -116,7 +142,7 @@ export const ConfirmDialogProvider = ({ children }: PropsWithChildren) => {
 
       try {
         await selectedAction?.handler?.();
-        request.resolve(actionId);
+        request.resolve({ actionId, checked: checkedRef.current });
       } catch (error) {
         request.reject(error);
         console.error('Ошибка при обработке confirm dialog action', error);
@@ -166,8 +192,9 @@ export const ConfirmDialogProvider = ({ children }: PropsWithChildren) => {
   const contextValue = useMemo<ConfirmDialogContextValue>(
     () => ({
       openDialog,
+      openDialogWithResult,
     }),
-    [openDialog]
+    [openDialog, openDialogWithResult]
   );
 
   return (
@@ -180,6 +207,9 @@ export const ConfirmDialogProvider = ({ children }: PropsWithChildren) => {
         actions={activeRequest?.actions ?? []}
         maxWidth={activeRequest?.maxWidth ?? 'xs'}
         width={activeRequest?.width ?? 320}
+        checkbox={activeRequest?.checkbox}
+        checked={checked}
+        onCheckedChange={updateChecked}
         onAction={actionId => {
           void handleAction(actionId);
         }}

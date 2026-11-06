@@ -10,4 +10,5 @@ const throwMissingProvider = async (): Promise<never> => {
 
 export const ConfirmDialogContext = createContext<ConfirmDialogContextValue>({
   openDialog: throwMissingProvider,
+  openDialogWithResult: throwMissingProvider,
 });

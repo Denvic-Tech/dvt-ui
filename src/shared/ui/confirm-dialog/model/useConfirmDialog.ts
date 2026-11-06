@@ -2,16 +2,15 @@ import { useCallback, useContext } from 'react';
 
 import { ConfirmDialogContext } from '../context';
 import type {
-  ConfirmDialogActionId,
+  ConfirmDialogCheckbox,
   ConfirmDialogOptions,
   CustomDialogAction,
   CustomDialogOptions,
 } from '../types';
 
-const openConfirmDialogInternal = (
-  openDialog: (options: CustomDialogOptions) => Promise<ConfirmDialogActionId>,
-  options: ConfirmDialogOptions = {}
-) => {
+const buildConfirmDialogOptions = (
+  options: ConfirmDialogOptions
+): CustomDialogOptions => {
   const actions: CustomDialogAction[] = [];
 
   if (!options.hideCancel) {
@@ -65,17 +64,33 @@ const openConfirmDialogInternal = (
     dialogOptions.width = options.width;
   }
 
-  return openDialog(dialogOptions).then(actionId => actionId === 'confirm');
+  if (options.checkbox !== undefined) {
+    dialogOptions.checkbox = options.checkbox;
+  }
+
+  return dialogOptions;
 };
 
 export const useConfirmDialog = () => {
-  const { openDialog } = useContext(ConfirmDialogContext);
+  const { openDialog, openDialogWithResult } = useContext(ConfirmDialogContext);
 
   const confirm = useCallback(
     (options: ConfirmDialogOptions = {}) =>
-      openConfirmDialogInternal(openDialog, options),
+      openDialog(buildConfirmDialogOptions(options)).then(
+        actionId => actionId === 'confirm'
+      ),
     [openDialog]
   );
 
-  return { confirm, openDialog };
+  // A confirm with an option to switch on, e.g. «Удалить данные».
+  const confirmWithCheckbox = useCallback(
+    (options: ConfirmDialogOptions & { checkbox: ConfirmDialogCheckbox }) =>
+      openDialogWithResult(buildConfirmDialogOptions(options)).then(result => ({
+        confirmed: result.actionId === 'confirm',
+        checked: result.checked,
+      })),
+    [openDialogWithResult]
+  );
+
+  return { confirm, confirmWithCheckbox, openDialog };
 };
