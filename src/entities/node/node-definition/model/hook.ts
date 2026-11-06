@@ -1,16 +1,14 @@
 import { useCallback, useMemo } from 'react';
 
+import { useAppDispatch, useAppSelector } from '@/app/providers/store/hooks';
+import type { RootState } from '@/app/providers/store/types';
+
 import {
-  RootState,
-  useAppDispatch,
-  useAppSelector,
-} from '@/app/providers/store';
-import {
-  fetchNodeDefinitions,
-  selectNodeDefinitionsStatus,
   selectNodeDefinitionError,
   selectNodeDefinitionsMap,
-} from '@/entities/node/node-definition';
+  selectNodeDefinitionsStatus,
+} from './selectors.ts';
+import { fetchNodeDefinitions } from './thunks.ts';
 
 export const useNodeDefinitions = () => {
   const dispatch = useAppDispatch();
