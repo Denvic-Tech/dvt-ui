@@ -4456,6 +4456,28 @@ export type ExtensionCatalogVersionSchema = {
    * Operation
    */
   operation?: 'install' | 'upgrade' | 'downgrade' | 'reinstall' | null;
+  /**
+   * Incompatibility Details
+   */
+  incompatibility_details?: Array<ExtensionCompatibilityDifferenceSchema>;
+};
+
+/**
+ * ExtensionCompatibilityDifferenceSchema
+ */
+export type ExtensionCompatibilityDifferenceSchema = {
+  /**
+   * Field
+   */
+  field: 'os' | 'architecture' | 'python' | 'implementation' | 'dvt_version';
+  /**
+   * Current
+   */
+  current: string | null;
+  /**
+   * Required
+   */
+  required: string;
 };
 
 /**

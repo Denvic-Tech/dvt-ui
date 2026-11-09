@@ -109,11 +109,66 @@ type VersionConfirmation = {
 const hasUpdate = (extension: ExtensionReadSchema) =>
   extension.is_installed && Boolean(extension.recommended_version);
 
+const platformFieldLabels = {
+  os: 'ОС',
+  architecture: 'Архитектура',
+  python: 'Python',
+  implementation: 'Реализация Python',
+};
+
 const releaseLimitation = (release: ExtensionCatalogVersionSchema) => {
-  if (release.incompatibility === 'target') return 'Несовместимая платформа';
-  if (release.incompatibility === 'dvt_version')
-    return `Требуется DVT ${release.dvt_version ?? 'совместимой версии'}`;
-  return null;
+  const differences = release.incompatibility_details ?? [];
+  if (release.incompatibility === 'target') {
+    const reasons = differences.flatMap(({ field, current, required }) =>
+      field === 'dvt_version'
+        ? []
+        : [`${platformFieldLabels[field]}: ${current}, требуется ${required}`]
+    );
+    return reasons.length ? reasons.join(' · ') : 'Несовместимая платформа';
+  }
+  if (release.incompatibility === 'dvt_version') {
+    const difference = differences.find(({ field }) => field === 'dvt_version');
+    const requirement = difference?.required ?? release.dvt_version;
+    if (difference?.current && requirement) {
+      return `DVT ${difference.current}, требуется ${requirement}`;
+    }
+    return `Требуется DVT ${requirement ?? 'совместимой версии'}`;
+  }
+  return release.operation === 'reinstall' ? 'Установлено' : null;
+};
+
+const ReleaseChannelChip = ({
+  channel,
+}: Pick<ExtensionCatalogVersionSchema, 'channel'>) => (
+  <Chip
+    size='small'
+    label={channel === 'rc' ? 'RC' : 'Stable'}
+    sx={{
+      height: 22,
+      fontSize: 11,
+      fontWeight: 600,
+      justifySelf: 'start',
+      ...(channel === 'rc' && {
+        color: '#4338ca',
+        bgcolor: '#eef2ff',
+      }),
+    }}
+  />
+);
+
+const releaseMenuRowSx = {
+  display: 'grid',
+  gridColumn: '1 / -1',
+  gridTemplateColumns: 'subgrid',
+  alignItems: 'center',
+  minHeight: 36,
+  px: 1.25,
+  py: 0.75,
+  borderRadius: '8px',
+  '@supports not (grid-template-columns: subgrid)': {
+    gridTemplateColumns: '11ch 56px minmax(0, 1fr)',
+    columnGap: 1.25,
+  },
 };
 
 const versionAction = (
@@ -302,6 +357,9 @@ const ExtensionListItem: React.FC<{
     release => release.version === selectedVersion
   );
   const recommended = extension.recommended_version;
+  const defaultVersionLabel = recommended
+    ? `По умолчанию: ${recommended}`
+    : 'Выбрать версию';
   const canInstall =
     catalogReady &&
     (selected
@@ -426,6 +484,38 @@ const ExtensionListItem: React.FC<{
                   onChange={e => onVersionChange(e.target.value)}
                   size='small'
                   displayEmpty
+                  autoWidth
+                  renderValue={() =>
+                    selected ? (
+                      <Stack direction='row' spacing={1} alignItems='center'>
+                        <span>{selected.version}</span>
+                        <ReleaseChannelChip channel={selected.channel} />
+                      </Stack>
+                    ) : (
+                      <Typography color='text.secondary' sx={{ fontSize: 13 }}>
+                        {defaultVersionLabel}
+                      </Typography>
+                    )
+                  }
+                  MenuProps={{
+                    slotProps: {
+                      paper: {
+                        sx: {
+                          minWidth: 'min(300px, calc(100vw - 32px))',
+                          maxWidth: 'min(540px, calc(100vw - 32px))',
+                          borderRadius: '12px',
+                          '& .MuiMenu-list': {
+                            display: 'grid',
+                            gridTemplateColumns:
+                              'max-content max-content minmax(0, 1fr)',
+                            columnGap: 1.25,
+                            px: 0.5,
+                            py: 0.5,
+                          },
+                        },
+                      },
+                    },
+                  }}
                   sx={{
                     minWidth: 160,
                     borderRadius: '10px',
@@ -439,27 +529,45 @@ const ExtensionListItem: React.FC<{
                     },
                   }}
                 >
-                  <MenuItem value=''>
-                    <Typography sx={{ fontSize: 13, color: '#9ca3af' }}>
-                      {recommended
-                        ? `По умолчанию: ${recommended}`
-                        : 'Выбрать версию'}
+                  <MenuItem
+                    value=''
+                    sx={{
+                      gridColumn: '1 / -1',
+                      minHeight: 36,
+                      px: 1.25,
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <Typography color='text.secondary' sx={{ fontSize: 13 }}>
+                      {defaultVersionLabel}
                     </Typography>
                   </MenuItem>
                   {releases.map(release => (
-                    <MenuItem key={release.version} value={release.version}>
-                      <Stack direction='row' spacing={1} alignItems='center'>
-                        <Typography sx={{ fontSize: 13 }}>
-                          {release.version}
-                        </Typography>
-                        <Chip
-                          size='small'
-                          label={release.channel === 'rc' ? 'RC' : 'Stable'}
-                        />
-                        {release.operation === 'reinstall'
-                          ? 'Установлено'
-                          : releaseLimitation(release)}
-                      </Stack>
+                    <MenuItem
+                      key={release.version}
+                      value={release.version}
+                      sx={releaseMenuRowSx}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: 13,
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {release.version}
+                      </Typography>
+                      <ReleaseChannelChip channel={release.channel} />
+                      <Typography
+                        color='text.secondary'
+                        sx={{
+                          fontSize: 12,
+                          lineHeight: 1.4,
+                          whiteSpace: 'normal',
+                          overflowWrap: 'anywhere',
+                        }}
+                      >
+                        {releaseLimitation(release)}
+                      </Typography>
                     </MenuItem>
                   ))}
                 </Select>

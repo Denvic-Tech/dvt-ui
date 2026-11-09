@@ -234,20 +234,46 @@ describe('ExtensionsPanel catalog', () => {
     });
   });
 
-  it('keeps the download available for an incompatible release', async () => {
+  it('explains platform and DVT mismatches without blocking the download', async () => {
     listMock.mockResolvedValue([
       {
         ...extension,
         is_installed: false,
         catalog_versions: [
-          { ...rc, operation: null, incompatibility: 'target' },
+          {
+            ...rc,
+            operation: null,
+            incompatibility: 'target',
+            incompatibility_details: [
+              { field: 'os', current: 'windows', required: 'linux' },
+              { field: 'python', current: '3.12', required: '3.13' },
+            ],
+          },
+          {
+            ...rc,
+            version: '1.1.0',
+            channel: 'stable',
+            operation: null,
+            incompatibility: 'dvt_version',
+            incompatibility_details: [
+              { field: 'dvt_version', current: '1.22.0', required: '>=1.24.0' },
+            ],
+          },
         ],
       },
     ]);
     render(<ExtensionsPanel />);
 
     await screen.findByText('Sample Extension');
-    await selectVersion(/Несовместимая платформа/);
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    const stable = await screen.findByRole('option', {
+      name: /1\.1\.0 Stable DVT 1\.22\.0, требуется >=1\.24\.0/,
+    });
+    const platformMismatch = screen.getByRole('option', {
+      name: /2\.0\.0rc1 RC ОС: windows, требуется linux · Python: 3\.12, требуется 3\.13/,
+    });
+    expect(stable).toBeEnabled();
+    fireEvent.click(platformMismatch);
     expect(screen.getByRole('link', { name: 'Скачать .dvtx' })).toHaveAttribute(
       'href',
       rc.download_url

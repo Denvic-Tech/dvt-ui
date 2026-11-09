@@ -2737,6 +2737,25 @@ export type ExtensionPackagePreviewSchemaZodType = z.infer<
   typeof zExtensionPackagePreviewSchema
 >;
 
+/**
+ * ExtensionCompatibilityDifferenceSchema
+ */
+export const zExtensionCompatibilityDifferenceSchema = z.object({
+  field: z.enum([
+    'os',
+    'architecture',
+    'python',
+    'implementation',
+    'dvt_version',
+  ]),
+  current: z.union([z.string(), z.null()]),
+  required: z.string(),
+});
+
+export type ExtensionCompatibilityDifferenceSchemaZodType = z.infer<
+  typeof zExtensionCompatibilityDifferenceSchema
+>;
+
 export const zExtensionCatalogVersionSchema = z.object({
   version: z.string(),
   channel: z.enum(['stable', 'rc']),
@@ -2750,6 +2769,9 @@ export const zExtensionCatalogVersionSchema = z.object({
       z.enum(['install', 'upgrade', 'downgrade', 'reinstall']),
       z.null(),
     ])
+  ),
+  incompatibility_details: z.optional(
+    z.array(zExtensionCompatibilityDifferenceSchema)
   ),
 });
 
