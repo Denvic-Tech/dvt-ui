@@ -26,6 +26,8 @@ import {
   Select,
   Stack,
   Switch,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import { IconPuzzle } from '@tabler/icons-react';
@@ -33,6 +35,7 @@ import { IconPuzzle } from '@tabler/icons-react';
 import { extensionsApi } from '@/features/profile/extensions';
 
 import type {
+  ExtensionCatalogVersionSchema,
   ExtensionManifestNodeSchema,
   ExtensionPackagePreviewSchema,
   ExtensionReadSchema,
@@ -40,7 +43,7 @@ import type {
 import { ApiErrorPayload, isApiError } from '@/shared/lib/errors';
 import { PageLayout, PageToolbar } from '@/shared/ui/page-layout';
 
-type PendingAction = 'install' | 'reload' | 'delete' | 'sync' | null;
+type PendingAction = 'install' | 'reload' | 'delete' | null;
 
 const cleanMinimalPaperSx = {
   borderRadius: '16px',
@@ -97,21 +100,84 @@ const buildErrorPayload = (
   };
 };
 
-const buildVersionOptions = (
-  availableVersions?: Array<string>,
-  currentVersion?: string | null
-): Array<{ value: string; label: string }> => {
-  if (!availableVersions?.length) {
-    return [];
-  }
+type ExtensionFilter = 'all' | 'installed' | 'updates';
+type VersionConfirmation = {
+  extension: ExtensionReadSchema;
+  release: ExtensionCatalogVersionSchema;
+};
 
-  return availableVersions.map(version => ({
-    value: version,
-    label:
-      currentVersion && version === currentVersion
-        ? `${version} (Установлено)`
-        : version,
-  }));
+const hasUpdate = (extension: ExtensionReadSchema) =>
+  extension.is_installed && Boolean(extension.recommended_version);
+
+const platformFieldLabels = {
+  os: 'ОС',
+  architecture: 'Архитектура',
+  python: 'Python',
+  implementation: 'Реализация Python',
+};
+
+const releaseLimitation = (release: ExtensionCatalogVersionSchema) => {
+  const differences = release.incompatibility_details ?? [];
+  if (release.incompatibility === 'target') {
+    const reasons = differences.flatMap(({ field, current, required }) =>
+      field === 'dvt_version'
+        ? []
+        : [`${platformFieldLabels[field]}: ${current}, требуется ${required}`]
+    );
+    return reasons.length ? reasons.join(' · ') : 'Несовместимая платформа';
+  }
+  if (release.incompatibility === 'dvt_version') {
+    const difference = differences.find(({ field }) => field === 'dvt_version');
+    const requirement = difference?.required ?? release.dvt_version;
+    if (difference?.current && requirement) {
+      return `DVT ${difference.current}, требуется ${requirement}`;
+    }
+    return `Требуется DVT ${requirement ?? 'совместимой версии'}`;
+  }
+  return release.operation === 'reinstall' ? 'Установлено' : null;
+};
+
+const ReleaseChannelChip = ({
+  channel,
+}: Pick<ExtensionCatalogVersionSchema, 'channel'>) => (
+  <Chip
+    size='small'
+    label={channel === 'rc' ? 'RC' : 'Stable'}
+    sx={{
+      height: 22,
+      fontSize: 11,
+      fontWeight: 600,
+      justifySelf: 'start',
+      ...(channel === 'rc' && {
+        color: '#4338ca',
+        bgcolor: '#eef2ff',
+      }),
+    }}
+  />
+);
+
+const releaseMenuRowSx = {
+  display: 'grid',
+  gridColumn: '1 / -1',
+  gridTemplateColumns: 'subgrid',
+  alignItems: 'center',
+  minHeight: 36,
+  px: 1.25,
+  py: 0.75,
+  borderRadius: '8px',
+  '@supports not (grid-template-columns: subgrid)': {
+    gridTemplateColumns: '11ch 56px minmax(0, 1fr)',
+    columnGap: 1.25,
+  },
+};
+
+const versionAction = (
+  operation?: ExtensionCatalogVersionSchema['operation']
+) => {
+  if (operation === 'upgrade') return 'Обновить';
+  if (operation === 'downgrade') return 'Понизить версию';
+  if (operation === 'reinstall') return 'Переустановить';
+  return 'Установить';
 };
 
 const getStatusTone = (
@@ -268,6 +334,7 @@ const ExtensionListItem: React.FC<{
   selectedVersion: string | null;
   onToggle: () => void;
   onInstall: () => void;
+  catalogReady: boolean;
   onReload: () => void;
   onDelete: () => void;
   onVersionChange: (version: string) => void;
@@ -278,24 +345,34 @@ const ExtensionListItem: React.FC<{
   selectedVersion,
   onToggle,
   onInstall,
+  catalogReady,
   onReload,
   onDelete,
   onVersionChange,
 }) => {
   const statusTone = getStatusTone(extension);
   const nodesCount = extension.manifest_json?.nodes?.length ?? 0;
-  const hasUpdate =
-    Boolean(extension.last_version) &&
-    extension.last_version !== extension.current_version;
-  const versionOptions = React.useMemo(
-    () =>
-      buildVersionOptions(
-        extension.available_versions,
-        extension.current_version
-      ),
-    [extension.available_versions, extension.current_version]
+  const releases = extension.catalog_versions ?? [];
+  const selected = releases.find(
+    release => release.version === selectedVersion
   );
-  const showVersionSelect = versionOptions.length > 0;
+  const recommended = extension.recommended_version;
+  const defaultVersionLabel = recommended
+    ? `По умолчанию: ${recommended}`
+    : 'Выбрать версию';
+  const canInstall =
+    catalogReady &&
+    (selected
+      ? Boolean(selected.operation) && !selected.incompatibility
+      : Boolean(recommended));
+  const compatibleRcOnly =
+    !extension.is_installed &&
+    !recommended &&
+    releases.some(
+      release => release.channel === 'rc' && release.operation === 'install'
+    );
+  const operation =
+    selected?.operation ?? (extension.is_installed ? 'upgrade' : 'install');
 
   return (
     <Paper variant='outlined' sx={cleanMinimalPaperSx}>
@@ -360,9 +437,9 @@ const ExtensionListItem: React.FC<{
                       sx={versionChipSx}
                     />
                   ) : null}
-                  {hasUpdate ? (
+                  {hasUpdate(extension) ? (
                     <Chip
-                      label={`Доступно v${extension.last_version}`}
+                      label={`Доступно v${recommended}`}
                       size='small'
                       sx={{
                         ...statusChipSx('warning'),
@@ -384,6 +461,11 @@ const ExtensionListItem: React.FC<{
                     extension.manifest_json?.description ||
                     'Описание пока не указано.'}
                 </Typography>
+                {compatibleRcOnly ? (
+                  <Typography variant='body2' color='text.secondary'>
+                    Для установки выберите RC.
+                  </Typography>
+                ) : null}
               </Box>
             </Stack>
 
@@ -393,12 +475,47 @@ const ExtensionListItem: React.FC<{
               alignItems={{ xs: 'stretch', sm: 'center' }}
               sx={{ flexShrink: 0 }}
             >
-              {showVersionSelect ? (
+              {releases.length ? (
                 <Select
-                  value={selectedVersion || ''}
+                  value={selected?.version ?? ''}
+                  inputProps={{
+                    'aria-label': `Версия ${extension.display_name || extension.name}`,
+                  }}
                   onChange={e => onVersionChange(e.target.value)}
                   size='small'
                   displayEmpty
+                  autoWidth
+                  renderValue={() =>
+                    selected ? (
+                      <Stack direction='row' spacing={1} alignItems='center'>
+                        <span>{selected.version}</span>
+                        <ReleaseChannelChip channel={selected.channel} />
+                      </Stack>
+                    ) : (
+                      <Typography color='text.secondary' sx={{ fontSize: 13 }}>
+                        {defaultVersionLabel}
+                      </Typography>
+                    )
+                  }
+                  MenuProps={{
+                    slotProps: {
+                      paper: {
+                        sx: {
+                          minWidth: 'min(300px, calc(100vw - 32px))',
+                          maxWidth: 'min(540px, calc(100vw - 32px))',
+                          borderRadius: '12px',
+                          '& .MuiMenu-list': {
+                            display: 'grid',
+                            gridTemplateColumns:
+                              'max-content max-content minmax(0, 1fr)',
+                            columnGap: 1.25,
+                            px: 0.5,
+                            py: 0.5,
+                          },
+                        },
+                      },
+                    },
+                  }}
                   sx={{
                     minWidth: 160,
                     borderRadius: '10px',
@@ -412,14 +529,45 @@ const ExtensionListItem: React.FC<{
                     },
                   }}
                 >
-                  <MenuItem value='' disabled>
-                    <Typography sx={{ fontSize: 13, color: '#9ca3af' }}>
-                      Выбрать версию
+                  <MenuItem
+                    value=''
+                    sx={{
+                      gridColumn: '1 / -1',
+                      minHeight: 36,
+                      px: 1.25,
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <Typography color='text.secondary' sx={{ fontSize: 13 }}>
+                      {defaultVersionLabel}
                     </Typography>
                   </MenuItem>
-                  {versionOptions.map(opt => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      <Typography sx={{ fontSize: 13 }}>{opt.label}</Typography>
+                  {releases.map(release => (
+                    <MenuItem
+                      key={release.version}
+                      value={release.version}
+                      sx={releaseMenuRowSx}
+                    >
+                      <Typography
+                        sx={{
+                          fontSize: 13,
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {release.version}
+                      </Typography>
+                      <ReleaseChannelChip channel={release.channel} />
+                      <Typography
+                        color='text.secondary'
+                        sx={{
+                          fontSize: 12,
+                          lineHeight: 1.4,
+                          whiteSpace: 'normal',
+                          overflowWrap: 'anywhere',
+                        }}
+                      >
+                        {releaseLimitation(release)}
+                      </Typography>
                     </MenuItem>
                   ))}
                 </Select>
@@ -433,12 +581,7 @@ const ExtensionListItem: React.FC<{
                     <DownloadRoundedIcon fontSize='small' />
                   )
                 }
-                disabled={
-                  (extension.is_installed &&
-                    (!selectedVersion ||
-                      selectedVersion === extension.current_version)) ||
-                  pendingAction !== null
-                }
+                disabled={!canInstall || pendingAction !== null}
                 onClick={onInstall}
                 sx={{
                   ...actionButtonSx,
@@ -449,8 +592,17 @@ const ExtensionListItem: React.FC<{
                   },
                 }}
               >
-                Установить
+                {versionAction(operation)}
               </Button>
+              {selected ? (
+                <Button
+                  href={selected.download_url}
+                  variant='outlined'
+                  sx={actionButtonSx}
+                >
+                  Скачать .dvtx
+                </Button>
+              ) : null}
 
               <Button
                 variant='outlined'
@@ -474,7 +626,7 @@ const ExtensionListItem: React.FC<{
                   },
                 }}
               >
-                Обновить
+                Перезагрузить
               </Button>
 
               <Button
@@ -523,9 +675,7 @@ const ExtensionListItem: React.FC<{
               <Box>
                 <Typography sx={metaLabelSx}>Последняя версия</Typography>
                 <Typography sx={metaValueSx}>
-                  {extension.last_version ||
-                    extension.current_version ||
-                    'Неизвестно'}
+                  {recommended || extension.current_version || 'Неизвестно'}
                 </Typography>
               </Box>
               <Divider
@@ -639,6 +789,15 @@ export const ExtensionsPanel: React.FC = () => {
     () => new Set()
   );
   const [loading, setLoading] = React.useState(true);
+  const [filter, setFilter] = React.useState<ExtensionFilter>('all');
+  const [catalogReady, setCatalogReady] = React.useState(false);
+  const [catalogError, setCatalogError] = React.useState(false);
+  const [syncing, setSyncing] = React.useState(false);
+  const [confirmation, setConfirmation] =
+    React.useState<VersionConfirmation | null>(null);
+  const syncInFlight = React.useRef(false);
+  const localRevision = React.useRef(0);
+  const opened = React.useRef(false);
   const [globalError, setGlobalError] = React.useState<ApiErrorPayload | null>(
     null
   );
@@ -672,15 +831,15 @@ export const ExtensionsPanel: React.FC = () => {
 
   const replaceExtension = React.useCallback(
     (nextItem: ExtensionReadSchema) => {
+      localRevision.current++;
       setExtensions(prev =>
-        [...prev]
-          .map(item => (item.name === nextItem.name ? nextItem : item))
-          .sort((left, right) =>
+        [...prev.filter(item => item.name !== nextItem.name), nextItem].sort(
+          (left, right) =>
             (left.display_name || left.name).localeCompare(
               right.display_name || right.name,
               'ru'
             )
-          )
+        )
       );
     },
     []
@@ -702,42 +861,39 @@ export const ExtensionsPanel: React.FC = () => {
     }
   }, []);
 
-  React.useEffect(() => {
-    void loadExtensions();
-  }, [loadExtensions]);
-
-  const handleSync = async () => {
-    setGlobalError(null);
-    setFlashMessage(null);
-    setPendingByName(prev => ({ ...prev, __sync__: 'sync' }));
-
+  const refreshCatalog = React.useCallback(async () => {
+    if (syncInFlight.current) return;
+    syncInFlight.current = true;
+    setSyncing(true);
     try {
       await extensionsApi.sync();
-      const items = await extensionsApi.list();
+      let items: Array<ExtensionReadSchema>;
+      let revision: number;
+      do {
+        revision = localRevision.current;
+        items = await extensionsApi.list();
+      } while (revision !== localRevision.current);
       setExtensions(items);
-      setFlashMessage({
-        severity: 'success',
-        message: 'Каталог расширений обновлён.',
-      });
-    } catch (error) {
-      setGlobalError(
-        buildErrorPayload(
-          error,
-          'Не удалось синхронизировать каталог расширений.'
-        )
-      );
+      setCatalogReady(true);
+      setCatalogError(false);
+    } catch {
+      setCatalogReady(false);
+      setCatalogError(true);
     } finally {
-      setPendingByName(prev => {
-        const next = { ...prev };
-        delete next['__sync__'];
-        return next;
-      });
+      syncInFlight.current = false;
+      setSyncing(false);
     }
-  };
+  }, []);
+
+  React.useEffect(() => {
+    if (opened.current) return;
+    opened.current = true;
+    void loadExtensions().then(refreshCatalog);
+  }, [loadExtensions, refreshCatalog]);
 
   const runAction = async (
     extensionName: string,
-    action: Exclude<PendingAction, 'sync' | null>,
+    action: NonNullable<PendingAction>,
     request: () => Promise<ExtensionReadSchema | void>,
     successMessage: string
   ) => {
@@ -846,29 +1002,54 @@ export const ExtensionsPanel: React.FC = () => {
         allowDowngrade: preview.operation === 'downgrade',
         allowReinstall: preview.operation === 'reinstall',
       });
-      setExtensions(prev => {
-        const otherExtensions = prev.filter(
-          item => item.name !== installed.name
-        );
-        return [...otherExtensions, installed].sort((left, right) =>
-          (left.display_name || left.name).localeCompare(
-            right.display_name || right.name,
-            'ru'
-          )
-        );
-      });
+      replaceExtension(installed);
       setPackagePreview(null);
       setFlashMessage({
         severity: 'success',
         message: `Расширение "${installed.display_name || installed.name}" установлено из файла.`,
       });
     } catch (error) {
+      setPackagePreview(null);
       setGlobalError(
         buildErrorPayload(error, 'Не удалось установить пакет расширения.')
       );
     } finally {
       setPackagePending(false);
     }
+  };
+
+  const catalogEntries = extensions.filter(
+    extension =>
+      extension.is_installed ||
+      Boolean(
+        extension.catalog_versions?.length ||
+        extension.available_versions?.length
+      )
+  );
+  const filteredExtensions = catalogEntries.filter(
+    extension =>
+      filter === 'all' ||
+      (filter === 'installed' ? extension.is_installed : hasUpdate(extension))
+  );
+
+  const installFromCatalog = (
+    extension: ExtensionReadSchema,
+    release?: ExtensionCatalogVersionSchema
+  ) => {
+    const operation =
+      release?.operation ?? (extension.is_installed ? 'upgrade' : 'install');
+    void runAction(
+      extension.name,
+      'install',
+      () =>
+        extensionsApi.install(extension.name, release?.version ?? null, {
+          allowDowngrade: operation === 'downgrade',
+          allowReinstall: operation === 'reinstall',
+        }),
+      operation === 'upgrade'
+        ? `Расширение «${extension.display_name}» обновлено.`
+        : `Версия расширения «${extension.display_name}» установлена.`
+    );
   };
 
   return (
@@ -907,14 +1088,14 @@ export const ExtensionsPanel: React.FC = () => {
             <Button
               variant='outlined'
               startIcon={
-                pendingByName['__sync__'] === 'sync' ? (
+                syncing ? (
                   <CircularProgress size={16} color='inherit' />
                 ) : (
                   <RefreshRoundedIcon fontSize='small' />
                 )
               }
-              onClick={() => void handleSync()}
-              disabled={pendingByName['__sync__'] === 'sync'}
+              onClick={() => void refreshCatalog()}
+              disabled={syncing}
               sx={{
                 ...actionButtonSx,
                 borderColor: '#d1d5db',
@@ -926,7 +1107,7 @@ export const ExtensionsPanel: React.FC = () => {
                 },
               }}
             >
-              Синхронизировать
+              Обновить каталог
             </Button>
           </Stack>
         </PageToolbar>
@@ -938,7 +1119,7 @@ export const ExtensionsPanel: React.FC = () => {
           sx={{ mb: 2 }}
         >
           <Chip
-            label={`Всего: ${extensions.length}`}
+            label={`Всего: ${catalogEntries.length}`}
             size='small'
             sx={statusChipSx('default')}
           />
@@ -949,12 +1130,7 @@ export const ExtensionsPanel: React.FC = () => {
           />
           <Chip
             label={`Доступны обновления: ${
-              extensions.filter(
-                item =>
-                  item.is_installed &&
-                  item.last_version &&
-                  item.last_version !== item.current_version
-              ).length
+              extensions.filter(hasUpdate).length
             }`}
             size='small'
             sx={statusChipSx('warning')}
@@ -962,6 +1138,26 @@ export const ExtensionsPanel: React.FC = () => {
         </Stack>
 
         <Stack spacing={2.5}>
+          {catalogError ? (
+            <Alert severity='warning'>
+              Не удалось обновить каталог. Показаны сохранённые данные.
+            </Alert>
+          ) : null}
+
+          <ToggleButtonGroup
+            exclusive
+            value={filter}
+            size='small'
+            aria-label='Фильтр расширений'
+            onChange={(_, value: ExtensionFilter | null) =>
+              value && setFilter(value)
+            }
+          >
+            <ToggleButton value='all'>Все</ToggleButton>
+            <ToggleButton value='installed'>Установленные</ToggleButton>
+            <ToggleButton value='updates'>Доступны обновления</ToggleButton>
+          </ToggleButtonGroup>
+
           {flashMessage ? (
             <Alert
               severity={flashMessage.severity}
@@ -1008,7 +1204,7 @@ export const ExtensionsPanel: React.FC = () => {
             </Box>
           ) : null}
 
-          {!loading && !extensions.length ? (
+          {!loading && !catalogEntries.length ? (
             <Box
               sx={{
                 px: 3,
@@ -1038,40 +1234,49 @@ export const ExtensionsPanel: React.FC = () => {
                 Расширения не найдены
               </Typography>
               <Typography sx={{ mt: 0.75, fontSize: 13, color: '#6b7280' }}>
-                Выполните синхронизацию каталога после публикации новых
-                расширений на backend.
+                После публикации расширений обновите каталог.
               </Typography>
             </Box>
           ) : null}
 
+          {!loading &&
+          catalogEntries.length > 0 &&
+          filteredExtensions.length === 0 ? (
+            <Typography color='text.secondary'>
+              Нет расширений по этому фильтру.
+            </Typography>
+          ) : null}
+
           {!loading ? (
             <Stack spacing={2}>
-              {extensions.map(extension => (
+              {filteredExtensions.map(extension => (
                 <ExtensionListItem
                   key={extension.name}
                   extension={extension}
+                  catalogReady={catalogReady && !syncing}
                   expanded={expandedNames.has(extension.name)}
                   pendingAction={pendingByName[extension.name] ?? null}
                   selectedVersion={selectedVersions[extension.name] ?? null}
                   onToggle={() => toggleExpanded(extension.name)}
-                  onInstall={() =>
-                    void runAction(
-                      extension.name,
-                      'install',
-                      () =>
-                        extensionsApi.install(
-                          extension.name,
-                          selectedVersions[extension.name] || null
-                        ),
-                      `Расширение "${extension.display_name || extension.name}" установлено.`
-                    )
-                  }
+                  onInstall={() => {
+                    const release = extension.catalog_versions?.find(
+                      item => item.version === selectedVersions[extension.name]
+                    );
+                    if (
+                      release?.operation === 'downgrade' ||
+                      release?.operation === 'reinstall'
+                    ) {
+                      setConfirmation({ extension, release });
+                    } else {
+                      installFromCatalog(extension, release);
+                    }
+                  }}
                   onReload={() =>
                     void runAction(
                       extension.name,
                       'reload',
                       () => extensionsApi.reload(extension.name),
-                      `Расширение "${extension.display_name || extension.name}" обновлено.`
+                      `Расширение «${extension.display_name || extension.name}» перезагружено.`
                     )
                   }
                   onDelete={() => openDeleteDialog(extension)}
@@ -1177,6 +1382,35 @@ export const ExtensionsPanel: React.FC = () => {
                 : packagePreview?.operation === 'upgrade'
                   ? 'Обновить'
                   : 'Установить'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={confirmation !== null}
+        onClose={() => setConfirmation(null)}
+      >
+        <DialogTitle>
+          {versionAction(confirmation?.release.operation)}?
+        </DialogTitle>
+        {confirmation ? (
+          <DialogContent>
+            {confirmation.extension.display_name}. Текущая версия{' '}
+            {confirmation.extension.current_version}. Выбранная версия{' '}
+            {confirmation.release.version}.
+          </DialogContent>
+        ) : null}
+        <DialogActions>
+          <Button onClick={() => setConfirmation(null)}>Отмена</Button>
+          <Button
+            disabled={!catalogReady || syncing}
+            onClick={() => {
+              if (!confirmation) return;
+              installFromCatalog(confirmation.extension, confirmation.release);
+              setConfirmation(null);
+            }}
+          >
+            Подтвердить
           </Button>
         </DialogActions>
       </Dialog>

@@ -2738,6 +2738,48 @@ export type ExtensionPackagePreviewSchemaZodType = z.infer<
 >;
 
 /**
+ * ExtensionCompatibilityDifferenceSchema
+ */
+export const zExtensionCompatibilityDifferenceSchema = z.object({
+  field: z.enum([
+    'os',
+    'architecture',
+    'python',
+    'implementation',
+    'dvt_version',
+  ]),
+  current: z.union([z.string(), z.null()]),
+  required: z.string(),
+});
+
+export type ExtensionCompatibilityDifferenceSchemaZodType = z.infer<
+  typeof zExtensionCompatibilityDifferenceSchema
+>;
+
+export const zExtensionCatalogVersionSchema = z.object({
+  version: z.string(),
+  channel: z.enum(['stable', 'rc']),
+  download_url: z.string(),
+  dvt_version: z.optional(z.union([z.string(), z.null()])),
+  incompatibility: z.optional(
+    z.union([z.enum(['target', 'dvt_version']), z.null()])
+  ),
+  operation: z.optional(
+    z.union([
+      z.enum(['install', 'upgrade', 'downgrade', 'reinstall']),
+      z.null(),
+    ])
+  ),
+  incompatibility_details: z.optional(
+    z.array(zExtensionCompatibilityDifferenceSchema)
+  ),
+});
+
+export type ExtensionCatalogVersionSchemaZodType = z.infer<
+  typeof zExtensionCatalogVersionSchema
+>;
+
+/**
  * ExtensionReadSchema
  */
 export const zExtensionReadSchema = z.object({
@@ -2755,6 +2797,8 @@ export const zExtensionReadSchema = z.object({
   manifest_json: z.optional(zExtensionManifestSchema),
   state_json: z.optional(z.record(z.string(), z.unknown())),
   available_versions: z.optional(z.array(z.string())),
+  catalog_versions: z.optional(z.array(zExtensionCatalogVersionSchema)),
+  recommended_version: z.optional(z.union([z.string(), z.null()])),
   error_message: z.optional(z.union([z.string(), z.null()])),
   installed_at: z.optional(
     z.union([
@@ -15118,6 +15162,8 @@ export const zInstallExtensionExtensionsExtensionNameInstallPostData = z.object(
     query: z.optional(
       z.object({
         version: z.optional(z.union([z.string(), z.null()])),
+        allow_downgrade: z.optional(z.boolean()).default(false),
+        allow_reinstall: z.optional(z.boolean()).default(false),
       })
     ),
   }
@@ -15140,7 +15186,11 @@ export const zReloadExtensionExtensionsExtensionNameReloadPostData = z.object({
   path: z.object({
     extension_name: z.string(),
   }),
-  query: z.optional(z.never()),
+  query: z.optional(
+    z.object({
+      local_only: z.optional(z.boolean()).default(false),
+    })
+  ),
 });
 
 export type ReloadExtensionExtensionsExtensionNameReloadPostDataZodType =
