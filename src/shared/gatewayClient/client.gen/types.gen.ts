@@ -4431,6 +4431,33 @@ export type ExtensionPackagePreviewSchema = {
   warnings?: Array<string>;
 };
 
+export type ExtensionCatalogVersionSchema = {
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Channel
+   */
+  channel: 'stable' | 'rc';
+  /**
+   * Download Url
+   */
+  download_url: string;
+  /**
+   * Dvt Version
+   */
+  dvt_version?: string | null;
+  /**
+   * Incompatibility
+   */
+  incompatibility?: 'target' | 'dvt_version' | null;
+  /**
+   * Operation
+   */
+  operation?: 'install' | 'upgrade' | 'downgrade' | 'reinstall' | null;
+};
+
 /**
  * ExtensionReadSchema
  */
@@ -4487,6 +4514,14 @@ export type ExtensionReadSchema = {
    * Available Versions
    */
   available_versions?: Array<string>;
+  /**
+   * Catalog Versions
+   */
+  catalog_versions?: Array<ExtensionCatalogVersionSchema>;
+  /**
+   * Recommended Version
+   */
+  recommended_version?: string | null;
   /**
    * Error Message
    */
@@ -25596,6 +25631,14 @@ export type InstallExtensionExtensionsExtensionNameInstallPostData = {
      * Version
      */
     version?: string | null;
+    /**
+     * Allow Downgrade
+     */
+    allow_downgrade?: boolean;
+    /**
+     * Allow Reinstall
+     */
+    allow_reinstall?: boolean;
   };
   url: '/extensions/{extension_name}/install';
 };
@@ -25628,7 +25671,12 @@ export type ReloadExtensionExtensionsExtensionNameReloadPostData = {
      */
     extension_name: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Local Only
+     */
+    local_only?: boolean;
+  };
   url: '/extensions/{extension_name}/reload';
 };
 

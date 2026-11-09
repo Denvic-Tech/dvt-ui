@@ -85,12 +85,17 @@ export const extensionsApi = {
 
   async install(
     extensionName: string,
-    version?: string | null | undefined
+    version?: string | null,
+    options: { allowDowngrade?: boolean; allowReinstall?: boolean } = {}
   ): Promise<ExtensionReadSchema> {
     const response = await client.extensions
       .extensionName(extensionName)
       .install.post({
-        query: version != null ? { version } : {},
+        query: {
+          ...(version != null && { version }),
+          ...(options.allowDowngrade && { allow_downgrade: true }),
+          ...(options.allowReinstall && { allow_reinstall: true }),
+        },
       });
     return normalizeExtension(response.data);
   },
@@ -98,7 +103,7 @@ export const extensionsApi = {
   async reload(extensionName: string): Promise<ExtensionReadSchema> {
     const response = await client.extensions
       .extensionName(extensionName)
-      .reload.post();
+      .reload.post({ query: { local_only: true } });
     return normalizeExtension(response.data);
   },
 
