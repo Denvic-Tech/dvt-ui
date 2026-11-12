@@ -151,7 +151,7 @@ export const brandTitleAccentSx: SxProps<Theme> = {
   fontWeight: 700,
   fontSize: 20,
   color: theme =>
-    theme.palette.mode === 'dark' ? theme.palette.text.primary : '#0A4F6E',
+    theme.palette.mode === 'dark' ? theme.palette.text.primary : '#3535B8',
 };
 
 export const brandVersionSx: SxProps<Theme> = {
