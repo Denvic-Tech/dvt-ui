@@ -10,6 +10,7 @@ import {
 import type {
   AppSettingsFieldDescriptor,
   AppSettingsFormValues,
+  AppSettingsNumericFormValue,
   OomGuardSettingsFormValue,
 } from '../../model/types';
 import { SettingsSaveRow } from '../settings-form/SettingsSaveRow';
@@ -83,7 +84,8 @@ const THRESHOLD_HINTS = {
 
 type ThresholdInputProps = {
   label: string;
-  value: string;
+  // В форме порог бывает числом (из настроек) или строкой (во время ввода).
+  value: AppSettingsNumericFormValue;
   unit: string;
   error: boolean;
   disabled: boolean;

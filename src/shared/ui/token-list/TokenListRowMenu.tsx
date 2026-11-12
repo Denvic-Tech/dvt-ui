@@ -200,7 +200,7 @@ export const TokenListRowMenu = ({ label, actions }: TokenListRowMenuProps) => {
 
       <Popper
         open={menuAnchor !== null && submenu !== null}
-        anchorEl={submenu?.anchor}
+        anchorEl={submenu?.anchor ?? null}
         placement='right-start'
         modifiers={SUBMENU_MODIFIERS}
         sx={theme => ({ zIndex: theme.zIndex.modal + 1 })}
