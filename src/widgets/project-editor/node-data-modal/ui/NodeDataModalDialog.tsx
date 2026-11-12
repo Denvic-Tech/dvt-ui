@@ -42,6 +42,9 @@ export const NodeDataModalDialog = ({
           maxWidth: size?.width !== undefined ? DEFAULT_WIDTH : 'none',
           maxHeight: size?.height !== undefined ? DEFAULT_HEIGHT : 'none',
           m: 0,
+          // Радиус окна по макету настроек нод (Clean Minimal), меньше
+          // радиуса диалогов из темы.
+          borderRadius: '10px',
           border: `1px solid ${theme.palette.divider}`,
           backgroundColor: theme.palette.background.paper,
           boxShadow: '0 24px 72px rgba(15, 23, 42, 0.18)',

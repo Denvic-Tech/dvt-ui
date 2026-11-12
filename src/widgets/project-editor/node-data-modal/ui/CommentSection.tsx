@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Box, Button, Modal } from '@mui/material';
 
 import { EditableComment } from '@/shared/ui';
@@ -12,12 +12,9 @@ import {
   CommentModalIcon,
   CommentModalSubtitle,
   CommentModalTitle,
-  CommentTriggerBadge,
-  CommentTriggerButton,
-  CommentTriggerPreview,
+  HeaderBadge,
+  HeaderIconButton,
 } from './styles';
-
-const COMMENT_PREVIEW_LENGTH = 22;
 
 const CommentIcon = ({
   size = 16,
@@ -53,14 +50,21 @@ const CloseIcon = ({
   </svg>
 );
 
-const normalizeCommentPreview = (value: string) => {
-  const normalized = value.replace(/\s+/g, ' ').trim();
-  if (normalized.length <= COMMENT_PREVIEW_LENGTH) {
-    return normalized;
-  }
-
-  return `${normalized.slice(0, COMMENT_PREVIEW_LENGTH).trimEnd()}…`;
-};
+/** Иконка комментария для кнопки в шапке модалки. */
+const HeaderCommentIcon = () => (
+  <svg
+    aria-hidden='true'
+    width={16}
+    height={16}
+    viewBox='0 0 16 16'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth={1.5}
+    strokeLinejoin='round'
+  >
+    <path d='M13.5 10a1.5 1.5 0 0 1-1.5 1.5H5l-2.5 2.5V3.5A1.5 1.5 0 0 1 4 2h8a1.5 1.5 0 0 1 1.5 1.5z' />
+  </svg>
+);
 
 type CommentTriggerProps = {
   value: string;
@@ -71,30 +75,19 @@ export const CommentTrigger: React.FC<CommentTriggerProps> = ({
   value,
   onClick,
 }) => {
-  const commentText = useMemo(() => (value ?? '').trim(), [value]);
-  const hasComment = commentText.length > 0;
-  const preview = useMemo(
-    () => (hasComment ? normalizeCommentPreview(value ?? '') : ''),
-    [hasComment, value]
-  );
+  const hasComment = (value ?? '').trim().length > 0;
+  const label = hasComment ? 'Открыть комментарий' : 'Добавить комментарий';
 
   return (
-    <CommentTriggerButton
+    <HeaderIconButton
       type='button'
-      filled={hasComment}
       onClick={onClick}
-      title={hasComment ? 'Открыть комментарий' : 'Добавить комментарий'}
+      aria-label={label}
+      title={label}
     >
-      <CommentIcon size={15} />
-      {hasComment ? (
-        <>
-          <CommentTriggerPreview>{preview}</CommentTriggerPreview>
-          <CommentTriggerBadge>{value.length}</CommentTriggerBadge>
-        </>
-      ) : (
-        'Комментарий'
-      )}
-    </CommentTriggerButton>
+      <HeaderCommentIcon />
+      {hasComment ? <HeaderBadge aria-hidden='true' /> : null}
+    </HeaderIconButton>
   );
 };
 

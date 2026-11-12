@@ -132,6 +132,12 @@ export interface NodeModalExtension extends NodeExtensionBase<'modal'> {
   allowOpenWithoutConnectedMetadata?: boolean;
   presentation?: NodeModalPresentationConfig;
   dialogSize?: NodeModalDialogSize;
+  /**
+   * Делает «Сохранить» в футере модалки недоступной, пока черновик
+   * не готов к сохранению (например, не выбран обязательный объект).
+   * Валидация при сохранении от этого не меняется.
+   */
+  isSaveDisabled?: (localInputData: Partial<Record<string, any>>) => boolean;
   condition: (nodeDefinition: NodeDefinition) => boolean;
   component: React.FC<NodeModalExtensionProps>;
 }
@@ -156,6 +162,11 @@ export type NodeModalStepperExtensionProps<
    * Setter for the shared local state
    */
   setSharedState: React.Dispatch<React.SetStateAction<S>>;
+  /**
+   * Navigate back to an already passed step (index from 0). Forward
+   * navigation is ignored: it always goes through step validation.
+   */
+  goToStep?: (stepIndex: number) => void;
 };
 
 /**
@@ -327,6 +338,13 @@ export interface NodeModalStepperExtension<
   S = undefined,
 > extends NodeExtensionBase<'modal_stepper'> {
   allowOpenWithoutConnectedMetadata?: boolean;
+  /** Фиксированный размер окна степпера (по умолчанию — почти весь экран). */
+  dialogSize?: NodeModalDialogSize;
+  /**
+   * Шаги занимают тело окна целиком, без внешних отступов: между шапкой,
+   * футером и краями окна (шаги сами задают внутренние отступы).
+   */
+  fullBleed?: boolean;
   condition: (nodeDefinition: NodeDefinition) => boolean;
   steps: NodeModalStepperStep<any, S>[];
 }

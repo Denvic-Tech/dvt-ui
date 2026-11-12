@@ -21,21 +21,20 @@ const ProgressRoot = styled('div')({
   display: 'flex',
   alignItems: 'center',
   flexShrink: 0,
-  gap: 10,
+  gap: 8,
+  marginRight: 8,
   overflow: 'visible',
-  '--stepper-accent': '#6c63ff',
-  '--stepper-text-2': '#6b6b76',
-  '--stepper-text-3': '#9b9ba6',
-  '--stepper-text-4': '#c0c0c8',
-  '--stepper-border-strong': '#d4d4dc',
-  '--stepper-mono': 'ui-monospace, Consolas, monospace',
+  fontSize: 12.5,
+  '--stepper-accent': '#5B5BEF',
+  '--stepper-text': '#1B1F2A',
+  '--stepper-text-3': '#9AA0AD',
+  '--stepper-dot': '#D3D7E0',
 });
 
 const StepLabel = styled('span')({
   whiteSpace: 'nowrap',
-  color: 'var(--stepper-text-2)',
-  fontSize: 12.5,
-  fontWeight: 600,
+  color: 'var(--stepper-text)',
+  fontWeight: 500,
   animation: `${labelEnter} 0.2s ease both`,
   '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
 });
@@ -49,7 +48,7 @@ const StepTrigger = styled('button', {
   justifyContent: 'center',
   flexShrink: 0,
   height: 22,
-  padding: '0 3px',
+  padding: '0 2px',
   border: 0,
   borderRadius: 4,
   background: 'transparent',
@@ -68,19 +67,15 @@ const StepDot = styled('span', {
   ({ state, highlighted }) => ({
     display: 'block',
     flexShrink: 0,
-    width: state === 'active' ? 18 : highlighted ? 10 : 6,
-    height: state === 'active' ? 6 : highlighted ? 8 : 6,
-    borderRadius: 999,
+    width: state === 'active' ? 14 : 5,
+    height: 5,
+    borderRadius: 3,
     backgroundColor:
       state === 'active'
         ? 'var(--stepper-accent)'
-        : state === 'done'
-          ? highlighted
-            ? 'var(--stepper-text-3)'
-            : 'var(--stepper-text-4)'
-          : highlighted
-            ? 'var(--stepper-text-4)'
-            : 'var(--stepper-border-strong)',
+        : highlighted && state === 'done'
+          ? 'var(--stepper-text-3)'
+          : 'var(--stepper-dot)',
     transition: 'all .2s cubic-bezier(.3,.9,.4,1.3)',
     '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
   })
@@ -143,9 +138,8 @@ export const FooterStepProgress: React.FC<Props> = ({
         <Box
           component='span'
           sx={{
-            fontFamily: 'var(--stepper-mono)',
-            fontSize: 11,
-            color: 'var(--stepper-text-4)',
+            color: 'var(--stepper-text-3)',
+            fontVariantNumeric: 'tabular-nums',
           }}
         >
           {activeStep + 1}/{steps.length}
@@ -199,7 +193,7 @@ export const FooterStepProgress: React.FC<Props> = ({
                   component='span'
                   sx={{
                     mr: 0.75,
-                    fontFamily: 'var(--stepper-mono)',
+                    fontVariantNumeric: 'tabular-nums',
                     color: '#a3a3b5',
                   }}
                 >

@@ -1,16 +1,18 @@
 import React from 'react';
-import { Box, Button, Typography } from '@mui/material';
 
-import { getControlRadius } from '@/shared/ui/primitives/components/theme-style-helpers';
-
-import { FooterActions, FooterRoot } from './styles.ts';
+import {
+  FooterActions,
+  FooterButton,
+  FooterHint,
+  FooterRoot,
+} from './styles.ts';
 import { UnsavedChangesIndicator } from './UnsavedChangesIndicator';
 
 type Props = {
   hasUnsavedChanges: boolean;
   onCancel?: () => void;
   onSave: () => void;
-  saveLabel?: string;
+  saveLabel?: React.ReactNode;
   saveDisabled?: boolean;
   saveTestId?: string;
   showSaveShortcut?: boolean;
@@ -34,63 +36,37 @@ export const Footer: React.FC<Props> = ({
       {hasUnsavedChanges ? <UnsavedChangesIndicator /> : null}
       <FooterActions>
         {progress ?? (
-          <Typography
-            color='text.disabled'
-            sx={{
-              mr: 0.5,
-              fontSize: 12,
-              fontWeight: 500,
-              lineHeight: 1.4,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Box component='span' sx={{ fontWeight: 600 }}>
-              Esc
-            </Box>{' '}
-            — закрыть
+          <FooterHint>
+            <b>Esc</b> — закрыть
             {showSaveShortcut && (
               <>
-                <Box component='span' sx={{ mx: 1, opacity: 0.72 }}>
-                  •
-                </Box>
-                <Box component='span' sx={{ fontWeight: 600 }}>
-                  Ctrl S
-                </Box>{' '}
-                — сохранить
+                <span style={{ margin: '0 8px', opacity: 0.72 }}>•</span>
+                <b>Ctrl S</b> — сохранить
               </>
             )}
-          </Typography>
+          </FooterHint>
         )}
         {onCancel && (
-          <Button
+          <FooterButton
+            type='button'
+            tone='secondary'
             data-testid='widgets/project-editor/node-data-modal/cancel-button'
             onClick={onCancel}
-            variant='outlined'
-            color='inherit'
-            sx={{
-              borderRadius: theme => getControlRadius(theme, 'sm'),
-              color: 'text.secondary',
-            }}
           >
             Отмена
-          </Button>
+          </FooterButton>
         )}
         {children}
 
-        <Button
+        <FooterButton
+          type='button'
+          tone='primary'
           data-testid={saveTestId}
           onClick={onSave}
           disabled={saveDisabled}
-          variant='contained'
-          color='primary'
-          disableElevation
-          sx={{
-            borderRadius: theme => getControlRadius(theme, 'sm'),
-            fontWeight: 600,
-          }}
         >
           {saveLabel}
-        </Button>
+        </FooterButton>
       </FooterActions>
     </FooterRoot>
   );

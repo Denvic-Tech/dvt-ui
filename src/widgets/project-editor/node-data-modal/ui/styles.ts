@@ -1,11 +1,6 @@
 import { Box, Typography } from '@mui/material';
 import { alpha, styled } from '@mui/material/styles';
 
-import {
-  getControlRadius,
-  getRadius,
-} from '@/shared/ui/primitives/components/theme-style-helpers';
-
 export const ModalContainer = styled(Box)({
   display: 'flex',
   flexDirection: 'column',
@@ -56,211 +51,174 @@ export const AlertsContainer = styled(Box)({
   flexShrink: 0,
 });
 
-export const HeaderRoot = styled(Box)(({ theme }) => ({
-  padding: '14px 20px',
-  display: 'flex',
-  alignItems: 'flex-start',
-  justifyContent: 'space-between',
-  gap: 16,
-  flexShrink: 0,
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  backgroundColor: alpha(theme.palette.background.paper, 0.94),
-}));
+/** Цвета шапки по макету настроек нод (Clean Minimal). */
+const headerTokens = {
+  text: '#1B1F2A',
+  muted: '#6B7385',
+  subtle: '#9AA0AD',
+  accent: '#5B5BEF',
+  border: '#E6E9F0',
+  divider: '#EEF0F4',
+  hover: '#F1F3F8',
+  surface: '#FFFFFF',
+} as const;
 
-export const HeaderLeft = styled(Box)({
+const HEADER_FONT_FAMILY =
+  'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+export const HeaderRoot = styled('header')({
+  height: 44,
+  flexShrink: 0,
+  boxSizing: 'border-box',
   display: 'flex',
-  alignItems: 'flex-start',
-  gap: 14,
-  flex: 1,
-  minWidth: 0,
+  alignItems: 'center',
+  gap: 4,
+  padding: '0 12px 0 16px',
+  borderBottom: `1px solid ${headerTokens.divider}`,
+  backgroundColor: headerTokens.surface,
+  color: headerTokens.text,
+  fontFamily: HEADER_FONT_FAMILY,
 });
 
-export const IconWrapper = styled(Box)(({ theme }) => ({
-  width: 38,
-  height: 38,
-  borderRadius: getControlRadius(theme, 'sm'),
-  background: alpha(theme.palette.primary.main, 0.08),
+export const HeaderNodeIcon = styled('span')({
+  width: 16,
+  height: 16,
+  flexShrink: 0,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  flexShrink: 0,
-}));
-
-export const TitleSection = styled(Box)({
-  flex: 1,
-  minWidth: 0,
+  marginRight: 6,
+  // Иконка ноды — акцентного синего, кнопки справа остаются серыми.
+  color: headerTokens.accent,
 });
 
-export const TitleRow = styled(Box)(({ theme }) => ({
+export const TitleRow = styled('div')({
   position: 'relative',
+  minWidth: 0,
   display: 'flex',
   alignItems: 'center',
-  gap: 8,
-  color: theme.palette.text.primary,
-}));
+});
 
-export const TitleText = styled('button')(({ theme }) => ({
+const titleFont = {
+  fontFamily: 'inherit',
+  fontSize: 14,
+  fontWeight: 600,
+  lineHeight: '20px',
+} as const;
+
+export const TitleText = styled('button')({
+  ...titleFont,
   minWidth: 0,
+  margin: 0,
   padding: 0,
   border: 0,
   backgroundColor: 'transparent',
   color: 'inherit',
-  fontFamily: 'inherit',
-  fontSize: '1rem',
-  fontWeight: 600,
-  lineHeight: 1.3,
   textAlign: 'left',
   cursor: 'text',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
   '&:focus-visible': {
-    outline: `2px solid ${alpha(theme.palette.primary.main, 0.24)}`,
+    outline: `2px solid ${alpha(headerTokens.accent, 0.32)}`,
     outlineOffset: 2,
+    borderRadius: 4,
   },
-}));
+});
 
-export const TitleInputWrapper = styled(Box)({
+export const TitleInputWrapper = styled('div')({
   position: 'absolute',
   top: -2,
   left: -4,
   display: 'inline-grid',
   maxWidth: 'calc(100% + 4px)',
   '&::after': {
+    ...titleFont,
     content: 'attr(data-value)',
     gridArea: '1 / 1',
     visibility: 'hidden',
     whiteSpace: 'pre',
-    fontFamily: 'inherit',
-    fontSize: '1rem',
-    fontWeight: 600,
-    lineHeight: 1.3,
-    padding: '1px 4px',
+    padding: '2px 4px',
   },
 });
 
-export const TitleInput = styled('input')(({ theme }) => ({
+export const TitleInput = styled('input')({
+  ...titleFont,
   gridArea: '1 / 1',
   appearance: 'none',
-  fontSize: '1rem',
-  fontWeight: 600,
-  color: theme.palette.text.primary,
-  lineHeight: 1.3,
-  backgroundColor: theme.palette.action.hover,
-  border: 'none',
-  borderRadius: 6,
-  padding: '1px 4px',
-  outline: 'none',
   boxSizing: 'border-box',
   width: 0,
   minWidth: '100%',
   maxWidth: '100%',
   height: '100%',
-  fontFamily: 'inherit',
-}));
+  padding: '2px 4px',
+  border: 'none',
+  borderRadius: 6,
+  outline: 'none',
+  backgroundColor: headerTokens.hover,
+  color: headerTokens.text,
+});
 
-export const Subtitle = styled(Typography)(({ theme }) => ({
-  fontSize: '0.75rem',
-  color: theme.palette.text.secondary,
-  lineHeight: 1.35,
-}));
-
-export const SubtitleRow = styled(Box)({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 10,
-  marginTop: 0,
+/** Тип ноды рядом с названием — только если ноду переименовали. */
+export const HeaderSecondary = styled('span')({
   minWidth: 0,
-});
-
-export const SubtitleLinkButton = styled('button')(({ theme }) => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-  padding: 0,
-  border: 'none',
-  backgroundColor: 'transparent',
-  color: theme.palette.primary.main,
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  lineHeight: 1.4,
+  flexShrink: 1000,
+  marginLeft: 6,
+  overflow: 'hidden',
+  fontSize: 13,
+  color: headerTokens.subtle,
+  textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
-  transition: 'opacity 0.15s ease',
-  '&:hover': {
-    opacity: 0.78,
-  },
-}));
-
-export const HeaderActions = styled(Box)({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 14,
 });
 
-export const CloseButton = styled('button')(({ theme }) => ({
-  width: 36,
-  height: 36,
-  padding: 0,
-  border: 'none',
-  borderRadius: getRadius(theme),
-  backgroundColor: alpha(theme.palette.background.paper, 0.84),
-  color: theme.palette.text.secondary,
-  cursor: 'pointer',
+export const HeaderSpacer = styled('span')({
+  flex: 1,
+  minWidth: 8,
+});
+
+export const HeaderIconButton = styled('button')({
+  position: 'relative',
+  width: 28,
+  height: 28,
+  flexShrink: 0,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  transition: 'all 0.15s ease',
-  '&:hover': {
-    backgroundColor: theme.palette.action.hover,
-    borderRadius: getControlRadius(theme, 'sm'),
-    color: theme.palette.text.primary,
-  },
-}));
-
-export const CommentTriggerButton = styled('button', {
-  shouldForwardProp: prop => prop !== 'filled',
-})<{ filled: boolean }>(({ filled }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 7,
-  height: 32,
-  maxWidth: 240,
-  padding: '0 10px',
-  borderRadius: 9,
-  fontSize: 12.5,
-  fontWeight: 600,
+  padding: 0,
+  border: 'none',
+  borderRadius: 8,
+  backgroundColor: 'transparent',
+  color: headerTokens.muted,
   cursor: 'pointer',
-  fontFamily: 'inherit',
-  background: filled ? '#eef2ff' : '#ffffff',
-  color: filled ? '#6366f1' : '#64748b',
-  border: `1px solid ${filled ? '#c7d2fe' : '#e2e8f0'}`,
-  transition: 'all 150ms ease',
+  transition: 'background-color .12s, color .12s',
   '&:hover': {
-    background: filled ? '#eef2ff' : '#f8fafc',
+    backgroundColor: headerTokens.hover,
+    color: headerTokens.text,
   },
-}));
-
-export const CommentTriggerPreview = styled('span')({
-  flex: 1,
-  minWidth: 0,
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  fontWeight: 500,
-  color: '#1e293b',
+  '&:focus-visible': {
+    outline: 'none',
+    boxShadow: `0 0 0 2px ${headerTokens.accent}`,
+  },
 });
 
-export const CommentTriggerBadge = styled('span')({
+/** Точка на кнопке комментария, когда комментарий заполнен. */
+export const HeaderBadge = styled('span')({
+  position: 'absolute',
+  top: 4,
+  right: 4,
+  width: 6,
+  height: 6,
+  borderRadius: '50%',
+  backgroundColor: headerTokens.accent,
+  boxShadow: `0 0 0 2px ${headerTokens.surface}`,
+});
+
+export const HeaderDivider = styled('span')({
+  width: 1,
+  height: 16,
   flexShrink: 0,
-  fontSize: 11,
-  fontWeight: 700,
-  padding: '1px 6px',
-  borderRadius: 999,
-  background: '#ffffff',
-  color: '#6366f1',
-  border: '1px solid #c7d2fe',
+  margin: '0 4px',
+  backgroundColor: headerTokens.border,
 });
 
 export const CommentModal = styled('div')(({ theme }) => ({
@@ -358,23 +316,69 @@ export const CommentModalCloseButton = styled('button')({
   },
 });
 
-export const FooterRoot = styled(Box)(({ theme }) => ({
-  height: 66,
-  padding: '0 20px',
+/** Футер по макету настроек нод (Clean Minimal): 56 px, кнопки 36 px. */
+export const FooterRoot = styled('footer')({
+  height: 56,
+  flexShrink: 0,
   boxSizing: 'border-box',
-  borderTop: `1px solid ${theme.palette.divider}`,
-  backgroundColor: alpha(theme.palette.background.paper, 0.94),
   display: 'flex',
   alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 16,
-  flexShrink: 0,
+  gap: 8,
+  padding: '0 12px 0 16px',
+  borderTop: `1px solid ${headerTokens.divider}`,
+  backgroundColor: headerTokens.surface,
+  color: headerTokens.text,
+  fontFamily: HEADER_FONT_FAMILY,
   zIndex: 10,
+});
+
+export const FooterActions = styled('div')({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  marginLeft: 'auto',
+});
+
+export const FooterButton = styled('button', {
+  shouldForwardProp: prop => prop !== 'tone',
+})<{ tone: 'primary' | 'secondary' }>(({ tone }) => ({
+  height: 36,
+  flexShrink: 0,
+  boxSizing: 'border-box',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: tone === 'primary' ? '0 18px' : '0 16px',
+  border: tone === 'primary' ? 'none' : `1px solid ${headerTokens.border}`,
+  borderRadius: 9,
+  backgroundColor: tone === 'primary' ? headerTokens.accent : '#FFFFFF',
+  color: tone === 'primary' ? '#FFFFFF' : headerTokens.text,
+  fontFamily: 'inherit',
+  fontSize: 13.5,
+  fontWeight: tone === 'primary' ? 600 : 500,
+  whiteSpace: 'nowrap',
+  cursor: 'pointer',
+  '& > svg': { flexShrink: 0 },
+  '&:hover': {
+    backgroundColor: tone === 'primary' ? '#4343D6' : '#F5F6FA',
+  },
+  '&:focus-visible': {
+    outline: `2px solid ${alpha(headerTokens.accent, 0.4)}`,
+    outlineOffset: 2,
+  },
+  '&:disabled, &:disabled:hover': {
+    backgroundColor: tone === 'primary' ? '#E9ECF2' : '#FFFFFF',
+    color: tone === 'primary' ? '#A3A9B6' : '#B4BAC6',
+    cursor: 'default',
+  },
 }));
 
-export const FooterActions = styled(Box)({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 12,
-  marginLeft: 'auto',
+export const FooterHint = styled('span')({
+  marginRight: 4,
+  fontSize: 12,
+  fontWeight: 500,
+  lineHeight: 1.4,
+  whiteSpace: 'nowrap',
+  color: headerTokens.subtle,
+  '& b': { fontWeight: 600 },
 });
