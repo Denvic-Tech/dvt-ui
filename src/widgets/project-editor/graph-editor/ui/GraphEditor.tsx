@@ -34,6 +34,7 @@ import {
   useNodesState,
   useOnSelectionChange,
   useReactFlow,
+  useStoreApi,
 } from '@xyflow/react';
 import { useStore } from 'react-redux';
 
@@ -134,6 +135,12 @@ import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { getRadius } from '@/shared/ui/primitives/components/theme-style-helpers';
 
 import {
+  isDialogTarget,
+  isGraphKeyboardTarget,
+  isTextInputTarget,
+  shouldHandleCanvasDeleteKey,
+} from '../lib/canvasKeyboardTargets';
+import {
   buildDuplicateClipboardPayload,
   cloneIncomingEdgesForDuplicate,
   cloneNodeForDuplicate,
@@ -142,6 +149,7 @@ import {
   NODE_DUPLICATE_CLIPBOARD_MIME,
   parseDuplicateClipboardPayload,
 } from '../lib/duplicateNode';
+import { createExclusiveConfirm } from '../lib/exclusiveConfirm';
 import { isSecondaryMouseButtonEvent } from '../lib/paneMenuInteraction';
 import { shouldOpenMultiSelectionContextMenu } from '../lib/selectionContextMenuInteraction';
 
@@ -438,33 +446,6 @@ const resolvePositiveSize = (
   return null;
 };
 
-const isTextInputTarget = (target: EventTarget | null) => {
-  const el = target as HTMLElement | null;
-  if (!el) return false;
-  const tag = el.tagName?.toLowerCase();
-  if (tag === 'input' || tag === 'textarea' || tag === 'select') {
-    return true;
-  }
-  if (el.isContentEditable) return true;
-  if (el.getAttribute('role') === 'textbox') return true;
-  if (el.closest('.nokey, .monaco-editor, .native-edit-context')) {
-    return true;
-  }
-  return false;
-};
-
-const isDialogTarget = (target: EventTarget | null) => {
-  const el = target as HTMLElement | null;
-  if (!el) return false;
-
-  if (el.closest('[role="dialog"], .MuiDialog-root')) {
-    return true;
-  }
-
-  const activeElement = document.activeElement as HTMLElement | null;
-  return Boolean(activeElement?.closest('[role="dialog"], .MuiDialog-root'));
-};
-
 const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
   const theme = useTheme();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -478,7 +459,11 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
     getViewport,
     getInternalNode,
     getNode,
+    getNodes,
+    getEdges,
+    deleteElements,
   } = useReactFlow<GraphEditorNode, GraphEdgeWithSubgraph>();
+  const reactFlowStore = useStoreApi<GraphEditorNode, GraphEdgeWithSubgraph>();
 
   const [nodes, setNodes, onNodesChanges] = useNodesState<CustomNodeType>([]);
   const [edges, setEdges, onEdgesChanges] =
@@ -1364,6 +1349,9 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
   });
   const { calculateReconnectionEdges } = useAutoReconnectNodes();
   const { confirm } = useConfirmDialog();
+  // One delete confirmation at a time: repeated delete requests while the
+  // dialog is open are dropped instead of stacking dialogs.
+  const [runExclusiveDeleteConfirm] = useState(() => createExclusiveConfirm());
   const { showNotification } = useAlert();
   const { open: openEdgeContextMenu } = useEdgeContextMenuActions();
   const { open: openMultiNodeContextMenu, close: closeMultiNodeContextMenu } =
@@ -4223,18 +4211,25 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
           ? `${message}\n${subgraphLines.join('\n')}`
           : message;
 
-      const isConfirmed = await confirm({
-        title,
-        message: mergedMessage,
-        confirmLabel: 'Удалить',
-        cancelLabel: 'Отмена',
-        confirmColor: 'error',
-        maxWidth: 'sm',
-      });
+      const isConfirmed = await runExclusiveDeleteConfirm(() =>
+        confirm({
+          title,
+          message: mergedMessage,
+          confirmLabel: 'Удалить',
+          cancelLabel: 'Отмена',
+          confirmColor: 'error',
+          maxWidth: 'sm',
+        })
+      );
 
       return isConfirmed;
     },
-    [buildDeleteDialogContent, confirm, mapVisibleEdgesToReal]
+    [
+      buildDeleteDialogContent,
+      confirm,
+      mapVisibleEdgesToReal,
+      runExclusiveDeleteConfirm,
+    ]
   );
 
   const onDelete: OnDelete<GraphEditorNode, GraphEdgeWithSubgraph> =
@@ -4328,14 +4323,16 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
         edgesToDelete
       );
 
-      const isConfirmed = await confirm({
-        title,
-        message,
-        confirmLabel: 'Удалить',
-        cancelLabel: 'Отмена',
-        confirmColor: 'error',
-        maxWidth: 'sm',
-      });
+      const isConfirmed = await runExclusiveDeleteConfirm(() =>
+        confirm({
+          title,
+          message,
+          confirmLabel: 'Удалить',
+          cancelLabel: 'Отмена',
+          confirmColor: 'error',
+          maxWidth: 'sm',
+        })
+      );
 
       if (!isConfirmed) {
         return;
@@ -4356,6 +4353,7 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
       confirm,
       createGraphEdges,
       deleteGraphEntities,
+      runExclusiveDeleteConfirm,
     ]
   );
 
@@ -5192,29 +5190,39 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
     };
   }, [closeSearch, isSearchOpen]);
 
+  // Replaces React Flow's `deleteKeyCode`: its document listener ignores only
+  // text inputs, so Backspace/Delete bubbling out of an open node modal
+  // deleted the selected nodes. See `shouldHandleCanvasDeleteKey`.
   useEffect(() => {
-    const isGraphClipboardTarget = (target: EventTarget | null) => {
-      const wrapper = reactFlowWrapper.current;
-      if (!wrapper) {
-        return false;
+    const onDeleteKeyDown = (event: KeyboardEvent) => {
+      if (!shouldHandleCanvasDeleteKey(event, reactFlowWrapper.current)) {
+        return;
       }
 
-      const targetNode = target as Node | null;
-      if (targetNode && wrapper.contains(targetNode)) {
-        return true;
+      const target = event.target as HTMLElement | null;
+      if (target?.nodeName !== 'BUTTON' && target?.nodeName !== 'A') {
+        event.preventDefault();
       }
 
-      const activeElement = document.activeElement;
-      if (activeElement && wrapper.contains(activeElement)) {
-        return true;
+      const selectedNodes = getNodes().filter(node => node.selected);
+      const selectedEdges = getEdges().filter(edge => edge.selected);
+      if (selectedNodes.length === 0 && selectedEdges.length === 0) {
+        return;
       }
 
-      return (
-        !targetNode ||
-        targetNode === document.body ||
-        targetNode === document.documentElement
-      );
+      void deleteElements({ nodes: selectedNodes, edges: selectedEdges });
+      reactFlowStore.setState({ nodesSelectionActive: false });
     };
+
+    document.addEventListener('keydown', onDeleteKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onDeleteKeyDown);
+    };
+  }, [deleteElements, getEdges, getNodes, reactFlowStore]);
+
+  useEffect(() => {
+    const isGraphClipboardTarget = (target: EventTarget | null) =>
+      isGraphKeyboardTarget(target, reactFlowWrapper.current);
 
     const onCopy = (event: ClipboardEvent) => {
       if (isTextInputTarget(event.target)) {
@@ -5425,7 +5433,8 @@ const GraphEditor_: React.FC<GraphEditorProps> = ({ edgeTypes }) => {
           }}
           onlyRenderVisibleElements
           isValidConnection={isValidVisibleConnection}
-          deleteKeyCode={['Backspace', 'Delete']}
+          // Canvas delete hotkey is handled by `onDeleteKeyDown` above.
+          deleteKeyCode={null}
           panOnDrag={[0]}
           selectionOnDrag={false}
           onPaneContextMenu={onPaneContextMenu}
