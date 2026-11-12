@@ -1,16 +1,61 @@
-import { Box, InputAdornment, TextField, Typography } from '@mui/material';
 import type { ChangeEvent } from 'react';
+
+import { ToggleSwitch } from '../../schema-step/SchemaStep.styles';
+import { SettingLine } from '../SettingLine';
+import { SettingInput, SettingsBox } from '../settings.styles';
+
+type Bounds = { min: number; max: number };
 
 type BatchSettingsSectionProps = {
   chunkSize: number | null | undefined;
-  chunkSizeBounds: { min: number; max: number };
+  chunkSizeBounds: Bounds;
   minBatchRows: number | null | undefined;
-  minBatchRowsBounds: { min: number; max: number };
+  minBatchRowsBounds: Bounds;
   onChunkSizeChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onMinBatchRowsChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  syncDescriptions: boolean;
+  onSyncDescriptionsChange: (checked: boolean) => void;
   errors?: Record<string, string[]>;
 };
 
+const NumberSetting = ({
+  name,
+  label,
+  hint,
+  value,
+  bounds,
+  onChange,
+  error,
+}: {
+  name: string;
+  label: string;
+  hint: string;
+  value: number | null | undefined;
+  bounds: Bounds;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  error: string | undefined;
+}) => (
+  <SettingLine label={label} hint={hint} error={error}>
+    <SettingInput numeric invalid={Boolean(error)}>
+      <input
+        id={name}
+        type='number'
+        inputMode='numeric'
+        value={value ?? ''}
+        onChange={onChange}
+        min={bounds.min}
+        max={bounds.max}
+        step={1}
+        aria-label={label}
+        aria-invalid={Boolean(error)}
+        spellCheck={false}
+      />
+      <span className='input-suffix'>строк</span>
+    </SettingInput>
+  </SettingLine>
+);
+
+/** Пакетная запись и синхронизация описаний (макет: первая `.qbox`). */
 export const BatchSettingsSection = ({
   chunkSize,
   chunkSizeBounds,
@@ -18,83 +63,42 @@ export const BatchSettingsSection = ({
   minBatchRowsBounds,
   onChunkSizeChange,
   onMinBatchRowsChange,
+  syncDescriptions,
+  onSyncDescriptionsChange,
   errors = {},
 }: BatchSettingsSectionProps) => (
-  <Box
-    sx={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-      gap: 1.5,
-    }}
-  >
-    {[
-      {
-        name: 'chunksize',
-        label: 'Размер чанка',
-        value: chunkSize,
-        bounds: chunkSizeBounds,
-        onChange: onChunkSizeChange,
-        hint: 'Строк в одном INSERT',
-      },
-      {
-        name: 'min_batch_rows',
-        label: 'Мин. размер пакета',
-        value: minBatchRows,
-        bounds: minBatchRowsBounds,
-        onChange: onMinBatchRowsChange,
-        hint: 'Копить строки перед записью',
-      },
-    ].map(field => (
-      <Box key={field.name} sx={{ minWidth: 0 }}>
-        <Typography
-          component='label'
-          htmlFor={field.name}
-          sx={{
-            display: 'block',
-            mb: 0.75,
-            fontFamily: 'Inter, sans-serif',
-            fontSize: 12.5,
-            color: '#6b6b76',
-          }}
-        >
-          {field.label}
-        </Typography>
-        <TextField
-          id={field.name}
-          fullWidth
-          size='small'
-          type='number'
-          value={field.value ?? ''}
-          onChange={field.onChange}
-          error={Boolean(errors[field.name]?.length)}
-          inputProps={{ min: field.bounds.min, max: field.bounds.max, step: 1 }}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position='end'>
-                <Typography sx={{ fontSize: 12, color: '#c0c0c8' }}>
-                  строк
-                </Typography>
-              </InputAdornment>
-            ),
-          }}
-          helperText={errors[field.name]?.join(' ') || field.hint}
-          sx={{
-            '& .MuiOutlinedInput-root': { height: 34, borderRadius: '8px' },
-            '& input': {
-              fontFamily: 'Consolas, monospace',
-              fontSize: 13,
-              px: 1.25,
-            },
-            '& .MuiFormHelperText-root': {
-              mx: 0,
-              mt: 0.5,
-              fontSize: 12,
-              color: '#b2b2bd',
-            },
-            '& .MuiFormHelperText-root.Mui-error': { color: 'error.main' },
-          }}
-        />
-      </Box>
-    ))}
-  </Box>
+  <SettingsBox>
+    <NumberSetting
+      name='chunksize'
+      label='Размер чанка'
+      hint='Строк в одном INSERT'
+      value={chunkSize}
+      bounds={chunkSizeBounds}
+      onChange={onChunkSizeChange}
+      error={errors['chunksize']?.join(' ')}
+    />
+    <NumberSetting
+      name='min_batch_rows'
+      label='Мин. размер пакета'
+      hint='Копить строки перед записью'
+      value={minBatchRows}
+      bounds={minBatchRowsBounds}
+      onChange={onMinBatchRowsChange}
+      error={errors['min_batch_rows']?.join(' ')}
+    />
+    <SettingLine
+      label='Синхронизировать описания колонок'
+      hint='На каждом прогоне описания из Data Catalog записываются в комментарии колонок таблицы; пустое описание комментарий не стирает.'
+      autoControl
+    >
+      <ToggleSwitch
+        type='button'
+        role='switch'
+        checked={syncDescriptions}
+        aria-checked={syncDescriptions}
+        aria-label='Синхронизировать описания колонок с каталогом'
+        onClick={() => onSyncDescriptionsChange(!syncDescriptions)}
+      />
+    </SettingLine>
+  </SettingsBox>
 );

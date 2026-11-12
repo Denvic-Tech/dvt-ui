@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useId, useMemo } from 'react';
-import { Alert, Box } from '@mui/material';
+import {
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 
 import { NodeModalStepperExtensionProps } from '@/app/providers/node-extensions';
 
 import { useNodeConnections } from '@/features/node/get-node-connections';
-
-import { ColumnDropdownSelect } from '@/entities/data/dataframe';
 
 import type {
   Column,
@@ -26,50 +29,71 @@ import {
   type WriteDataFrameToDBValues,
 } from '../lib/helpers';
 
+import { UpsertKeySelect } from './UpsertKeySelect';
 import { WriteModeExample } from './WriteModeExample';
 import {
+  ModeBox,
+  ModeButton,
   ModeDescription,
-  ModeDetails,
-  ModeDetailsTitle,
-  ModeKeyField,
-  ModeOption,
-  ModeOptionHeading,
-  ModeOptionHint,
-  ModeOptions,
-  ModeOptionText,
-  ModeRadio,
-  ModeSectionLabel,
-  ModeSidebar,
-  WriteModePanel,
+  ModeEmpty,
+  ModeHead,
+  ModeKeyHint,
+  ModeList,
+  ModeMain,
+  ModeTitle,
+  WriteModeRoot,
 } from './WriteModeStep.styles';
 
 const MODE_CONTENT: Record<
   string,
   {
     title: string;
-    hint: string;
     description: string;
+    /** Путь иконки 16×16 (макет: `.zsi`). */
+    icon: string;
   }
 > = {
   append: {
     title: 'Добавить',
-    hint: 'Дописать строки к существующим',
     description:
-      'Строки DataFrame добавляются в конец таблицы. Текущие данные не меняются — при повторном запуске возможны дубли.',
+      'Новые строки дописываются к существующим. Текущие данные в таблице не меняются.',
+    icon: 'M2.5 4h8M2.5 8h8M2.5 12h4.5M12 9.5v5M9.5 12h5',
   },
   truncate: {
     title: 'Перезаписать',
-    hint: 'Очистить таблицу и записать заново',
     description:
-      'Перед записью таблица полностью очищается. В ней останутся только строки из DataFrame.',
+      'Перед записью таблица полностью очищается. В ней останутся только строки из DF.',
+    icon: 'M13 8a5 5 0 1 1-1.46-3.54M13.2 2.8v3h-3',
   },
   upsert: {
     title: 'Обновить или добавить',
-    hint: 'Сопоставить строки по ключу',
     description:
-      'Строки с совпадающим ключом обновляются, остальные добавляются. При повторной записи строки сопоставляются по тому же ключу.',
+      'Строки с совпадающим ключом обновляются, остальные добавляются.',
+    icon: 'M2.5 4.5h3.5l4 7h3.5M2.5 11.5h3.5l1.6-2.8M11.5 2.5l2 2-2 2M11.5 9.5l2 2-2 2M8.4 7.3l1.6-2.8h3.5',
   },
 };
+
+const UNAVAILABLE_MODE_TITLE =
+  'Режим недоступен для текущей таблицы или подключения';
+
+const ModeIcon = ({ path }: { path: string | undefined }) => (
+  <span className='mode-icon' aria-hidden='true'>
+    {path ? (
+      <svg
+        width='15'
+        height='15'
+        viewBox='0 0 16 16'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.5'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      >
+        <path d={path} />
+      </svg>
+    ) : null}
+  </span>
+);
 
 export const WriteModeStep = ({
   id: nodeID,
@@ -85,8 +109,7 @@ export const WriteModeStep = ({
 >) => {
   const { getConnectedInputMetadata } = useNodeConnections(nodeID);
   const { confirm } = useConfirmDialog();
-  const modeGroupId = useId();
-  const keyLabelId = useId();
+  const modeButtonsRef = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const inputConnectionMetadata = useMemo(() => {
     return getConnectedInputMetadata('connection') as DBMetadata | null;
@@ -334,110 +357,110 @@ export const WriteModeStep = ({
 
   const mode = selectedWriteMode?.toLowerCase() ?? '';
   const selectedContent = MODE_CONTENT[mode];
+  const availableModes = useMemo(
+    () =>
+      selectedTargetLabel
+        ? writeModeDisplayOptions.filter(option =>
+            writeModeOptions.includes(option)
+          )
+        : [],
+    [selectedTargetLabel, writeModeDisplayOptions, writeModeOptions]
+  );
+  const focusableMode =
+    selectedWriteMode && availableModes.includes(selectedWriteMode)
+      ? selectedWriteMode
+      : (availableModes[0] ?? null);
+
+  // Радиогруппа: стрелки переключают режим и переносят фокус.
+  const handleModeKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step =
+      event.key === 'ArrowDown' || event.key === 'ArrowRight'
+        ? 1
+        : event.key === 'ArrowUp' || event.key === 'ArrowLeft'
+          ? -1
+          : 0;
+    if (!step || availableModes.length === 0) return;
+    event.preventDefault();
+    const currentIndex = focusableMode
+      ? availableModes.indexOf(focusableMode)
+      : -1;
+    const nextMode =
+      availableModes[
+        (currentIndex + step + availableModes.length) % availableModes.length
+      ];
+    if (!nextMode) return;
+    handleWriteModeChange(nextMode);
+    modeButtonsRef.current.get(nextMode)?.focus();
+  };
 
   return (
-    <WriteModePanel>
-      <ModeSidebar role='radiogroup' aria-label='Режим записи'>
-        <ModeSectionLabel
-          sx={{
-            px: '10px',
-            pt: '4px',
-            fontFamily: 'Inter, sans-serif',
-            color: '#9b9ba6',
-            fontSize: 12,
-          }}
-        >
-          Режим записи
-        </ModeSectionLabel>
-        <ModeOptions>
-          {writeModeDisplayOptions.map(option => {
-            const content = MODE_CONTENT[option.toLowerCase()];
-            const selected = selectedWriteMode === option;
-            const unavailable =
-              !selectedTargetLabel || !writeModeOptions.includes(option);
-            return (
-              <ModeOption
-                key={option}
-                selected={selected}
-                unavailable={unavailable}
-                title={
-                  unavailable
-                    ? 'Режим недоступен для текущей таблицы или подключения'
-                    : undefined
-                }
-              >
-                <ModeRadio
-                  type='radio'
-                  name={modeGroupId}
-                  value={option}
-                  checked={selected}
-                  disabled={unavailable}
-                  onChange={() => handleWriteModeChange(option)}
-                />
-                <ModeOptionText>
-                  <ModeOptionHeading>
-                    <span>{content?.title ?? option}</span>
-                    <code>{option}</code>
-                  </ModeOptionHeading>
-                  {content ? (
-                    <ModeOptionHint>{content.hint}</ModeOptionHint>
-                  ) : null}
-                </ModeOptionText>
-              </ModeOption>
-            );
-          })}
-        </ModeOptions>
-      </ModeSidebar>
-      <ModeDetails>
+    <WriteModeRoot>
+      <ModeList
+        role='radiogroup'
+        aria-label='Режим записи'
+        onKeyDown={handleModeKeyDown}
+      >
+        {writeModeDisplayOptions.map(option => {
+          const content = MODE_CONTENT[option.toLowerCase()];
+          const selected = selectedWriteMode === option;
+          const unavailable = !availableModes.includes(option);
+          return (
+            <ModeButton
+              key={option}
+              ref={node => {
+                if (node) modeButtonsRef.current.set(option, node);
+                else modeButtonsRef.current.delete(option);
+              }}
+              type='button'
+              role='radio'
+              aria-checked={selected}
+              active={selected}
+              disabled={unavailable}
+              tabIndex={option === focusableMode ? 0 : -1}
+              title={unavailable ? UNAVAILABLE_MODE_TITLE : undefined}
+              onClick={() => handleWriteModeChange(option)}
+            >
+              <ModeIcon path={content?.icon} />
+              <span className='mode-name'>{content?.title ?? option}</span>
+            </ModeButton>
+          );
+        })}
+      </ModeList>
+      <ModeMain>
         {!selectedTargetLabel ? (
-          <Alert severity='info'>Сначала выберите целевую таблицу.</Alert>
+          <ModeEmpty>Сначала выберите целевую таблицу.</ModeEmpty>
         ) : selectedWriteMode ? (
           <>
-            <div>
-              <ModeDetailsTitle>
-                {selectedContent?.title ?? selectedWriteMode}
-                <span>в</span>
-                <code>{selectedTargetLabel}</code>
-              </ModeDetailsTitle>
+            <ModeHead>
+              <ModeTitle>
+                <span className='mode-title'>
+                  {selectedContent?.title ?? selectedWriteMode}
+                </span>
+                <span className='mode-code'>{mode}</span>
+              </ModeTitle>
               {selectedContent ? (
                 <ModeDescription>{selectedContent.description}</ModeDescription>
               ) : null}
-              {mode === 'upsert' ? (
-                <ModeKeyField>
-                  <ModeSectionLabel id={keyLabelId} sx={{ mb: '6px' }}>
-                    Ключ
-                  </ModeSectionLabel>
-                  <Box
-                    role='group'
-                    aria-labelledby={keyLabelId}
-                    sx={{ maxWidth: 308 }}
-                  >
-                    <ColumnDropdownSelect
-                      value={localInputData?.upsert_config?.key_column ?? ''}
-                      onChange={handleUpsertKeyChange}
-                      columns={upsertColumns}
-                      placeholder='Выберите колонку-ключ'
-                      disabled={upsertColumns.length === 0}
-                      allowNew
-                    />
-                  </Box>
-                  {isTableNew && selectedCreationMode === 'typed' ? (
-                    <ModeDescription sx={{ fontSize: 12, mt: 1 }}>
-                      {upsertTableCreationHint}
-                    </ModeDescription>
-                  ) : null}
-                </ModeKeyField>
-              ) : null}
-            </div>
-            <WriteModeExample
-              mode={mode}
-              keyColumn={localInputData?.upsert_config?.key_column ?? ''}
-            />
+            </ModeHead>
+            {mode === 'upsert' ? (
+              <ModeBox>
+                <UpsertKeySelect
+                  value={localInputData?.upsert_config?.key_column ?? ''}
+                  columns={upsertColumns}
+                  onChange={handleUpsertKeyChange}
+                  disabled={upsertColumns.length === 0}
+                />
+                {isTableNew && selectedCreationMode === 'typed' ? (
+                  <ModeKeyHint>{upsertTableCreationHint}</ModeKeyHint>
+                ) : null}
+              </ModeBox>
+            ) : null}
+            <WriteModeExample mode={mode} />
           </>
         ) : (
-          <ModeDescription>Выберите режим записи.</ModeDescription>
+          <ModeEmpty>Выберите режим записи.</ModeEmpty>
         )}
-      </ModeDetails>
-    </WriteModePanel>
+      </ModeMain>
+    </WriteModeRoot>
   );
 };

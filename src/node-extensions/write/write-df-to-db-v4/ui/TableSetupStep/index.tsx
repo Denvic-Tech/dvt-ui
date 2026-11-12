@@ -1,30 +1,41 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box } from '@mui/material';
 
 import { NodeModalStepperExtensionProps } from '@/app/providers/node-extensions';
 import { useAppDispatch } from '@/app/providers/store';
 
-import { useDbTargetCatalogController } from '@/features/node/db-target-selector';
+import {
+  CATALOG_EXPRESSION_PLACEHOLDERS,
+  type CatalogTreeNode,
+  createCatalogTreeNode,
+  ExpressionFieldsList,
+  ExpressionHint,
+  ExpressionLabel,
+  getCatalogTreeLevels,
+  ROOT_BRANCH_KEY,
+  useCatalogTree,
+} from '@/features/node/db-catalog-tree';
 import { useNodeConnections } from '@/features/node/get-node-connections';
 
 import {
   invalidateDbCatalog,
   requireDbConnectionId,
 } from '@/entities/data/db-connection';
+import { normalizeDbCatalogParentNames } from '@/entities/data/db-connection/model/catalogNormalizers';
+import {
+  getDbCatalogCapabilities,
+  useDbCatalogTable,
+} from '@/entities/data/db-connection/model/hooks/useDbCatalog';
 
 import { useApiUtils } from '@/shared/api/utils';
 import {
   type DataFrameMetadata,
   type DbMetadata as DBMetadata,
-  type DbTable,
   type InputDefinitionModel,
 } from '@/shared/gatewayClient';
-import {
-  getDbMetadataDatabaseOptions,
-  getDbMetadataFilteredTables,
-  getDbMetadataSchemaOptions,
-} from '@/shared/lib/db-metadata';
+import { isExpressionValue } from '@/shared/lib/node-input-values';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { buildSingleExpressionValue } from '@/shared/ui/node-input/primitiveExpression';
+import PrimitiveNodeInput from '@/shared/ui/node-input/PrimitiveNodeInput';
 
 import { commentTargetKey } from '../../lib/columnComments';
 import { getPendingColumnActions } from '../../lib/helpers';
@@ -36,7 +47,6 @@ import {
   getLiteralStringValue,
   getSelectorFingerprintValue,
   hasConfiguredSelectorValue,
-  normalizeName,
   registerCreatedDatabase,
   registerCreatedSchema,
   resolveCreationMode,
@@ -44,23 +54,38 @@ import {
   supportsSchemas,
   type WriteDataFrameToDBValues,
 } from '../../lib/helpers';
+import {
+  formatCatalogLocation,
+  getCatalogNameError,
+} from '../../lib/targetNames';
+import { StepRoot } from '../kit.styles';
 
-import { CatalogColumns } from './sections/CatalogColumn.styles';
-import { DatabaseSection } from './sections/DatabaseSection';
-import { SchemaSection } from './sections/SchemaSection';
-import { TableSection } from './sections/TableSection';
+import {
+  CreateNamespaceDialog,
+  type CreateNamespaceRequest,
+} from './CreateNamespaceDialog';
+import {
+  type TargetDetail,
+  TargetDetailPane,
+  type TargetTablePath,
+} from './TargetDetailPane';
+import { type TableDraft, TargetTreePane } from './TargetTreePane';
 
 type UITableSelectMode = 'select' | 'create';
-type UIDatabaseSelectMode = 'select' | 'create';
-type UISchemaSelectMode = 'select' | 'create';
-
-type Notice = {
-  severity: 'success' | 'error';
-  message: string;
-} | null;
+type SelectorField = 'database_name' | 'schema_name' | 'table_name';
+type SelectorSnapshot = Partial<
+  Record<SelectorField, WriteDataFrameToDBValues[SelectorField]>
+>;
 
 const EMPTY_TARGET_FINGERPRINT = ['', '', ''].join('::');
-const DATABASE_SELECTION_REQUIRED_MESSAGE = 'Выберите базу данных';
+/** Сколько держится подсветка только что созданной базы или схемы. */
+const CREATED_HIGHLIGHT_MS = 1600;
+
+const SELECTOR_FIELD_LABELS: Record<SelectorField, string> = {
+  database_name: 'База данных',
+  schema_name: 'Схема',
+  table_name: 'Таблица',
+};
 
 const resetTargetWriteConfig = (
   current: WriteDataFrameToDBValues
@@ -73,6 +98,11 @@ const resetTargetWriteConfig = (
   use_clickhouse_connect_driver: null,
   column_mapping: null,
 });
+
+const getSelectorDisplayValue = (value: unknown): string | null => {
+  if (isExpressionValue(value)) return value.value.trim() || null;
+  return getLiteralStringValue(value as WriteDataFrameToDBValues['table_name']);
+};
 
 export const TableSetupStep = ({
   id: nodeID,
@@ -94,10 +124,11 @@ export const TableSetupStep = ({
   const runTargetChange = useCallback(
     async (change: () => void | Promise<void>) => {
       const pending =
-        getPendingColumnActions({
-          ...sharedState,
-          selectedColumnActions: [],
-        }).some(
+        getPendingColumnActions(
+          { ...sharedState, selectedColumnActions: [] },
+          // Подстановки из DF пересчитаются для новой таблицы, их не жалко.
+          { includeCommentFills: false }
+        ).some(
           action =>
             action.type === 'set_column_comment' ||
             action.type === 'set_column_nullable'
@@ -158,19 +189,14 @@ export const TableSetupStep = ({
       return 'select';
     }
   );
-  const [selectDatabaseMode, setSelectDatabaseMode] =
-    useState<UIDatabaseSelectMode>('select');
-  const [selectSchemaMode, setSelectSchemaMode] =
-    useState<UISchemaSelectMode>('select');
-  const [newDatabaseName, setNewDatabaseName] = useState('');
-  const [newSchemaName, setNewSchemaName] = useState('');
-  const [newTableName, setNewTableName] = useState('');
-  const [isCreateTableNameEditorOpen, setIsCreateTableNameEditorOpen] =
-    useState(false);
-  const [notice, setNotice] = useState<Notice>(null);
-  const [creatingEntity, setCreatingEntity] = useState<
-    'database' | 'schema' | null
-  >(null);
+  const [newTableName, setNewTableName] = useState(() =>
+    selectTableMode === 'create'
+      ? (getLiteralStringValue(localInputData?.table_name) ?? '')
+      : ''
+  );
+  const [createRequest, setCreateRequest] =
+    useState<CreateNamespaceRequest | null>(null);
+  const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
   const targetFingerprintRef = useRef<string | null>(null);
 
   const getInputDefinition = useCallback(
@@ -187,16 +213,6 @@ export const TableSetupStep = ({
     [nodeDefinition.input_definitions]
   );
 
-  const databaseInputDef = useMemo(() => {
-    return getInputDefinition('database_name');
-  }, [getInputDefinition]);
-  const schemaInputDef = useMemo(() => {
-    return getInputDefinition('schema_name');
-  }, [getInputDefinition]);
-  const tableInputDef = useMemo(() => {
-    return getInputDefinition('table_name');
-  }, [getInputDefinition]);
-
   const literalDatabaseName = useMemo(() => {
     return getLiteralStringValue(localInputData?.database_name);
   }, [localInputData?.database_name]);
@@ -206,23 +222,6 @@ export const TableSetupStep = ({
   const literalTableName = useMemo(() => {
     return getLiteralStringValue(localInputData?.table_name);
   }, [localInputData?.table_name]);
-  const catalog = useDbTargetCatalogController(inputConnectionMetadata, {
-    databaseName: literalDatabaseName,
-    schemaName: literalSchemaName,
-    tableName: literalTableName,
-    databasesEnabled: isOpen,
-    schemasEnabled:
-      isOpen &&
-      (!supportsDatabaseSelection(inputConnectionMetadata) ||
-        Boolean(literalDatabaseName)),
-    tablesEnabled:
-      isOpen &&
-      (!supportsDatabaseSelection(inputConnectionMetadata) ||
-        Boolean(literalDatabaseName)) &&
-      (!supportsSchemas(inputConnectionMetadata) || Boolean(literalSchemaName)),
-    detailEnabled: Boolean(literalTableName),
-  });
-  const isLazyCatalog = catalog.mode === 'lazy';
 
   useEffect(() => {
     const key = commentTargetKey(
@@ -257,12 +256,6 @@ export const TableSetupStep = ({
   const isDatabaseSelectionRequired = useMemo(() => {
     return supportsDatabaseSelection(inputConnectionMetadata);
   }, [inputConnectionMetadata]);
-  const hasSelectedDatabase = useMemo(() => {
-    return (
-      !isDatabaseSelectionRequired ||
-      hasConfiguredSelectorValue(localInputData?.database_name)
-    );
-  }, [isDatabaseSelectionRequired, localInputData?.database_name]);
 
   const selectedTable = useMemo(() => {
     return findWriteTargetTable(inputConnectionMetadata, localInputData);
@@ -290,87 +283,6 @@ export const TableSetupStep = ({
     localInputData?.schema_name,
     localInputData?.table_name,
   ]);
-
-  const databaseStats = useMemo((): Array<[string, number]> => {
-    const grouped = new Map<string, number>(
-      getDbMetadataDatabaseOptions(inputConnectionMetadata).map(option => {
-        return [option.value, option.tableCount];
-      })
-    );
-
-    for (const databaseName of sharedState?.createdDatabases ?? []) {
-      if (!databaseName.trim()) {
-        continue;
-      }
-      grouped.set(databaseName, grouped.get(databaseName) ?? 0);
-    }
-
-    return Array.from(grouped.entries()).sort(([left], [right]) =>
-      left.localeCompare(right)
-    );
-  }, [inputConnectionMetadata, sharedState?.createdDatabases]);
-
-  const databaseOptions = useMemo(() => {
-    return databaseStats.map(([value, tableCount]) => ({
-      value,
-      label: value,
-      tableCount,
-    }));
-  }, [databaseStats]);
-
-  const schemaStats = useMemo((): Array<[string, number]> => {
-    const grouped = new Map<string, number>(
-      getDbMetadataSchemaOptions(
-        inputConnectionMetadata,
-        literalDatabaseName
-      ).map(option => {
-        return [option.value, option.tableCount];
-      })
-    );
-    const normalizedDatabaseName = normalizeName(literalDatabaseName);
-
-    for (const schema of sharedState?.createdSchemas ?? []) {
-      if (
-        normalizedDatabaseName &&
-        normalizeName(schema.databaseName) !== normalizedDatabaseName
-      ) {
-        continue;
-      }
-
-      grouped.set(schema.schemaName, grouped.get(schema.schemaName) ?? 0);
-    }
-
-    return Array.from(grouped.entries()).sort(([left], [right]) =>
-      left.localeCompare(right)
-    );
-  }, [
-    inputConnectionMetadata,
-    literalDatabaseName,
-    sharedState?.createdSchemas,
-  ]);
-
-  const schemaOptions = useMemo(() => {
-    return schemaStats.map(([value, tableCount]) => ({
-      value,
-      label: value,
-      tableCount,
-    }));
-  }, [schemaStats]);
-
-  const createdSchemaNames = useMemo(
-    () =>
-      (sharedState?.createdSchemas ?? [])
-        .filter(schema => schema.databaseName === literalDatabaseName)
-        .map(schema => schema.schemaName),
-    [literalDatabaseName, sharedState?.createdSchemas]
-  );
-
-  const filteredTables = useMemo(() => {
-    return getDbMetadataFilteredTables(inputConnectionMetadata, {
-      databaseName: literalDatabaseName,
-      schemaName: literalSchemaName,
-    });
-  }, [inputConnectionMetadata, literalDatabaseName, literalSchemaName]);
 
   const resetAsyncState = useCallback(() => {
     setSharedState(prev => ({
@@ -507,6 +419,104 @@ export const TableSetupStep = ({
     setLocalInputData,
   ]);
 
+  /* ---------- Режим выражений ---------- */
+
+  const selectorFields = useMemo<SelectorField[]>(
+    () => [
+      ...(isDatabaseSelectionRequired ? (['database_name'] as const) : []),
+      ...(isSchemaRequired ? (['schema_name'] as const) : []),
+      'table_name',
+    ],
+    [isDatabaseSelectionRequired, isSchemaRequired]
+  );
+  const canUseExpressions = selectorFields.every(field =>
+    Boolean(getInputDefinition(field)?.allow_expressions)
+  );
+  const [isExpressionMode, setIsExpressionMode] = useState(() =>
+    (['database_name', 'schema_name', 'table_name'] as const).some(field =>
+      isExpressionValue(localInputData?.[field])
+    )
+  );
+  // Значения ноды модалка подставляет эффектом после первого рендера,
+  // поэтому режим выражений определяем и по первым непустым значениям.
+  const expressionModeResolvedRef = useRef(
+    (['database_name', 'schema_name', 'table_name'] as const).some(field =>
+      hasConfiguredSelectorValue(localInputData?.[field])
+    )
+  );
+  useEffect(() => {
+    if (expressionModeResolvedRef.current) return;
+    const fields = ['database_name', 'schema_name', 'table_name'] as const;
+    if (
+      !fields.some(field => hasConfiguredSelectorValue(localInputData?.[field]))
+    )
+      return;
+    expressionModeResolvedRef.current = true;
+    setIsExpressionMode(
+      fields.some(field => isExpressionValue(localInputData?.[field]))
+    );
+  }, [localInputData]);
+  const literalSnapshotRef = useRef<SelectorSnapshot | null>(null);
+
+  const enterExpressionMode = useCallback(() => {
+    void runTargetChange(() => {
+      const current = (localInputData ?? {}) as WriteDataFrameToDBValues;
+      literalSnapshotRef.current = Object.fromEntries(
+        selectorFields.map(field => [
+          field,
+          isExpressionValue(current[field]) ? null : current[field],
+        ])
+      );
+      setLocalInputData(prev => {
+        const base = (prev ?? {}) as WriteDataFrameToDBValues;
+        const patch: SelectorSnapshot = {};
+        for (const field of selectorFields) {
+          const value = base[field];
+          patch[field] = isExpressionValue(value)
+            ? value
+            : buildSingleExpressionValue(
+                getInputDefinition(field)?.type,
+                value
+              );
+        }
+        return resetTargetWriteConfig({ ...base, ...patch });
+      });
+      setSelectTableMode('select');
+      setNewTableName('');
+      resetAsyncState();
+      expressionModeResolvedRef.current = true;
+      setIsExpressionMode(true);
+    });
+  }, [
+    getInputDefinition,
+    localInputData,
+    resetAsyncState,
+    runTargetChange,
+    selectorFields,
+    setLocalInputData,
+  ]);
+
+  const exitExpressionMode = useCallback(() => {
+    void runTargetChange(() => {
+      const snapshot = literalSnapshotRef.current;
+      setLocalInputData(prev => {
+        const base = (prev ?? {}) as WriteDataFrameToDBValues;
+        const patch: SelectorSnapshot = {};
+        for (const field of selectorFields) {
+          if (isExpressionValue(base[field])) {
+            patch[field] = snapshot?.[field] ?? null;
+          }
+        }
+        return Object.keys(patch).length > 0
+          ? resetTargetWriteConfig({ ...base, ...patch })
+          : prev;
+      });
+      resetAsyncState();
+      expressionModeResolvedRef.current = true;
+      setIsExpressionMode(false);
+    });
+  }, [resetAsyncState, runTargetChange, selectorFields, setLocalInputData]);
+
   const handleDatabaseValueChange = useCallback(
     (nextValue: unknown) => {
       setLocalInputData(prev => {
@@ -519,7 +529,6 @@ export const TableSetupStep = ({
           )
         );
       });
-      setNotice(null);
       resetAsyncState();
     },
     [resetAsyncState, selectTableMode, setLocalInputData]
@@ -535,7 +544,6 @@ export const TableSetupStep = ({
           table_name: selectTableMode === 'create' ? current.table_name : null,
         });
       });
-      setNotice(null);
       resetAsyncState();
     },
     [resetAsyncState, selectTableMode, setLocalInputData]
@@ -549,48 +557,23 @@ export const TableSetupStep = ({
           table_name: nextValue as WriteDataFrameToDBValues['table_name'],
         })
       );
-      setNotice(null);
       resetAsyncState();
     },
     [resetAsyncState, setLocalInputData]
   );
 
-  const handleDatabaseSelect = useCallback(
-    (databaseName: string) => {
-      handleDatabaseValueChange(databaseName);
-      setSelectDatabaseMode('select');
-    },
-    [handleDatabaseValueChange]
-  );
+  const selectorChangeHandlers: Record<
+    SelectorField,
+    (value: unknown) => void
+  > = {
+    database_name: handleDatabaseValueChange,
+    schema_name: handleSchemaValueChange,
+    table_name: handleTableValueChange,
+  };
 
-  const handleSchemaSelect = useCallback(
-    (schemaName: string) => {
-      handleSchemaValueChange(schemaName);
-      setSelectSchemaMode('select');
-    },
-    [handleSchemaValueChange]
-  );
+  /* ---------- Выбор таблицы и черновик новой ---------- */
 
-  const handleTableSelect = useCallback(
-    (table: DbTable) => {
-      setLocalInputData(prev =>
-        resetTargetWriteConfig({
-          ...((prev ?? {}) as WriteDataFrameToDBValues),
-          database_name: table.database_name ?? prev?.database_name ?? null,
-          schema_name: table.schema_name ?? prev?.schema_name ?? null,
-          table_name: table.name,
-        })
-      );
-      setSelectTableMode('select');
-      setIsCreateTableNameEditorOpen(false);
-      setNewTableName('');
-      setNotice(null);
-      resetAsyncState();
-    },
-    [resetAsyncState, setLocalInputData]
-  );
-
-  const handleLazyTableSelect = useCallback(
+  const handleCatalogTableSelect = useCallback(
     (table: {
       name: string;
       databaseName: string | null;
@@ -605,315 +588,485 @@ export const TableSetupStep = ({
         })
       );
       setSelectTableMode('select');
-      setIsCreateTableNameEditorOpen(false);
       setNewTableName('');
-      setNotice(null);
       resetAsyncState();
     },
     [resetAsyncState, setLocalInputData]
   );
 
-  const handleCreateTableSave = useCallback(() => {
-    const nextName = newTableName.trim();
-    if (!nextName) {
-      return;
-    }
-
-    setLocalInputData(prev =>
-      resetTargetWriteConfig({
-        ...((prev ?? {}) as WriteDataFrameToDBValues),
-        table_name: nextName,
-      })
-    );
-    setSelectTableMode('create');
-    setIsCreateTableNameEditorOpen(false);
-    setNewTableName(nextName);
-    setNotice(null);
-    resetAsyncState();
-  }, [newTableName, resetAsyncState, setLocalInputData]);
-
-  const handleEditCreatedTableName = useCallback(() => {
-    setIsCreateTableNameEditorOpen(true);
-    setNewTableName(
-      selectTableMode === 'create' ? (literalTableName ?? '') : ''
-    );
-  }, [literalTableName, selectTableMode]);
-
-  const handleDatabaseCreateSave = useCallback(async () => {
-    const name = newDatabaseName.trim();
-    if (!name || !inputConnectionMetadata) {
-      return;
-    }
-
-    try {
-      setCreatingEntity('database');
-      await createDatabase({
-        connection_id: requireDbConnectionId(inputConnectionMetadata),
-        database_name: name,
+  const handleStartDraft = useCallback(
+    (databaseName: string | null, schemaName: string | null) => {
+      void runTargetChange(() => {
+        setLocalInputData(prev =>
+          resetTargetWriteConfig({
+            ...((prev ?? {}) as WriteDataFrameToDBValues),
+            database_name: databaseName,
+            schema_name: schemaName,
+            table_name: null,
+          })
+        );
+        setSelectTableMode('create');
+        setNewTableName('');
+        resetAsyncState();
       });
-      dispatch(
-        invalidateDbCatalog(requireDbConnectionId(inputConnectionMetadata))
-      );
-      setSharedState(prev => registerCreatedDatabase(prev, name));
-      setLocalInputData(prev =>
-        resetTargetWriteConfig({
-          ...((prev ?? {}) as WriteDataFrameToDBValues),
+    },
+    [resetAsyncState, runTargetChange, setLocalInputData]
+  );
+
+  const handleDraftNameChange = useCallback(
+    (value: string) => {
+      void runTargetChange(() => {
+        const nextName = value.trim();
+        setNewTableName(value);
+        setLocalInputData(prev =>
+          resetTargetWriteConfig({
+            ...((prev ?? {}) as WriteDataFrameToDBValues),
+            table_name: nextName || null,
+          })
+        );
+        resetAsyncState();
+      });
+    },
+    [resetAsyncState, runTargetChange, setLocalInputData]
+  );
+
+  /* ---------- Дерево ---------- */
+
+  const treeLevels = useMemo(
+    () =>
+      getCatalogTreeLevels(getDbCatalogCapabilities(inputConnectionMetadata)),
+    [inputConnectionMetadata]
+  );
+  const hasDatabaseLevel = treeLevels.includes('database');
+
+  const draft = useMemo<TableDraft | null>(
+    () =>
+      selectTableMode === 'create' && !isExpressionMode
+        ? {
+            databaseName: hasDatabaseLevel ? literalDatabaseName : null,
+            schemaName: isSchemaRequired ? literalSchemaName : null,
+            name: newTableName,
+          }
+        : null,
+    [
+      hasDatabaseLevel,
+      isExpressionMode,
+      isSchemaRequired,
+      literalDatabaseName,
+      literalSchemaName,
+      newTableName,
+      selectTableMode,
+    ]
+  );
+
+  const treeSelection = useMemo(
+    () => ({
+      databaseName: literalDatabaseName,
+      schemaName: literalSchemaName,
+      tableName: literalTableName,
+      draft: draft !== null,
+    }),
+    [draft, literalDatabaseName, literalSchemaName, literalTableName]
+  );
+
+  // Созданные в этой сессии базы и схемы: показываем, даже если каталог
+  // (или встроенные метаданные) их ещё не вернул.
+  const injectedNodes = useMemo<CatalogTreeNode[]>(() => {
+    const nodes: CatalogTreeNode[] = [];
+    if (hasDatabaseLevel) {
+      for (const name of sharedState?.createdDatabases ?? []) {
+        if (name.trim()) {
+          nodes.push(createCatalogTreeNode('database', name, null, null));
+        }
+      }
+    }
+    if (treeLevels.includes('schema')) {
+      for (const schema of sharedState?.createdSchemas ?? []) {
+        nodes.push(
+          createCatalogTreeNode(
+            'schema',
+            schema.schemaName,
+            hasDatabaseLevel ? schema.databaseName : null,
+            null
+          )
+        );
+      }
+    }
+    return nodes;
+  }, [
+    hasDatabaseLevel,
+    sharedState?.createdDatabases,
+    sharedState?.createdSchemas,
+    treeLevels,
+  ]);
+
+  const tree = useCatalogTree({
+    metadata: inputConnectionMetadata,
+    selection: treeSelection,
+    enabled: Boolean(isOpen && inputConnectionMetadata),
+    injectedNodes,
+  });
+
+  const getBranchNames = useCallback(
+    (branchKey: string) =>
+      (branchKey === ROOT_BRANCH_KEY
+        ? tree.root.items
+        : (tree.branches[branchKey]?.items ?? [])
+      ).map(node => node.name),
+    [tree.branches, tree.root.items]
+  );
+
+  const getNamespaceBranchKey = useCallback(
+    (databaseName: string | null, schemaName: string | null) => {
+      if (schemaName !== null && treeLevels.includes('schema')) {
+        return createCatalogTreeNode(
+          'schema',
+          schemaName,
+          hasDatabaseLevel ? databaseName : null,
+          null
+        ).key;
+      }
+      if (databaseName !== null && hasDatabaseLevel) {
+        return createCatalogTreeNode('database', databaseName, null, null).key;
+      }
+      return ROOT_BRANCH_KEY;
+    },
+    [hasDatabaseLevel, treeLevels]
+  );
+
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    },
+    []
+  );
+  const flashNode = useCallback((key: string) => {
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    setHighlightedKey(key);
+    highlightTimerRef.current = setTimeout(
+      () => setHighlightedKey(null),
+      CREATED_HIGHLIGHT_MS
+    );
+  }, []);
+
+  /* ---------- Создание базы и схемы ---------- */
+
+  const handleDatabaseCreate = useCallback(
+    async (name: string): Promise<string | null> => {
+      if (!inputConnectionMetadata) {
+        return 'Подключите вход connection';
+      }
+
+      try {
+        await createDatabase({
+          connection_id: requireDbConnectionId(inputConnectionMetadata),
           database_name: name,
-          schema_name: null,
-          table_name: null,
-        })
-      );
-      setNotice({
-        severity: 'success',
-        message: `База данных "${name}" создана.`,
-      });
-      resetAsyncState();
-    } catch (error: unknown) {
-      setNotice({
-        severity: 'error',
-        message: extractApiErrorMessage(
+        });
+        dispatch(
+          invalidateDbCatalog(requireDbConnectionId(inputConnectionMetadata))
+        );
+        setSharedState(prev => registerCreatedDatabase(prev, name));
+        setLocalInputData(prev =>
+          resetTargetWriteConfig({
+            ...((prev ?? {}) as WriteDataFrameToDBValues),
+            database_name: name,
+            schema_name: null,
+            table_name: null,
+          })
+        );
+        resetAsyncState();
+        return null;
+      } catch (error: unknown) {
+        return extractApiErrorMessage(
           error,
           `Не удалось создать базу данных "${name}".`
-        ),
-      });
-    } finally {
-      setCreatingEntity(null);
-    }
-  }, [
-    createDatabase,
-    dispatch,
-    inputConnectionMetadata,
-    newDatabaseName,
-    resetAsyncState,
-    setLocalInputData,
-    setSharedState,
-  ]);
+        );
+      }
+    },
+    [
+      createDatabase,
+      dispatch,
+      inputConnectionMetadata,
+      resetAsyncState,
+      setLocalInputData,
+      setSharedState,
+    ]
+  );
 
-  const handleSchemaCreateSave = useCallback(async () => {
-    const name = newSchemaName.trim();
-    if (!name || !inputConnectionMetadata) {
-      return;
-    }
+  const handleSchemaCreate = useCallback(
+    async (
+      databaseName: string | null,
+      name: string
+    ): Promise<string | null> => {
+      if (!inputConnectionMetadata) {
+        return 'Подключите вход connection';
+      }
 
-    try {
-      setCreatingEntity('schema');
-      await createSchema({
-        connection_id: requireDbConnectionId(inputConnectionMetadata),
-        database_name: literalDatabaseName,
-        schema_name: name,
-      });
-      dispatch(
-        invalidateDbCatalog(requireDbConnectionId(inputConnectionMetadata))
-      );
-      setSharedState(prev =>
-        registerCreatedSchema(prev, literalDatabaseName, name)
-      );
-      setLocalInputData(prev =>
-        resetTargetWriteConfig({
-          ...((prev ?? {}) as WriteDataFrameToDBValues),
+      try {
+        await createSchema({
+          connection_id: requireDbConnectionId(inputConnectionMetadata),
+          database_name: databaseName,
           schema_name: name,
-          table_name: null,
-        })
-      );
-      setNotice({
-        severity: 'success',
-        message: `Схема "${name}" создана.`,
-      });
-      resetAsyncState();
-    } catch (error: unknown) {
-      setNotice({
-        severity: 'error',
-        message: extractApiErrorMessage(
+        });
+        dispatch(
+          invalidateDbCatalog(requireDbConnectionId(inputConnectionMetadata))
+        );
+        setSharedState(prev => registerCreatedSchema(prev, databaseName, name));
+        setLocalInputData(prev =>
+          resetTargetWriteConfig({
+            ...((prev ?? {}) as WriteDataFrameToDBValues),
+            database_name: databaseName,
+            schema_name: name,
+            table_name: null,
+          })
+        );
+        resetAsyncState();
+        return null;
+      } catch (error: unknown) {
+        return extractApiErrorMessage(
           error,
           `Не удалось создать схему "${name}".`
-        ),
+        );
+      }
+    },
+    [
+      createSchema,
+      dispatch,
+      inputConnectionMetadata,
+      resetAsyncState,
+      setLocalInputData,
+      setSharedState,
+    ]
+  );
+
+  const handleNamespaceCreate = useCallback(
+    async (name: string): Promise<string | null> => {
+      if (!createRequest) return null;
+      let failure: string | null = null;
+      await runTargetChange(async () => {
+        if (createRequest.kind === 'database') {
+          failure = await handleDatabaseCreate(name);
+          if (failure) return;
+          const node = createCatalogTreeNode('database', name, null, null);
+          tree.expandNodes([node]);
+          flashNode(node.key);
+          return;
+        }
+
+        const databaseName = hasDatabaseLevel
+          ? createRequest.databaseName
+          : null;
+        failure = await handleSchemaCreate(databaseName, name);
+        if (failure) return;
+        const schemaNode = createCatalogTreeNode(
+          'schema',
+          name,
+          databaseName,
+          null
+        );
+        tree.expandNodes(
+          databaseName !== null
+            ? [
+                createCatalogTreeNode('database', databaseName, null, null),
+                schemaNode,
+              ]
+            : [schemaNode]
+        );
+        flashNode(schemaNode.key);
       });
-    } finally {
-      setCreatingEntity(null);
-    }
-  }, [
-    createSchema,
-    dispatch,
+      return failure;
+    },
+    [
+      createRequest,
+      flashNode,
+      handleDatabaseCreate,
+      handleSchemaCreate,
+      hasDatabaseLevel,
+      runTargetChange,
+      tree,
+    ]
+  );
+
+  const createTakenNames = useMemo(() => {
+    if (!createRequest) return [];
+    if (createRequest.kind === 'database')
+      return getBranchNames(ROOT_BRANCH_KEY);
+    return getBranchNames(
+      hasDatabaseLevel && createRequest.databaseName !== null
+        ? createCatalogTreeNode(
+            'database',
+            createRequest.databaseName,
+            null,
+            null
+          ).key
+        : ROOT_BRANCH_KEY
+    );
+  }, [createRequest, getBranchNames, hasDatabaseLevel]);
+
+  /* ---------- Правая панель ---------- */
+
+  const isExistingTableSelected =
+    !isExpressionMode && !draft && Boolean(literalTableName);
+  const tableDetail = useDbCatalogTable(
     inputConnectionMetadata,
     literalDatabaseName,
-    newSchemaName,
-    resetAsyncState,
-    setLocalInputData,
-    setSharedState,
-  ]);
+    literalSchemaName,
+    literalTableName,
+    { enabled: Boolean(isOpen) && isExistingTableSelected }
+  );
+
+  const draftLocation = draft
+    ? formatCatalogLocation(draft.databaseName, draft.schemaName)
+    : '';
+  // Путь в строке вкладок: родители — только поддерживаемые диалектом.
+  const getTablePath = (
+    databaseName: string | null,
+    schemaName: string | null,
+    name: string
+  ): TargetTablePath => {
+    const parents = normalizeDbCatalogParentNames(
+      getDbCatalogCapabilities(inputConnectionMetadata),
+      databaseName,
+      schemaName
+    );
+    return {
+      name,
+      schemaName: parents.schemaName,
+      fullPath: formatCatalogLocation(
+        parents.databaseName,
+        parents.schemaName,
+        name
+      ),
+    };
+  };
+  const draftError = draft
+    ? getCatalogNameError(
+        draft.name,
+        getBranchNames(
+          getNamespaceBranchKey(draft.databaseName, draft.schemaName)
+        ),
+        draftLocation
+      )
+    : '';
+
+  const detail: TargetDetail = isExpressionMode
+    ? {
+        kind: 'expression',
+        rows: selectorFields.map(field => ({
+          label: SELECTOR_FIELD_LABELS[field],
+          value: getSelectorDisplayValue(localInputData?.[field]),
+        })),
+      }
+    : draft
+      ? {
+          kind: 'draft',
+          path: getTablePath(
+            draft.databaseName,
+            draft.schemaName,
+            newTableName.trim()
+          ),
+          name: newTableName,
+          location: draftLocation,
+          error: draftError,
+          onNameChange: handleDraftNameChange,
+        }
+      : isExistingTableSelected && literalTableName
+        ? {
+            kind: 'existing',
+            tableKey: formatCatalogLocation(
+              literalDatabaseName,
+              literalSchemaName,
+              literalTableName
+            ),
+            path: getTablePath(
+              literalDatabaseName,
+              literalSchemaName,
+              literalTableName
+            ),
+            metadata: inputConnectionMetadata,
+            databaseName: literalDatabaseName,
+            schemaName: literalSchemaName,
+            isLoading: tableDetail.state === 'loading',
+            columns: tableDetail.item?.columns ?? null,
+          }
+        : { kind: 'empty' };
 
   return (
-    <Box
-      sx={{
-        height: '100%',
-        minHeight: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1,
-      }}
-    >
-      <CatalogColumns>
-        {isDatabaseSelectionRequired ? (
-          <DatabaseSection
-            inputDefinition={databaseInputDef}
-            isSaving={creatingEntity === 'database'}
-            creationResult={notice}
-            newDatabaseName={newDatabaseName}
-            createdNames={sharedState?.recentlyCreatedDatabases}
-            onChange={value =>
-              void runTargetChange(() => handleDatabaseValueChange(value))
-            }
-            onCreateModeSelect={mode => {
-              setNotice(null);
-              setNewDatabaseName('');
-              setSelectDatabaseMode(mode);
-            }}
-            onDatabaseSelect={value =>
-              value !== literalDatabaseName &&
-              void runTargetChange(() => handleDatabaseSelect(value))
-            }
-            onNewDatabaseNameChange={value => {
-              setNotice(null);
-              setNewDatabaseName(value);
-            }}
-            onSave={() => runTargetChange(handleDatabaseCreateSave)}
-            options={isLazyCatalog ? catalog.databaseOptions : databaseOptions}
-            selectMode={selectDatabaseMode}
-            selectedValue={literalDatabaseName}
-            value={localInputData?.database_name}
-            variables={variables}
-            {...(isLazyCatalog
-              ? {
-                  query: catalog.databaseSearch,
-                  onQueryChange: catalog.setDatabaseSearch,
-                  state: catalog.databases.state,
-                  hasNextPage: catalog.databases.hasNextPage,
-                  isFetchingNextPage: catalog.databases.isFetchingNextPage,
-                  loadMoreError: catalog.databases.loadMoreError,
-                  onLoadNextPage: () => void catalog.databases.loadNextPage(),
-                  onRetry: () => catalog.databases.retry(),
-                  onRefresh: () => catalog.refresh.refresh(),
-                  isRefreshing:
-                    catalog.refresh.isLoading || catalog.databases.isRefreshing,
-                }
-              : {})}
-          />
-        ) : null}
-
-        {isSchemaRequired ? (
-          <SchemaSection
-            key={`schema:${literalDatabaseName ?? ''}`}
-            blockedMessage={
-              !hasSelectedDatabase
-                ? DATABASE_SELECTION_REQUIRED_MESSAGE
-                : !literalDatabaseName && isDatabaseSelectionRequired
-                  ? 'База задана выражением. Введите схему выражением.'
-                  : null
-            }
-            inputDefinition={schemaInputDef}
-            isSaving={creatingEntity === 'schema'}
-            creationResult={notice}
-            newSchemaName={newSchemaName}
-            createdNames={createdSchemaNames}
-            onChange={value =>
-              void runTargetChange(() => handleSchemaValueChange(value))
-            }
-            onCreateModeSelect={mode => {
-              setNotice(null);
-              setNewSchemaName('');
-              setSelectSchemaMode(mode);
-            }}
-            onNewSchemaNameChange={value => {
-              setNotice(null);
-              setNewSchemaName(value);
-            }}
-            onSave={() => runTargetChange(handleSchemaCreateSave)}
-            onSchemaSelect={value =>
-              value !== literalSchemaName &&
-              void runTargetChange(() => handleSchemaSelect(value))
-            }
-            options={isLazyCatalog ? catalog.schemaOptions : schemaOptions}
-            selectMode={selectSchemaMode}
-            selectedValue={literalSchemaName}
-            value={localInputData?.schema_name}
-            variables={variables}
-            {...(isLazyCatalog
-              ? {
-                  query: catalog.schemaSearch,
-                  onQueryChange: catalog.setSchemaSearch,
-                  state: catalog.schemas.state,
-                  hasNextPage: catalog.schemas.hasNextPage,
-                  isFetchingNextPage: catalog.schemas.isFetchingNextPage,
-                  loadMoreError: catalog.schemas.loadMoreError,
-                  onLoadNextPage: () => void catalog.schemas.loadNextPage(),
-                  onRetry: () => catalog.schemas.retry(),
-                  onRefresh: () => catalog.refresh.refresh(),
-                  isRefreshing:
-                    catalog.refresh.isLoading || catalog.schemas.isRefreshing,
-                }
-              : {})}
-          />
-        ) : null}
-
-        <TableSection
-          key={`table:${literalDatabaseName ?? ''}:${literalSchemaName ?? ''}`}
-          blockedMessage={
-            !inputConnectionMetadata
-              ? 'Подключите вход connection'
-              : !hasSelectedDatabase
-                ? isSchemaRequired
-                  ? 'Выберите схему'
-                  : DATABASE_SELECTION_REQUIRED_MESSAGE
-                : isSchemaRequired &&
-                    !hasConfiguredSelectorValue(localInputData?.schema_name)
-                  ? 'Выберите схему'
-                  : (isDatabaseSelectionRequired && !literalDatabaseName) ||
-                      (isSchemaRequired && !literalSchemaName)
-                    ? 'Родитель задан выражением. Введите таблицу выражением.'
-                    : null
+    <StepRoot data-testid='node-extensions/write/write-df-to-db-v4/table-setup-step'>
+      <TargetTreePane
+        tree={tree}
+        metadata={inputConnectionMetadata}
+        draft={draft}
+        highlightedKey={highlightedKey}
+        canCreateDatabase={
+          isDatabaseSelectionRequired && Boolean(inputConnectionMetadata)
+        }
+        canCreateSchema={isSchemaRequired && Boolean(inputConnectionMetadata)}
+        onTableSelect={node => {
+          if (
+            selectTableMode === 'select' &&
+            node.name === literalTableName &&
+            node.databaseName ===
+              (hasDatabaseLevel ? literalDatabaseName : null) &&
+            node.schemaName === (isSchemaRequired ? literalSchemaName : null)
+          ) {
+            return;
           }
-          inputDefinition={tableInputDef}
-          isCreateTableNameEditorOpen={isCreateTableNameEditorOpen}
-          newTableName={newTableName}
-          onChange={value =>
-            void runTargetChange(() => handleTableValueChange(value))
-          }
-          onEditCreatedTableName={handleEditCreatedTableName}
-          onSaveCreatedTableName={() => runTargetChange(handleCreateTableSave)}
-          onCloseTableNameEditor={() => setIsCreateTableNameEditorOpen(false)}
-          onTableNameChange={setNewTableName}
-          onTableSelect={table =>
-            (selectTableMode !== 'select' || table.name !== literalTableName) &&
-            void runTargetChange(() => {
-              if ('catalogRef' in table) {
-                handleLazyTableSelect(table.catalogRef);
-                return;
-              }
-              handleTableSelect(table);
+          void runTargetChange(() =>
+            handleCatalogTableSelect({
+              name: node.name,
+              databaseName: node.databaseName,
+              schemaName: node.schemaName,
             })
-          }
-          selectedValue={literalTableName}
-          selectTableMode={selectTableMode}
-          tables={isLazyCatalog ? catalog.tableItems : filteredTables}
-          value={localInputData?.table_name}
-          variables={variables}
-          {...(isLazyCatalog
-            ? {
-                query: catalog.tableSearch,
-                onQueryChange: catalog.setTableSearch,
-                state: catalog.tables.state,
-                hasNextPage: catalog.tables.hasNextPage,
-                isFetchingNextPage: catalog.tables.isFetchingNextPage,
-                loadMoreError: catalog.tables.loadMoreError,
-                onLoadNextPage: () => void catalog.tables.loadNextPage(),
-                onRetry: () => catalog.tables.retry(),
-                onRefresh: () => catalog.refresh.refresh(),
-                isRefreshing:
-                  catalog.refresh.isLoading || catalog.tables.isRefreshing,
-              }
-            : {})}
+          );
+        }}
+        onStartDraft={handleStartDraft}
+        onRequestCreate={setCreateRequest}
+        isExpressionMode={isExpressionMode}
+        canUseExpressions={canUseExpressions}
+        onEnterExpressionMode={enterExpressionMode}
+        onExitExpressionMode={exitExpressionMode}
+        expressionContent={
+          <ExpressionFieldsList>
+            {selectorFields.map(field => (
+              <div
+                key={field}
+                data-testid={`node-extensions/write/write-df-to-db-v4/expression-${field}`}
+              >
+                <ExpressionLabel>
+                  {SELECTOR_FIELD_LABELS[field]}
+                </ExpressionLabel>
+                <PrimitiveNodeInput
+                  appearance='clean-minimal'
+                  placeholder={CATALOG_EXPRESSION_PLACEHOLDERS[field].literal}
+                  expressionPlaceholder={
+                    CATALOG_EXPRESSION_PLACEHOLDERS[field].expression
+                  }
+                  inputDefinition={getInputDefinition(field)}
+                  value={localInputData?.[field]}
+                  onChange={value =>
+                    void runTargetChange(() =>
+                      selectorChangeHandlers[field](value)
+                    )
+                  }
+                  variables={variables}
+                />
+              </div>
+            ))}
+            <ExpressionHint>Значения вычисляются при запуске</ExpressionHint>
+          </ExpressionFieldsList>
+        }
+      />
+      <TargetDetailPane detail={detail} />
+      {createRequest ? (
+        <CreateNamespaceDialog
+          request={createRequest}
+          takenNames={createTakenNames}
+          onCreate={handleNamespaceCreate}
+          onClose={() => setCreateRequest(null)}
         />
-      </CatalogColumns>
-    </Box>
+      ) : null}
+    </StepRoot>
   );
 };

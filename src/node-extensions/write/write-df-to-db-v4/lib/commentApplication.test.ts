@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { CatalogDescriptions } from './catalogDescriptions';
 import {
   type ExtensionState,
   getPendingColumnActions,
@@ -31,6 +32,61 @@ function setup(confirmed = true) {
   } as Parameters<typeof prepareWriteStepOnContinue>[0];
   return { context, state: () => state };
 }
+
+describe('filling empty DB comments from the DataFrame', () => {
+  const rows = [
+    {
+      source_name: 'sum',
+      db_name: 'sum',
+      db_comment: null,
+      source_comment: 'Сумма',
+      status: 'match' as const,
+    },
+    {
+      source_name: 'id',
+      db_name: 'id',
+      db_comment: 'ID из БД',
+      source_comment: 'ID из DF',
+      status: 'match' as const,
+    },
+    {
+      source_name: 'added',
+      db_name: 'added',
+      db_comment: null,
+      source_comment: 'Новая',
+      status: 'missing_in_db' as const,
+    },
+  ];
+  const catalogDescriptions = {
+    sum: { name: 'sum', description: 'Сумсебест' },
+  } as unknown as CatalogDescriptions;
+
+  it('writes the DataFrame comment only where the DB comment is empty', () => {
+    expect(getPendingColumnActions({ resolvedColumnRows: rows })).toEqual([
+      { type: 'set_column_comment', column_name: 'sum', comment: 'Сумма' },
+    ]);
+    expect(
+      getPendingColumnActions({ resolvedColumnRows: rows, catalogDescriptions })
+    ).toEqual([
+      { type: 'set_column_comment', column_name: 'sum', comment: 'Сумсебест' },
+    ]);
+  });
+
+  it('keeps a cleared field empty and leaves fills out of user changes', () => {
+    expect(
+      getPendingColumnActions({
+        resolvedColumnRows: rows,
+        dbCommentOverrides: { sum: null },
+      })
+    ).toEqual([]);
+    expect(
+      getPendingColumnActions(
+        { resolvedColumnRows: rows },
+        { includeCommentFills: false }
+      )
+    ).toEqual([]);
+  });
+});
 
 describe('applying column comment drafts', () => {
   it('confirms and applies comment-only changes, refreshing metadata and catalog', async () => {

@@ -30,6 +30,8 @@ const WriteDataFrameToDBV4Extension: NodeModalStepperExtension<ExtensionState> =
       return nodeDefinition.name === 'WriteDataFrameToDBV4';
     },
     type: 'modal_stepper',
+    dialogSize: { width: 1180, height: 720 },
+    fullBleed: true,
     steps: [
       {
         id: 'target-setup',

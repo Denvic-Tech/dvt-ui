@@ -1,5 +1,11 @@
 import { type ComponentProps, useState } from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { DbMetadata } from '@/shared/gatewayClient';
@@ -13,15 +19,21 @@ import { TableSetupStep } from './index';
 
 const mocks = vi.hoisted(() => ({
   metadata: null as unknown,
-  catalog: vi.fn(),
   dispatch: vi.fn(),
   confirm: vi.fn().mockResolvedValue(true),
+  createDatabase: vi.fn().mockResolvedValue({}),
+  createSchema: vi.fn().mockResolvedValue({}),
 }));
+
 vi.mock('@/app/providers/store', () => ({
   useAppDispatch: () => mocks.dispatch,
+  useAppSelector: () => null,
 }));
 vi.mock('@/shared/api/utils', () => ({
-  useApiUtils: () => ({ createDatabase: vi.fn(), createSchema: vi.fn() }),
+  useApiUtils: () => ({
+    createDatabase: mocks.createDatabase,
+    createSchema: mocks.createSchema,
+  }),
 }));
 vi.mock('@/shared/ui/confirm-dialog', () => ({
   useConfirmDialog: () => ({ confirm: mocks.confirm }),
@@ -32,39 +44,126 @@ vi.mock('@/features/node/get-node-connections', () => ({
       name === 'connection' ? mocks.metadata : null,
   }),
 }));
-vi.mock('@/features/node/db-target-selector', () => ({
-  useDbTargetCatalogController: (...args: unknown[]) => mocks.catalog(...args),
-}));
 vi.mock('@/shared/ui/node-input/PrimitiveNodeInput', () => ({
   default: () => <div>Редактор выражения</div>,
 }));
 
+const listResult = (items: unknown[], enabled = true) => ({
+  items: enabled ? items : [],
+  state: enabled ? 'ready' : 'idle',
+  error: null,
+  meta: null,
+  hasNextPage: false,
+  isFetchingNextPage: false,
+  isRefreshing: false,
+  loadMoreError: null,
+  loadNextPage: vi.fn(),
+  retry: vi.fn(),
+});
+
+vi.mock(
+  '@/entities/data/db-connection/model/hooks/useDbCatalog',
+  async importOriginal => {
+    const original =
+      await importOriginal<
+        typeof import('@/entities/data/db-connection/model/hooks/useDbCatalog')
+      >();
+    return {
+      ...original,
+      useDbCatalogDatabases: (_metadata: unknown, options: any) =>
+        listResult(
+          [{ name: 'analytics' }, { name: 'archive' }],
+          options?.enabled !== false
+        ),
+      useDbCatalogSchemas: (
+        _metadata: unknown,
+        database: string,
+        options: any
+      ) =>
+        listResult(
+          [{ name: 'public' }],
+          options?.enabled !== false && database === 'analytics'
+        ),
+      useDbCatalogTables: (
+        _metadata: unknown,
+        database: string,
+        schema: string | null,
+        options: any
+      ) =>
+        listResult(
+          ['orders', 'events'].map(name => ({
+            name,
+            kind: 'table',
+            databaseName: database,
+            schemaName: schema,
+          })),
+          options?.enabled !== false &&
+            database === 'analytics' &&
+            (schema === 'public' || schema === null)
+        ),
+      useDbCatalogTable: (
+        _metadata: unknown,
+        _database: string | null,
+        _schema: string | null,
+        table: string | null,
+        options: { enabled?: boolean }
+      ) => ({
+        item:
+          options.enabled !== false && table
+            ? {
+                name: table,
+                columns: [
+                  { name: 'id', dtype: 'INT' },
+                  { name: 'created_at', dtype: 'DATETIME' },
+                ],
+              }
+            : null,
+        state: 'ready',
+        error: null,
+        meta: null,
+        isRefreshing: false,
+        retry: vi.fn(),
+      }),
+      useDbCatalogTablePreview: (
+        _metadata: unknown,
+        _database: string | null,
+        _schema: string | null,
+        table: string | null,
+        options: { enabled?: boolean } = {}
+      ) => {
+        const active = options.enabled !== false && Boolean(table);
+        return {
+          data: active
+            ? {
+                columns: [
+                  { name: 'id', dtype: 'INT' },
+                  { name: 'created_at', dtype: 'DATETIME' },
+                ],
+                rows: [[1, '2024-01-01']],
+                truncated: false,
+                rowCount: 1,
+                rowCountExact: true,
+              }
+            : null,
+          state: active ? 'ready' : 'idle',
+          error: null,
+          isRefreshing: false,
+          retry: vi.fn(),
+        };
+      },
+      useRefreshDbCatalog: () => ({ refresh: vi.fn(), isLoading: false }),
+    };
+  }
+);
+
 const metadata = {
   dialect: 'postgresql',
   connection_id: 'test-connection',
-  databases: [
-    {
-      name: 'analytics',
-      schemas: [
-        {
-          name: 'public',
-          tables: [
-            { name: 'orders', type: 'BASE TABLE', columns: [] },
-            { name: 'events', type: 'BASE TABLE', columns: [] },
-          ],
-        },
-      ],
-    },
-    { name: 'archive', schemas: [{ name: 'raw', tables: [] }] },
-  ],
+  databases: [],
 } as unknown as DbMetadata;
-const initial = {
-  database_name: 'analytics',
-  schema_name: 'public',
-  table_name: 'orders',
-  write_mode: 'append',
-} as WriteDataFrameToDBValues;
+
 const nodeDefinition = { input_definitions: {} };
+
 function Harness({ input = {} }: { input?: WriteDataFrameToDBValues }) {
   const [localInputData, setLocalInputData] = useState(input);
   const [sharedState, setSharedState] = useState<ExtensionState>({});
@@ -86,100 +185,152 @@ function Harness({ input = {} }: { input?: WriteDataFrameToDBValues }) {
     </>
   );
 }
+
 const values = () =>
   JSON.parse(screen.getByTestId('input').textContent ?? '{}');
 
-describe('TableSetupStep Miller columns', () => {
+const treeItem = (name: string) =>
+  screen.findByRole('treeitem', { name: new RegExp(name) });
+
+const openSchema = async () => {
+  fireEvent.click(await treeItem('analytics'));
+  fireEvent.click(await treeItem('public'));
+};
+
+describe('TableSetupStep catalog tree', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mocks.metadata = metadata;
-    mocks.catalog.mockReturnValue({ mode: 'embedded' });
+    mocks.confirm.mockResolvedValue(true);
   });
 
-  it('keeps downstream columns empty before selecting a database', () => {
+  it('shows the empty detail until a table is chosen', async () => {
     render(<Harness />);
-    expect(screen.getAllByRole('region')).toHaveLength(3);
+
+    expect(await treeItem('analytics')).toBeInTheDocument();
+    expect(screen.getByText('Выберите таблицу в дереве')).toBeInTheDocument();
     expect(
-      within(screen.getByRole('region', { name: 'Схема' })).getByText(
-        'Выберите базу данных'
-      )
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'orders' })
+      screen.queryByRole('treeitem', { name: /orders/ })
     ).not.toBeInTheDocument();
-    expect(mocks.catalog).toHaveBeenLastCalledWith(
-      metadata,
-      expect.objectContaining({ schemasEnabled: false, tablesEnabled: false })
+  });
+
+  it('selects an existing table and shows its preview and columns', async () => {
+    render(<Harness />);
+    await openSchema();
+    fireEvent.click(await treeItem('orders'));
+
+    await waitFor(() =>
+      expect(values()).toMatchObject({
+        database_name: 'analytics',
+        schema_name: 'public',
+        table_name: 'orders',
+      })
     );
-  });
-
-  it('navigates database, schema and table without hiding lists after selection', () => {
-    render(<Harness />);
-    fireEvent.click(screen.getByRole('button', { name: /analytics/ }));
-    expect(screen.getByRole('button', { name: /public/ })).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'orders' })
-    ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /public/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'orders' }));
-    expect(values()).toMatchObject({
-      database_name: 'analytics',
-      schema_name: 'public',
-      table_name: 'orders',
+    // По умолчанию открыт «Предпросмотр».
+    const preview = await screen.findByRole('table', {
+      name: 'Предпросмотр данных таблицы',
     });
-    expect(screen.getByRole('button', { name: 'events' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'orders' })).toHaveAttribute(
-      'aria-pressed',
+    expect(within(preview).getByText('2024-01-01')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Предпросмотр' })).toHaveAttribute(
+      'aria-selected',
       'true'
     );
-  });
 
-  it('resets dependent fields on a new database but preserves them on repeated selection', () => {
-    render(<Harness input={initial} />);
-    fireEvent.click(screen.getByRole('button', { name: 'analytics' }));
-    expect(values().write_mode).toBe('append');
-    fireEvent.click(screen.getByRole('button', { name: /archive/ }));
-    expect(values()).toMatchObject({
-      database_name: 'archive',
-      schema_name: null,
-      table_name: null,
-      write_mode: null,
+    fireEvent.click(screen.getByRole('tab', { name: 'Колонки' }));
+    const columns = await screen.findByRole('list', {
+      name: 'Колонки таблицы',
     });
-    expect(
-      screen.queryByRole('button', { name: 'orders' })
-    ).not.toBeInTheDocument();
+    expect(within(columns).getByText('created_at')).toBeInTheDocument();
+    expect(await treeItem('events')).toBeInTheDocument();
   });
 
-  it('omits the schema column for ClickHouse', () => {
-    mocks.metadata = { ...metadata, dialect: 'clickhouse' };
-    render(<Harness input={{ database_name: 'analytics' }} />);
-    expect(screen.getAllByRole('region')).toHaveLength(2);
-    expect(
-      screen.queryByRole('region', { name: 'Схема' })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Создать таблицу' })
-    ).toBeEnabled();
-  });
-
-  it('can create a schema in an empty database before naming a table', () => {
-    render(<Harness input={{ database_name: 'archive' }} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Создать схему' }));
-    expect(
-      screen.getByRole('textbox', { name: 'Создать схему' })
-    ).toBeInTheDocument();
-  });
-
-  it('selects a new table name and can return to an existing table', () => {
-    render(<Harness input={initial} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Создать таблицу' }));
-    fireEvent.change(
-      screen.getByRole('textbox', { name: 'Название новой таблицы' }),
-      { target: { value: 'new_orders' } }
+  it('starts a new-table draft inside a schema and validates its name', async () => {
+    render(<Harness />);
+    await openSchema();
+    fireEvent.click(
+      await screen.findByTestId(
+        'node-extensions/write/write-df-to-db-v4/new-table-row'
+      )
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
-    expect(values().table_name).toBe('new_orders');
-    fireEvent.click(screen.getByRole('button', { name: 'events' }));
-    expect(values().table_name).toBe('events');
-    expect(screen.queryByText('NEW')).not.toBeInTheDocument();
+
+    const nameInput = await screen.findByRole('textbox', {
+      name: 'Название новой таблицы',
+    });
+    await waitFor(() =>
+      expect(values()).toMatchObject({
+        database_name: 'analytics',
+        schema_name: 'public',
+        table_name: null,
+      })
+    );
+
+    fireEvent.change(nameInput, { target: { value: 'orders' } });
+    expect(
+      await screen.findByText('«orders» уже есть в analytics / public')
+    ).toBeInTheDocument();
+
+    fireEvent.change(nameInput, { target: { value: 'new_orders' } });
+    await waitFor(() => expect(values().table_name).toBe('new_orders'));
+    expect(screen.queryByText(/уже есть в analytics/)).not.toBeInTheDocument();
+  });
+
+  it('creates a schema from the database row menu', async () => {
+    render(<Harness />);
+    // Раскрытая база: её схемы загружены и участвуют в проверке имени.
+    fireEvent.click(await treeItem('analytics'));
+    await treeItem('public');
+
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Действия с базой' })[0]!
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: /Создать схему/ })
+    );
+
+    const dialog = await screen.findByRole('dialog', { name: 'Новая схема' });
+    const nameInput = within(dialog).getByRole('textbox', {
+      name: 'Название',
+    });
+    fireEvent.change(nameInput, { target: { value: 'public' } });
+    expect(
+      within(dialog).getByRole('button', { name: 'Создать' })
+    ).toBeDisabled();
+
+    fireEvent.change(nameInput, { target: { value: 'staging' } });
+    fireEvent.keyDown(nameInput, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(mocks.createSchema).toHaveBeenCalledWith({
+        connection_id: 'test-connection',
+        database_name: 'analytics',
+        schema_name: 'staging',
+      })
+    );
+    await waitFor(() =>
+      expect(values()).toMatchObject({
+        database_name: 'analytics',
+        schema_name: 'staging',
+        table_name: null,
+      })
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Новая схема' })
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it('lists tables right under the database for ClickHouse', async () => {
+    mocks.metadata = { ...metadata, dialect: 'clickhouse' };
+    render(<Harness />);
+
+    fireEvent.click(await treeItem('analytics'));
+    expect(await treeItem('orders')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('treeitem', { name: /public/ })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Действия с базой' })
+    ).not.toBeInTheDocument();
   });
 });

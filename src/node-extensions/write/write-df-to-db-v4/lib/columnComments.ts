@@ -18,6 +18,29 @@ export const commentValue = (
     ? normalizeComment(overrides[key])
     : normalizeComment(fallback);
 
+/** Статусы, при которых колонка DF пишется в уже существующую колонку БД. */
+const EXISTING_DB_COLUMN_STATUSES = new Set<WriteColumnResolutionRow['status']>(
+  [
+    'match',
+    'explicit_mapping',
+    'auto_transliterated',
+    'normalized_target',
+    'case_resolved',
+    'type_mismatch',
+  ]
+);
+
+/**
+ * Комментарий DF подставляется в существующую колонку, только если в БД
+ * комментарий пустой: непустой комментарий БД автоматически не заменяется.
+ */
+export const canFillEmptyDbComment = (
+  status: WriteColumnResolutionRow['status'],
+  dbComment: string | null | undefined
+): boolean =>
+  EXISTING_DB_COLUMN_STATUSES.has(status) &&
+  normalizeComment(dbComment) === null;
+
 export const commentTargetKey = (
   connectionId: string | null | undefined,
   database: string | null | undefined,

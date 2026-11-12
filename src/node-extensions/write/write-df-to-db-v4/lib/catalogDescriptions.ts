@@ -1,9 +1,15 @@
+import type { WriteColumnResolutionRow } from '@/shared/gatewayClient';
+
 import type {
   ColumnDescriptionPatch,
   NodeField,
   WriteColumnResolutionRowLike,
 } from './catalogDescriptions.types';
-import { type CommentOverrides, normalizeComment } from './columnComments';
+import {
+  canFillEmptyDbComment,
+  type CommentOverrides,
+  normalizeComment,
+} from './columnComments';
 
 export type { WriteColumnResolutionRowLike } from './catalogDescriptions.types';
 
@@ -33,6 +39,37 @@ export const resolveCommentBaseline = (
   const text = field?.description?.trim();
   if (text) return text;
   return normalizeComment(metadataComment);
+};
+
+type BuildEmptyDbCommentFillsArgs = {
+  rows?: readonly WriteColumnResolutionRow[] | null | undefined;
+  catalog?: CatalogDescriptions | null | undefined;
+  /** Комментарии входа по имени колонки DF: fallback, если строка без него. */
+  metadataComments?: Record<string, string | null | undefined> | undefined;
+};
+
+/**
+ * Комментарии DF для существующих колонок с пустым комментарием в БД, ключ —
+ * имя колонки в БД. Они подставляются в поле и уходят в `set_column_comment`,
+ * пока пользователь не изменит поле.
+ */
+export const buildEmptyDbCommentFills = ({
+  rows,
+  catalog,
+  metadataComments,
+}: BuildEmptyDbCommentFillsArgs): CommentOverrides => {
+  const fills: CommentOverrides = {};
+  for (const row of rows ?? []) {
+    if (!row.db_name || !row.source_name) continue;
+    if (!canFillEmptyDbComment(row.status, row.db_comment)) continue;
+    const comment = resolveCommentBaseline(
+      row.source_name,
+      catalog,
+      row.source_comment ?? metadataComments?.[row.source_name]
+    );
+    if (comment) fills[row.db_name] = comment;
+  }
+  return fills;
 };
 
 /**

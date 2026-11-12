@@ -1,10 +1,4 @@
 import {
-  type ChangeEvent,
-  type ComponentPropsWithoutRef,
-  forwardRef,
-  Fragment,
-  memo,
-  type ReactNode,
   useCallback,
   useDeferredValue,
   useEffect,
@@ -12,34 +6,14 @@ import {
   useRef,
   useState,
 } from 'react';
-import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
-import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
-import TuneIcon from '@mui/icons-material/Tune';
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  Popover,
-  Stack,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Divider, MenuItem } from '@mui/material';
 import { skipToken } from '@reduxjs/toolkit/query';
-import { FiDatabase } from 'react-icons/fi';
-import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 
 import { NodeModalStepperExtensionProps } from '@/app/providers/node-extensions';
 import { useAppDispatch, useAppSelector } from '@/app/providers/store';
 
 import { useNodeConnections } from '@/features/node/get-node-connections';
-import {
-  CLICKHOUSE_ENGINE_OPTIONS,
-  hydrateTableCreateSpecDraft,
-  serializeTableCreateSpecDraft,
-  TableCreateSpecEditor,
-} from '@/features/node/table-create-spec-editor';
 
-import { ColumnDropdownSelect } from '@/entities/data/dataframe';
 import {
   invalidateDbCatalog,
   requireDbConnectionId,
@@ -63,7 +37,21 @@ import type {
 } from '@/shared/gatewayClient';
 import { client } from '@/shared/gatewayClient';
 import { upsertDbMetadataTable } from '@/shared/lib/db-metadata';
-import { SingleOptionDropdownSelect } from '@/shared/ui';
+import {
+  IconButtonBase,
+  SearchField,
+  SearchLead,
+  Spinner,
+} from '@/shared/ui/clean-minimal/controls';
+import { ActionMenu } from '@/shared/ui/clean-minimal/dropdown';
+import { dropdownBoundaryProps } from '@/shared/ui/clean-minimal/dropdownPlacement';
+import {
+  CheckIcon,
+  CopyIcon,
+  MoreIcon,
+  RefreshIcon,
+  SearchIcon,
+} from '@/shared/ui/clean-minimal/icons';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
 
 import {
@@ -77,7 +65,6 @@ import {
 } from '../lib/columnComments';
 import {
   buildColumnMappingNameKey,
-  buildColumnSelectorOptionsFromMapping,
   buildCreateSqlCacheKey,
   buildDbColumnsFromColumnMapping,
   buildExistingTableColumnDiff,
@@ -85,7 +72,6 @@ import {
   buildResolveWriteColumnsRequest,
   buildResolveWriteColumnsTriggerKey,
   buildSelectedWriteTargetLabel,
-  type ColumnMappingChangeState,
   type ColumnMappingItem,
   type ColumnResolveState,
   type CreationMode,
@@ -98,6 +84,7 @@ import {
   getColumnMappingValidationErrors,
   getColumnResolutionValidationErrors,
   getDefaultSelectedColumnActions,
+  getEffectiveDbCommentOverrides,
   getLiteralStringValue,
   getResolvedTargetColumnNames,
   getResolvedTargetName,
@@ -111,123 +98,34 @@ import {
   resolveCreationMode,
   type ResolvedColumnMappingRow,
   serializeColumnMapping,
-  summarizeExistingTableColumnDiff,
   type WriteDataFrameToDBValues,
 } from '../lib/helpers';
-
-import { MappingValidationSection } from './WriteSettingsStep/sections/MappingValidationSection';
-import { CatalogDescriptionNote } from './CatalogDescriptionNote';
-import { ColumnCommentEditor } from './ColumnCommentEditor';
 import {
-  AdvancedPanel,
-  AdvancedToggle,
-  BulkMenuContainer,
-  BulkMenuItem,
-  BulkMenuItemHint,
-  BulkMenuItemTitle,
-  BulkMenuSectionTitle,
-  CellSelect,
-  CellSelectChevron,
-  CellSelectShell,
-  ChangedCellSelect,
-  ChangedNullableSwitch,
-  ChangedNullSwitchCell,
-  ChangedTargetInput,
-  CountLabel,
-  DDLPreviewBox,
-  DtypeBadge,
-  EffectiveColumnIcon,
-  EffectiveColumnName,
-  EffectiveColumnSkeleton,
-  EffectiveColumnValue,
-  ErrorList,
-  FieldBlock,
-  FieldLabel,
-  MappingRow,
-  MappingTableBody,
-  MappingTableContainer,
-  MappingTableHead,
-  NullableSwitch,
-  NullSwitchCell,
-  OutlineButton,
-  PreviewCode,
-  SchemaCard,
-  SchemaEditorHeader,
-  SchemaEditorPanel,
-  SchemaEditorTarget,
-  SchemaHeaderActions,
-  SchemaHeaderIconButton,
-  SchemaRoleBadge,
-  SchemaRoleCell,
-  SchemaRolePlaceholder,
-  SchemaTargetPath,
-  SearchField,
-  SearchIconWrap,
-  SearchInput,
-  SectionHint,
-  SectionTitle,
-  SectionTitleRow,
-  SegmentButton,
-  SegmentControl,
-  SourceMeta,
-  SourceName,
-  SqlTextArea,
-  TargetInput,
-} from './SchemaStrategyStep.styles';
+  buildSchemaRolesByTarget,
+  EMPTY_SCHEMA_ROLES,
+} from '../lib/schemaRoles';
 
-const DATA_TYPE_OPTIONS: DataType[] = [
-  'INT',
-  'FLOAT',
-  'STRING',
-  'BOOLEAN',
-  'DATETIME',
-  'TIMEDELTA',
-  'CATEGORY',
-  'DICTIONARY',
-  'OBJECT',
-  'UNKNOWN',
-];
+import { ColumnCommentPanel } from './schema-step/ColumnCommentPanel';
+import { ExistingTableMapping } from './schema-step/ExistingTableMapping';
+import { formatColumnCount } from './schema-step/format';
+import { NewTableColumnsTable } from './schema-step/NewTableColumnsTable';
+import {
+  HeaderSpacer,
+  LinkButton,
+  MessageBox,
+  MessageList,
+  SchemaStepHeader,
+  SchemaStepRoot,
+  SegmentGroup,
+  SegmentTab,
+  SqlEditor,
+} from './schema-step/SchemaStep.styles';
+import { TablePathChip } from './schema-step/TablePathChip';
+import { CatalogDescriptionNote } from './CatalogDescriptionNote';
 
-const SCHEMA_STRATEGY_FONT_FAMILY =
-  'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-const MAPPING_TABLE_VIRTUALIZATION_THRESHOLD = 80;
-const MAPPING_TABLE_OVERSCAN_PX = 240;
-
-type ColumnSchemaRole = {
-  key: string;
-  label: string;
-  tone: 'primary' | 'success' | 'warning' | 'neutral';
-};
-
-const MAPPING_ROLE_LEGEND: Array<{
-  key: string;
-  label: string;
-  description: string;
-  tone: ColumnSchemaRole['tone'];
-}> = [
-  {
-    key: 'ord',
-    label: 'ORD',
-    description: 'Order by',
-    tone: 'primary',
-  },
-  {
-    key: 'pk',
-    label: 'PK',
-    description: 'Primary key',
-    tone: 'warning',
-  },
-  {
-    key: 'part',
-    label: 'PART',
-    description: 'Partition by',
-    tone: 'success',
-  },
-];
-
-const EMPTY_SCHEMA_ROLES: ColumnSchemaRole[] = [];
-const EFFECTIVE_DB_COLUMN_TOOLTIP =
-  'Имя, под которым колонка создастся в базе данных';
+const COMMENTS_UNSUPPORTED_REASON =
+  'Эта СУБД не поддерживает комментарии: текст DF не будет перенесён';
+const EMPTY_RESOLVE_STATES: Record<string, ColumnResolveState> = {};
 const EFFECTIVE_NAME_FLASH_DURATION_MS = 950;
 const COLUMN_RESOLVE_DEBOUNCE_MS = 1200;
 const COLUMN_RESOLVE_FLASH_MS = 1000;
@@ -273,856 +171,6 @@ const toSnakeCase = (value: string) => {
     .trim();
 };
 
-const toNormalizedRoleColumnList = (
-  value: string | string[] | null | undefined
-): string[] => {
-  if (Array.isArray(value)) {
-    return value.map(columnName => columnName.trim()).filter(Boolean);
-  }
-
-  if (typeof value === 'string') {
-    const normalized = value.trim();
-    return normalized ? [normalized] : [];
-  }
-
-  return [];
-};
-
-const buildSchemaRolesByTarget = (
-  tableCreateSpec: WriteDataFrameToDBValues['table_create_spec']
-): Map<string, ColumnSchemaRole[]> => {
-  const rolesByTarget = new Map<string, ColumnSchemaRole[]>();
-  const addRole = (
-    columnName: string | null | undefined,
-    role: ColumnSchemaRole
-  ) => {
-    const normalizedColumnName = normalizeName(columnName);
-    if (!normalizedColumnName) {
-      return;
-    }
-
-    const currentRoles = rolesByTarget.get(normalizedColumnName) ?? [];
-    if (currentRoles.some(currentRole => currentRole.key === role.key)) {
-      return;
-    }
-
-    rolesByTarget.set(normalizedColumnName, [...currentRoles, role]);
-  };
-
-  const primaryKeyColumns = toNormalizedRoleColumnList(
-    tableCreateSpec?.primary_key_cols
-  );
-  primaryKeyColumns.forEach((columnName, index) => {
-    addRole(columnName, {
-      key: `pk:${index}`,
-      label: primaryKeyColumns.length > 1 ? `PK ${index + 1}` : 'PK',
-      tone: 'warning',
-    });
-  });
-
-  const clickhouseSpec = tableCreateSpec?.clickhouse;
-  toNormalizedRoleColumnList(clickhouseSpec?.order_by).forEach(
-    (columnName, index) => {
-      addRole(columnName, {
-        key: `ord:${index}`,
-        label: `ORD ${index + 1}`,
-        tone: 'primary',
-      });
-    }
-  );
-  toNormalizedRoleColumnList(clickhouseSpec?.partition_by).forEach(
-    (columnName, index, allColumns) => {
-      addRole(columnName, {
-        key: `part:${index}`,
-        label: allColumns.length > 1 ? `PART ${index + 1}` : 'PART',
-        tone: 'success',
-      });
-    }
-  );
-  toNormalizedRoleColumnList(clickhouseSpec?.primary_key).forEach(
-    (columnName, index) => {
-      addRole(columnName, {
-        key: `ch-pk:${index}`,
-        label: primaryKeyColumns.length > 0 ? `CH PK ${index + 1}` : 'PK',
-        tone: 'warning',
-      });
-    }
-  );
-  toNormalizedRoleColumnList(clickhouseSpec?.summing_columns).forEach(
-    (columnName, index, allColumns) => {
-      addRole(columnName, {
-        key: `sum:${index}`,
-        label: allColumns.length > 1 ? `SUM ${index + 1}` : 'SUM',
-        tone: 'neutral',
-      });
-    }
-  );
-  toNormalizedRoleColumnList(clickhouseSpec?.sample_by).forEach(
-    (columnName, index, allColumns) => {
-      addRole(columnName, {
-        key: `sample:${index}`,
-        label: allColumns.length > 1 ? `SAMPLE ${index + 1}` : 'SAMPLE',
-        tone: 'neutral',
-      });
-    }
-  );
-  addRole(clickhouseSpec?.version_column, {
-    key: 'version',
-    label: 'VER',
-    tone: 'neutral',
-  });
-  addRole(clickhouseSpec?.sign_column, {
-    key: 'sign',
-    label: 'SIGN',
-    tone: 'neutral',
-  });
-
-  return rolesByTarget;
-};
-
-const CodeIcon = ({ size = 12, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox='0 0 16 16' fill='none'>
-    <path
-      d='M4.5 3L2 8l2.5 5M11.5 3L14 8l-2.5 5'
-      stroke={color}
-      strokeWidth='1.5'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </svg>
-);
-
-const TableIcon = ({ size = 12, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox='0 0 16 16' fill='none'>
-    <rect
-      x='2'
-      y='2'
-      width='12'
-      height='12'
-      rx='2'
-      stroke={color}
-      strokeWidth='1.4'
-    />
-    <path d='M2 6h12M2 10h12M6 2v12' stroke={color} strokeWidth='1.4' />
-  </svg>
-);
-
-const ExpandIcon = ({ size = 13, color = '#4f46e5' }) => (
-  <svg width={size} height={size} viewBox='0 0 16 16' fill='none'>
-    <path
-      d='M10 2h4v4M2 10v4h4M14 2L9.5 6.5M2 14l4.5-4.5'
-      stroke={color}
-      strokeWidth='1.5'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </svg>
-);
-
-const SearchIcon = ({ size = 14, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox='0 0 16 16' fill='none'>
-    <circle cx='7' cy='7' r='5' stroke={color} strokeWidth='1.5' />
-    <path
-      d='M11 11l3 3'
-      stroke={color}
-      strokeWidth='1.5'
-      strokeLinecap='round'
-    />
-  </svg>
-);
-
-const ChevronIcon = ({ size = 11, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox='0 0 16 16' fill='none'>
-    <path
-      d='M4 6l4 4 4-4'
-      stroke={color}
-      strokeWidth='1.6'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </svg>
-);
-
-const ChevronRightIcon = ({ size = 11, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox='0 0 16 16' fill='none'>
-    <path
-      d='M6 4l4 4-4 4'
-      stroke={color}
-      strokeWidth='1.6'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </svg>
-);
-
-const InfoIcon = ({ size = 12, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox='0 0 16 16' fill='none'>
-    <circle cx='8' cy='8' r='6' stroke={color} strokeWidth='1.2' />
-    <path
-      d='M8 7v3.2M8 5.2h.01'
-      stroke={color}
-      strokeWidth='1.4'
-      strokeLinecap='round'
-    />
-  </svg>
-);
-
-const ColumnResolveIndicator = ({
-  state,
-  right = 14,
-}: {
-  state: ColumnResolveState;
-  right?: number;
-}) => {
-  if (state === 'idle') {
-    return null;
-  }
-
-  if (state === 'dirty') {
-    return (
-      <Box
-        component='span'
-        role='status'
-        aria-label='изменено'
-        sx={{
-          position: 'absolute',
-          right,
-          top: '50%',
-          width: 7,
-          height: 7,
-          borderRadius: '50%',
-          bgcolor: '#f59e0b',
-          transform: 'translateY(-50%)',
-          pointerEvents: 'none',
-        }}
-      />
-    );
-  }
-
-  if (state === 'loading') {
-    return (
-      <CircularProgress
-        role='status'
-        aria-label='сверяем'
-        size={13}
-        thickness={5}
-        sx={{
-          position: 'absolute',
-          right,
-          top: '50%',
-          color: '#4f46e5',
-          transform: 'translateY(-50%)',
-          pointerEvents: 'none',
-        }}
-      />
-    );
-  }
-
-  return (
-    <Box
-      component='span'
-      role='status'
-      aria-label='сверено'
-      sx={{
-        position: 'absolute',
-        right,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        color: '#059669',
-        display: 'block',
-        width: 14,
-        height: 14,
-        pointerEvents: 'none',
-      }}
-    >
-      <svg width='14' height='14' viewBox='0 0 14 14' fill='none'>
-        <polyline
-          points='2,7 5.25,10 12,3'
-          stroke='currentColor'
-          strokeWidth='1.8'
-          strokeLinecap='square'
-          strokeLinejoin='miter'
-        />
-      </svg>
-    </Box>
-  );
-};
-
-const TargetNameResetIcon = () => (
-  <svg width='10' height='10' viewBox='0 0 10 10' fill='none'>
-    <path d='M2 2l6 6M8 2L2 8' stroke='currentColor' strokeWidth='1.3' />
-  </svg>
-);
-
-type MappingTableProps = {
-  changeStateBySource: Map<string, ColumnMappingChangeState>;
-  filteredMapping: ResolvedColumnMappingRow[];
-  renderComment?: ((item: ResolvedColumnMappingRow) => ReactNode) | undefined;
-  flashingEffectiveSourceKeys: string[];
-  initialTargetNames: ReadonlyMap<string, string>;
-  onNullableChange: (sourceName: string, checked: boolean) => void;
-  onTargetNameBlur: (sourceName: string, value: string) => void;
-  onTargetNameCancel: (sourceName: string) => void;
-  onTargetNameChange: (sourceName: string, value: string) => void;
-  onTargetNameReset: (sourceName: string) => void;
-  onTypeChange: (sourceName: string, value: DataType) => void;
-  resolveStates: Record<string, ColumnResolveState>;
-  resolvingEffectiveSourceKeys: string[];
-  schemaRolesByTarget: Map<string, ColumnSchemaRole[]>;
-  sourceDtypeBySource: Map<string, DataType | string>;
-  highlightedSourceName: string | null;
-};
-
-type MappingTableRowProps = {
-  renderComment?: ((item: ResolvedColumnMappingRow) => ReactNode) | undefined;
-  item: ResolvedColumnMappingRow;
-  last: boolean;
-  sourceDtype: DataType | string;
-  schemaRoles: ColumnSchemaRole[];
-  isHighlighted: boolean;
-  isEffectiveNameFlashing: boolean;
-  isEffectiveNameResolving: boolean;
-  canResetTargetName: boolean;
-  targetNameChanged: boolean;
-  dtypeChanged: boolean;
-  nullableChanged: boolean;
-  onNullableChange: (sourceName: string, checked: boolean) => void;
-  onTargetNameBlur: (sourceName: string, value: string) => void;
-  onTargetNameCancel: (sourceName: string) => void;
-  onTargetNameChange: (sourceName: string, value: string) => void;
-  onTargetNameReset: (sourceName: string) => void;
-  onTypeChange: (sourceName: string, value: DataType) => void;
-  resolveState: ColumnResolveState;
-  registerRowElement?: (
-    sourceName: string,
-    element: HTMLDivElement | null
-  ) => void;
-};
-
-const MappingTableScroller = forwardRef<
-  HTMLDivElement,
-  ComponentPropsWithoutRef<'div'>
->(({ style, ...props }, ref) => (
-  <div
-    {...props}
-    ref={ref}
-    style={{
-      ...(style ?? {}),
-      overflowX: 'hidden',
-      overflowY: 'auto',
-      overscrollBehavior: 'contain',
-      scrollbarGutter: 'stable',
-    }}
-  />
-));
-
-MappingTableScroller.displayName = 'MappingTableScroller';
-
-const MappingTableRow = memo(
-  ({
-    item,
-    renderComment,
-    last,
-    sourceDtype,
-    schemaRoles,
-    isHighlighted,
-    isEffectiveNameFlashing,
-    isEffectiveNameResolving,
-    canResetTargetName,
-    targetNameChanged,
-    dtypeChanged,
-    nullableChanged,
-    onNullableChange,
-    onTargetNameBlur,
-    onTargetNameCancel,
-    onTargetNameChange,
-    onTargetNameReset,
-    onTypeChange,
-    resolveState,
-    registerRowElement,
-  }: MappingTableRowProps) => {
-    const sourceName = item.source_name ?? '';
-    const sourceKey = normalizeName(sourceName);
-    const requestedTargetName =
-      item.requested_target_name ??
-      item.effective_target_name ??
-      item.db_name ??
-      '';
-    const effectiveTargetName = getResolvedTargetName(item);
-    const effectiveDisplayName = effectiveTargetName ?? item.db_name ?? '-';
-    const effectiveSkeletonWidth = `${Math.min(
-      Math.max(effectiveDisplayName.length, requestedTargetName.length, 10),
-      24
-    )}ch`;
-    const isDbOnly = !item.source_name;
-    const TargetInputComponent = targetNameChanged
-      ? ChangedTargetInput
-      : TargetInput;
-    const TypeSelectComponent = dtypeChanged ? ChangedCellSelect : CellSelect;
-    const NullCellComponent = nullableChanged
-      ? ChangedNullSwitchCell
-      : NullSwitchCell;
-    const NullSwitchComponent = nullableChanged
-      ? ChangedNullableSwitch
-      : NullableSwitch;
-
-    const handleTargetNameChange = useCallback(
-      (event: ChangeEvent<HTMLInputElement>) => {
-        if (!sourceName) {
-          return;
-        }
-        onTargetNameChange(sourceName, event.target.value);
-      },
-      [onTargetNameChange, sourceName]
-    );
-
-    const handleTypeChange = useCallback(
-      (event: ChangeEvent<HTMLSelectElement>) => {
-        if (!sourceName) {
-          return;
-        }
-        onTypeChange(sourceName, event.target.value as DataType);
-      },
-      [onTypeChange, sourceName]
-    );
-
-    const handleNullableChange = useCallback(
-      (event: ChangeEvent<HTMLInputElement>) => {
-        if (!sourceName) {
-          return;
-        }
-        onNullableChange(sourceName, event.target.checked);
-      },
-      [onNullableChange, sourceName]
-    );
-
-    return (
-      <MappingRow
-        ref={element =>
-          item.source_name
-            ? registerRowElement?.(item.source_name, element)
-            : undefined
-        }
-        checked
-        highlighted={isHighlighted}
-        last={last}
-      >
-        <SourceMeta>
-          {item.source_name ? (
-            <SourceName>{item.source_name}</SourceName>
-          ) : (
-            <SchemaRolePlaceholder>DB only</SchemaRolePlaceholder>
-          )}
-          <DtypeBadge dtype={String(sourceDtype)}>{sourceDtype}</DtypeBadge>
-        </SourceMeta>
-
-        {isDbOnly ? (
-          <SchemaRolePlaceholder>-</SchemaRolePlaceholder>
-        ) : (
-          <Box
-            sx={{
-              minWidth: 0,
-              position: 'relative',
-              '&:hover .target-name-reset, &:focus-within .target-name-reset': {
-                opacity: 1,
-                pointerEvents: 'auto',
-              },
-            }}
-          >
-            <TargetInputComponent
-              value={requestedTargetName}
-              onChange={handleTargetNameChange}
-              onBlur={() => onTargetNameBlur(sourceName, requestedTargetName)}
-              onKeyDown={event => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  onTargetNameBlur(sourceName, requestedTargetName);
-                  event.currentTarget.blur();
-                } else if (event.key === 'Escape') {
-                  event.preventDefault();
-                  onTargetNameCancel(sourceName);
-                }
-              }}
-              placeholder='target_name'
-              aria-label={`Колонка DB для ${sourceName}`}
-              aria-invalid={!requestedTargetName.trim()}
-              title={
-                requestedTargetName.trim()
-                  ? undefined
-                  : 'Название колонки DB обязательно'
-              }
-              style={{
-                paddingRight:
-                  canResetTargetName && resolveState !== 'idle'
-                    ? 54
-                    : canResetTargetName
-                      ? 34
-                      : resolveState === 'dirty' || resolveState === 'loading'
-                        ? 28
-                        : resolveState === 'flash'
-                          ? 32
-                          : 8,
-              }}
-            />
-            <ColumnResolveIndicator
-              state={resolveState}
-              right={canResetTargetName ? 38 : 14}
-            />
-            {canResetTargetName ? (
-              <Box
-                component='button'
-                type='button'
-                className='target-name-reset'
-                aria-label={`Сбросить имя колонки DB для ${sourceName}`}
-                title='Вернуть исходное имя'
-                onMouseDown={event => event.preventDefault()}
-                onClick={() => onTargetNameReset(sourceName)}
-                sx={{
-                  position: 'absolute',
-                  right: 7,
-                  top: '50%',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 20,
-                  height: 20,
-                  p: 0,
-                  border: 0,
-                  borderRadius: '5px',
-                  backgroundColor: 'transparent',
-                  color: '#9ca3af',
-                  opacity: 0,
-                  transform: 'translateY(-50%)',
-                  transition: 'opacity 120ms ease, color 120ms ease',
-                  pointerEvents: 'none',
-                  cursor: 'pointer',
-                  '&:hover': { color: '#4b5563', backgroundColor: '#f3f4f6' },
-                  '& svg': { display: 'block' },
-                }}
-              >
-                <TargetNameResetIcon />
-              </Box>
-            ) : null}
-          </Box>
-        )}
-
-        <EffectiveColumnValue
-          flashing={isEffectiveNameFlashing}
-          loading={isEffectiveNameResolving}
-          title={isEffectiveNameResolving ? undefined : effectiveDisplayName}
-        >
-          <EffectiveColumnIcon
-            flashing={isEffectiveNameFlashing}
-            loading={isEffectiveNameResolving}
-          >
-            <FiDatabase size={11} />
-          </EffectiveColumnIcon>
-          {isEffectiveNameResolving && sourceKey ? (
-            <EffectiveColumnSkeleton
-              style={{ width: effectiveSkeletonWidth }}
-            />
-          ) : (
-            <EffectiveColumnName>{effectiveDisplayName}</EffectiveColumnName>
-          )}
-        </EffectiveColumnValue>
-
-        <CellSelectShell>
-          <TypeSelectComponent
-            value={(item.dtype ?? 'UNKNOWN') as DataType}
-            onChange={handleTypeChange}
-            disabled={isDbOnly}
-          >
-            {DATA_TYPE_OPTIONS.map(option => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </TypeSelectComponent>
-          <CellSelectChevron>
-            <ChevronIcon />
-          </CellSelectChevron>
-        </CellSelectShell>
-
-        <NullCellComponent>
-          <NullSwitchComponent
-            checked={Boolean(item.nullable)}
-            onChange={handleNullableChange}
-            disabled={isDbOnly}
-            inputProps={{
-              'aria-label': `Nullable for ${requestedTargetName}`,
-            }}
-          />
-        </NullCellComponent>
-
-        <SchemaRoleCell>
-          {schemaRoles.length > 0 ? (
-            schemaRoles.map(role => (
-              <SchemaRoleBadge key={role.key} tone={role.tone}>
-                {role.label}
-              </SchemaRoleBadge>
-            ))
-          ) : (
-            <SchemaRolePlaceholder>-</SchemaRolePlaceholder>
-          )}
-        </SchemaRoleCell>
-        {renderComment?.(item)}
-      </MappingRow>
-    );
-  }
-);
-
-MappingTableRow.displayName = 'MappingTableRow';
-
-const MappingTable = memo(
-  ({
-    changeStateBySource,
-    filteredMapping,
-    renderComment,
-    flashingEffectiveSourceKeys,
-    initialTargetNames,
-    onNullableChange,
-    onTargetNameBlur,
-    onTargetNameCancel,
-    onTargetNameChange,
-    onTargetNameReset,
-    onTypeChange,
-    resolveStates,
-    resolvingEffectiveSourceKeys,
-    schemaRolesByTarget,
-    sourceDtypeBySource,
-    highlightedSourceName,
-  }: MappingTableProps) => {
-    const rowElementsRef = useRef(new Map<string, HTMLDivElement>());
-    const virtuosoRef = useRef<VirtuosoHandle | null>(null);
-    const shouldVirtualize =
-      filteredMapping.length >= MAPPING_TABLE_VIRTUALIZATION_THRESHOLD;
-    const highlightedIndex = useMemo(() => {
-      const normalizedHighlightedSourceName = normalizeName(
-        highlightedSourceName
-      );
-      if (!normalizedHighlightedSourceName) {
-        return -1;
-      }
-
-      return filteredMapping.findIndex(item => {
-        return (
-          normalizeName(item.source_name) === normalizedHighlightedSourceName
-        );
-      });
-    }, [filteredMapping, highlightedSourceName]);
-
-    const registerRowElement = useCallback(
-      (sourceName: string, element: HTMLDivElement | null) => {
-        const normalizedSourceName = normalizeName(sourceName);
-        if (!normalizedSourceName) {
-          return;
-        }
-
-        if (element) {
-          rowElementsRef.current.set(normalizedSourceName, element);
-        } else {
-          rowElementsRef.current.delete(normalizedSourceName);
-        }
-      },
-      []
-    );
-
-    useEffect(() => {
-      if (highlightedIndex < 0) {
-        return;
-      }
-
-      const frame = requestAnimationFrame(() => {
-        if (shouldVirtualize) {
-          virtuosoRef.current?.scrollToIndex({
-            index: highlightedIndex,
-            align: 'center',
-            behavior: 'smooth',
-          });
-          return;
-        }
-
-        const highlightedRow = rowElementsRef.current.get(
-          normalizeName(filteredMapping[highlightedIndex]?.source_name)
-        );
-        highlightedRow?.scrollIntoView({
-          block: 'center',
-          behavior: 'smooth',
-        });
-      });
-
-      return () => {
-        cancelAnimationFrame(frame);
-      };
-    }, [filteredMapping, highlightedIndex, shouldVirtualize]);
-
-    const renderRow = useCallback(
-      (item: ResolvedColumnMappingRow, index: number, registerRow = false) => {
-        const sourceKey = normalizeName(item.source_name);
-        const sourceDtype = sourceDtypeBySource.get(sourceKey) ?? item.dtype;
-        const effectiveTargetName = getResolvedTargetName(item);
-        const schemaRoles =
-          schemaRolesByTarget.get(normalizeName(effectiveTargetName)) ??
-          EMPTY_SCHEMA_ROLES;
-        const changeState = changeStateBySource.get(sourceKey);
-        const requestedTargetName =
-          item.requested_target_name ??
-          item.effective_target_name ??
-          item.db_name ??
-          '';
-        const initialTargetName = initialTargetNames.get(sourceKey);
-
-        return (
-          <MappingTableRow
-            key={item.source_name ?? item.db_name ?? `${item.status}:${index}`}
-            item={item}
-            renderComment={renderComment}
-            last={index === filteredMapping.length - 1}
-            sourceDtype={sourceDtype ?? 'UNKNOWN'}
-            schemaRoles={schemaRoles}
-            isHighlighted={highlightedIndex === index}
-            isEffectiveNameFlashing={flashingEffectiveSourceKeys.includes(
-              sourceKey
-            )}
-            isEffectiveNameResolving={resolvingEffectiveSourceKeys.includes(
-              sourceKey
-            )}
-            canResetTargetName={
-              initialTargetName !== undefined &&
-              requestedTargetName !== initialTargetName
-            }
-            targetNameChanged={Boolean(changeState?.targetNameChanged)}
-            dtypeChanged={Boolean(changeState?.dtypeChanged)}
-            nullableChanged={Boolean(changeState?.nullableChanged)}
-            onNullableChange={onNullableChange}
-            onTargetNameBlur={onTargetNameBlur}
-            onTargetNameCancel={onTargetNameCancel}
-            onTargetNameChange={onTargetNameChange}
-            onTargetNameReset={onTargetNameReset}
-            onTypeChange={onTypeChange}
-            resolveState={resolveStates[sourceKey] ?? 'idle'}
-            {...(registerRow ? { registerRowElement } : {})}
-          />
-        );
-      },
-      [
-        changeStateBySource,
-        flashingEffectiveSourceKeys,
-        filteredMapping.length,
-        renderComment,
-        highlightedIndex,
-        initialTargetNames,
-        onNullableChange,
-        onTargetNameBlur,
-        onTargetNameCancel,
-        onTargetNameChange,
-        onTargetNameReset,
-        onTypeChange,
-        resolveStates,
-        registerRowElement,
-        resolvingEffectiveSourceKeys,
-        schemaRolesByTarget,
-        sourceDtypeBySource,
-      ]
-    );
-
-    return (
-      <MappingTableContainer>
-        <MappingTableHead>
-          <div>Колонка в DataFrame</div>
-          <div>Колонка в таблице</div>
-          <Box
-            component='div'
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0.75,
-              minWidth: 0,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span>Effective DB column</span>
-            <Tooltip title={EFFECTIVE_DB_COLUMN_TOOLTIP}>
-              <Box
-                component='span'
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color:
-                    'rgba(var(--mui-palette-text-secondaryChannel) / 0.72)',
-                  cursor: 'help',
-                }}
-              >
-                <HelpOutlineRoundedIcon sx={{ fontSize: 13 }} />
-              </Box>
-            </Tooltip>
-          </Box>
-          <div>Тип</div>
-          <div>Null</div>
-          <div>Роль в схеме</div>
-          <div>Комментарий</div>
-        </MappingTableHead>
-
-        <MappingTableBody>
-          {filteredMapping.length > 0 ? (
-            shouldVirtualize ? (
-              <Virtuoso
-                ref={virtuosoRef}
-                data={filteredMapping}
-                style={{ height: '100%' }}
-                overscan={MAPPING_TABLE_OVERSCAN_PX}
-                increaseViewportBy={{
-                  top: MAPPING_TABLE_OVERSCAN_PX,
-                  bottom: MAPPING_TABLE_OVERSCAN_PX * 2,
-                }}
-                computeItemKey={(index, item) =>
-                  item.source_name ?? item.db_name ?? `${item.status}:${index}`
-                }
-                components={{
-                  Scroller: MappingTableScroller,
-                }}
-                itemContent={(index, item) => renderRow(item, index)}
-              />
-            ) : (
-              <Box
-                sx={{
-                  height: '100%',
-                  overflowY: 'auto',
-                  overflowX: 'hidden',
-                  overscrollBehavior: 'contain',
-                  scrollbarGutter: 'stable',
-                }}
-              >
-                {filteredMapping.map((item, index) =>
-                  renderRow(item, index, true)
-                )}
-              </Box>
-            )
-          ) : (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                px: 2,
-                color: 'text.secondary',
-              }}
-            >
-              <Typography sx={{ fontSize: 13 }}>
-                Ничего не найдено по текущему фильтру
-              </Typography>
-            </Box>
-          )}
-        </MappingTableBody>
-      </MappingTableContainer>
-    );
-  }
-);
-
-MappingTable.displayName = 'MappingTable';
-
 export const SchemaStrategyStep = ({
   id: nodeID,
   isOpen,
@@ -1130,6 +178,7 @@ export const SchemaStrategyStep = ({
   setLocalInputData,
   setSharedState,
   sharedState,
+  goToStep,
 }: NodeModalStepperExtensionProps<
   WriteDataFrameToDBValues,
   ExtensionState
@@ -1178,7 +227,10 @@ export const SchemaStrategyStep = ({
   const [mappingSearch, setMappingSearch] = useState('');
   const deferredMappingSearch = useDeferredValue(mappingSearch);
   const [bulkAnchorEl, setBulkAnchorEl] = useState<HTMLElement | null>(null);
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  // Колонка, комментарий которой открыт в боковой панели (новая таблица).
+  const [activeCommentSource, setActiveCommentSource] = useState<string | null>(
+    null
+  );
   const [pendingEffectiveSourceKeys, setPendingEffectiveSourceKeys] = useState<
     string[]
   >([]);
@@ -1354,22 +406,6 @@ export const SchemaStrategyStep = ({
     sharedState?.resolvedColumnRows,
     sharedState?.resolvedDiagnostics,
   ]);
-  const existingTableDiffSummary = useMemo(() => {
-    if (isTableNew) {
-      return null;
-    }
-
-    return summarizeExistingTableColumnDiff({
-      columnDiff: existingTableColumnDiff,
-      dataframeColumnCount: inputDataframeMetadata?.columns?.length ?? 0,
-      dbColumnCount: selectedTable?.columns?.length ?? 0,
-    });
-  }, [
-    existingTableColumnDiff,
-    inputDataframeMetadata?.columns?.length,
-    isTableNew,
-    selectedTable?.columns?.length,
-  ]);
   const resolvedTargetBySource = useMemo(() => {
     return buildResolvedTargetBySource(resolvedMappingRows);
   }, [resolvedMappingRows]);
@@ -1463,26 +499,6 @@ export const SchemaStrategyStep = ({
       })
     );
   }, [baseMappingBySource, requestedMapping]);
-  const changedMappingItems = useMemo(() => {
-    return requestedMapping.filter(item => {
-      const state = mappingChangeStateBySource.get(
-        normalizeName(item.source_name)
-      );
-      return Boolean(
-        state &&
-        (state.targetNameChanged || state.dtypeChanged || state.nullableChanged)
-      );
-    });
-  }, [requestedMapping, mappingChangeStateBySource]);
-  const columnOptions = useMemo(() => {
-    return buildColumnSelectorOptionsFromMapping(serializedEffectiveMapping);
-  }, [serializedEffectiveMapping]);
-  const clickhouseEngineOptions = useMemo(() => {
-    return CLICKHOUSE_ENGINE_OPTIONS.map(option => ({
-      value: option,
-      label: option,
-    }));
-  }, []);
   const selectedTargetLabel = useMemo(() => {
     return (
       buildSelectedWriteTargetLabel(localInputData) ||
@@ -1538,25 +554,9 @@ export const SchemaStrategyStep = ({
     selectedCreationMode,
     sharedState?.resolvedDiagnostics,
   ]);
-  const tableCreateSpecDraft = useMemo(() => {
-    return hydrateTableCreateSpecDraft(
-      localInputData?.table_create_spec ?? null
-    );
-  }, [localInputData?.table_create_spec]);
-
   const typedPreviewSql = sharedState?.typedPreviewSql ?? '';
   const sqlErrorMessage = (sharedState?.createSqlError ?? '').trim();
 
-  const canFetchTypedPreviewSql = Boolean(
-    selectedCreationMode === 'typed' &&
-    isTableNew &&
-    literalTableName &&
-    inputConnectionMetadata &&
-    inputDataframeMetadata &&
-    typedSpecErrors.length === 0 &&
-    resolutionErrors.length === 0 &&
-    !sharedState?.isResolvingColumns
-  );
   const canFetchRawPreviewSql = Boolean(
     selectedCreationMode === 'raw' &&
     isTableNew &&
@@ -2459,7 +1459,7 @@ export const SchemaStrategyStep = ({
                 commentsSupported: sharedState?.columnCommentsSupported,
               }),
               sharedState?.resolvedColumnRows ?? [],
-              sharedState?.dbCommentOverrides,
+              getEffectiveDbCommentOverrides(sharedState),
               sharedState?.columnCommentsSupported !== false
             ),
             table_create_spec: null,
@@ -2755,26 +1755,6 @@ export const SchemaStrategyStep = ({
     setSharedState,
   ]);
 
-  const patchTableCreateSpec = useCallback(
-    (
-      updater: (
-        draft: ReturnType<typeof hydrateTableCreateSpecDraft>
-      ) => ReturnType<typeof hydrateTableCreateSpecDraft>
-    ) => {
-      setLocalInputData(prev => {
-        const currentDraft = hydrateTableCreateSpecDraft(
-          prev?.table_create_spec ?? null
-        );
-        const nextDraft = updater(currentDraft);
-        return {
-          ...(prev ?? {}),
-          table_create_spec: serializeTableCreateSpecDraft(nextDraft),
-        };
-      });
-    },
-    [setLocalInputData]
-  );
-
   const copySql = useCallback(async (sql: string, mode: 'raw' | 'typed') => {
     if (!sql.trim()) {
       return;
@@ -2941,95 +1921,178 @@ export const SchemaStrategyStep = ({
     selectedCreationMode,
   ]);
 
-  const applyBulkAction = useCallback(
-    (
-      action:
-        | 'snake_case'
-        | 'lowercase'
-        | 'reset_types'
-        | 'all_not_null'
-        | 'all_null'
-        | 'reset_renames'
-        | 'reset_all'
-    ) => {
-      if (action === 'reset_types') {
-        setMappingValue(
-          requestedMapping.map(item => {
-            const baseItem = baseMappingBySource.get(
-              normalizeName(item.source_name)
-            );
-            return {
-              ...item,
-              dtype: baseItem?.dtype ?? item.dtype,
-            };
-          }),
-          false
-        );
-        setBulkAnchorEl(null);
-        return;
-      }
+  const typedCommentOverrides = sharedState?.typedCommentOverrides;
+  const commentsDisabledReason = sharedState?.columnCommentsSupported
+    ? null
+    : COMMENTS_UNSUPPORTED_REASON;
 
-      if (action === 'all_not_null') {
-        setMappingValue(
-          requestedMapping.map(item => ({
-            ...item,
-            nullable: false,
-          })),
-          false
-        );
-        setBulkAnchorEl(null);
-        return;
-      }
+  // Комментарий колонки в DF: описание из каталога или из metadata входа.
+  const sourceCommentBySource = useMemo(() => {
+    return new Map(
+      requestedMapping.map(item => {
+        const metadataComment =
+          inputDataframeMetadata?.columns.find(
+            column => column.name === item.source_name
+          )?.comment ?? null;
+        return [
+          item.source_name,
+          resolveCommentBaseline(
+            item.source_name,
+            catalogDescriptions,
+            metadataComment
+          ),
+        ] as const;
+      })
+    );
+  }, [catalogDescriptions, inputDataframeMetadata, requestedMapping]);
 
-      if (action === 'all_null') {
-        setMappingValue(
-          requestedMapping.map(item => ({
-            ...item,
-            nullable: true,
-          })),
-          false
-        );
-        setBulkAnchorEl(null);
-        return;
-      }
-
-      if (action === 'reset_renames') {
-        setMappingValue(
-          requestedMapping.map(item => {
-            const baseItem = baseMappingBySource.get(
-              normalizeName(item.source_name)
-            );
-            return {
-              ...item,
-              target_name: baseItem?.target_name ?? item.target_name,
-            };
-          }),
-          true
-        );
-        setBulkAnchorEl(null);
-        return;
-      }
-
-      if (action === 'reset_all') {
-        setMappingValue(baseMapping, true);
-        setBulkAnchorEl(null);
-        return;
-      }
-
-      setMappingValue(
-        requestedMapping.map(item => ({
-          ...item,
-          target_name:
-            action === 'snake_case'
-              ? toSnakeCase(item.target_name)
-              : item.target_name.toLowerCase(),
-        })),
-        true
-      );
-      setBulkAnchorEl(null);
+  const getTypedComment = useCallback(
+    (sourceName: string) => {
+      const baseline = sourceCommentBySource.get(sourceName) ?? null;
+      const value = commentValue(typedCommentOverrides, sourceName, baseline);
+      return {
+        value,
+        baseline,
+        changed: normalizeComment(value) !== normalizeComment(baseline),
+      };
     },
-    [baseMapping, baseMappingBySource, requestedMapping, setMappingValue]
+    [sourceCommentBySource, typedCommentOverrides]
   );
+
+  const setTypedCommentOverrides = useCallback(
+    (
+      updater: (
+        current: Record<string, string | null>
+      ) => Record<string, string | null>
+    ) => {
+      setSharedState(prev => ({
+        ...(prev ?? {}),
+        typedCommentOverrides: updater({ ...prev?.typedCommentOverrides }),
+        lastCreateSqlKey: null,
+        lastCreateTableKey: null,
+        typedPreviewSql: null,
+      }));
+    },
+    [setSharedState]
+  );
+
+  type BulkAction =
+    | 'all_null'
+    | 'all_not_null'
+    | 'snake_case'
+    | 'lowercase'
+    | 'reset_renames'
+    | 'comments_from_source'
+    | 'clear_comments'
+    | 'reset_all';
+
+  // Массовые действия меняют только текущее состояние шага; имена в БД
+  // затем пересчитываются обычным запросом разрешения колонок.
+  const applyBulkAction = useCallback(
+    (action: BulkAction) => {
+      setBulkAnchorEl(null);
+
+      switch (action) {
+        case 'all_null':
+        case 'all_not_null':
+          setMappingValue(
+            requestedMapping.map(item => ({
+              ...item,
+              nullable: action === 'all_null',
+            })),
+            false
+          );
+          return;
+        case 'reset_renames':
+          setMappingValue(
+            requestedMapping.map(item => {
+              const baseItem = baseMappingBySource.get(
+                normalizeName(item.source_name)
+              );
+              return {
+                ...item,
+                target_name: baseItem?.target_name ?? item.target_name,
+              };
+            }),
+            true
+          );
+          return;
+        case 'snake_case':
+        case 'lowercase':
+          setMappingValue(
+            requestedMapping.map(item => ({
+              ...item,
+              target_name:
+                action === 'snake_case'
+                  ? toSnakeCase(item.target_name)
+                  : item.target_name.toLowerCase(),
+            })),
+            true
+          );
+          return;
+        case 'comments_from_source':
+          setTypedCommentOverrides(current => {
+            for (const item of requestedMapping) {
+              if (sourceCommentBySource.get(item.source_name)) {
+                delete current[item.source_name];
+              }
+            }
+            return current;
+          });
+          return;
+        case 'clear_comments':
+          setTypedCommentOverrides(current => {
+            for (const item of requestedMapping) {
+              current[item.source_name] = null;
+            }
+            return current;
+          });
+          return;
+        case 'reset_all':
+          setMappingValue(baseMapping, true);
+          setTypedCommentOverrides(() => ({}));
+          return;
+      }
+    },
+    [
+      baseMapping,
+      baseMappingBySource,
+      requestedMapping,
+      setMappingValue,
+      setTypedCommentOverrides,
+      sourceCommentBySource,
+    ]
+  );
+
+  const bulkAvailability = useMemo(() => {
+    const comments = requestedMapping.map(item =>
+      getTypedComment(item.source_name)
+    );
+    const hasMappingChanges = Array.from(
+      mappingChangeStateBySource.values()
+    ).some(
+      state =>
+        state.targetNameChanged || state.dtypeChanged || state.nullableChanged
+    );
+    return {
+      allNull: requestedMapping.some(item => !item.nullable),
+      allNotNull: requestedMapping.some(item => Boolean(item.nullable)),
+      snakeCase: requestedMapping.some(
+        item => toSnakeCase(item.target_name) !== item.target_name
+      ),
+      lowercase: requestedMapping.some(
+        item => item.target_name.toLowerCase() !== item.target_name
+      ),
+      resetRenames: Array.from(mappingChangeStateBySource.values()).some(
+        state => state.targetNameChanged
+      ),
+      commentsFromSource: comments.some(
+        comment => comment.baseline && comment.changed
+      ),
+      clearComments: comments.some(comment => Boolean(comment.value)),
+      resetAll: hasMappingChanges || comments.some(comment => comment.changed),
+    };
+  }, [getTypedComment, mappingChangeStateBySource, requestedMapping]);
 
   const setCommentOverride = useCallback(
     (name: string, value: string | null, isNew: boolean) => {
@@ -3047,484 +2110,425 @@ export const SchemaStrategyStep = ({
     [setSharedState]
   );
 
-  const renderTypedComment = useCallback(
-    (item: ResolvedColumnMappingRow) => {
-      const sourceName = item.source_name ?? '';
-      const metadataComment =
-        inputDataframeMetadata?.columns.find(
-          column => column.name === sourceName
-        )?.comment ?? null;
-      const catalogField = catalogDescriptions[sourceName];
-      const source = resolveCommentBaseline(
-        sourceName,
-        catalogDescriptions,
-        metadataComment
-      );
-      return (
-        <ColumnCommentEditor
-          name={
-            item.effective_target_name ??
-            item.requested_target_name ??
-            sourceName
-          }
-          value={commentValue(
-            sharedState?.typedCommentOverrides,
-            sourceName,
-            source
-          )}
-          baseline={source}
-          disabled={!sharedState?.columnCommentsSupported}
-          disabledReason='Эта СУБД не поддерживает комментарии: текст DF не будет перенесён'
-          adornment={<CatalogDescriptionNote field={catalogField} />}
-          onChange={value => setCommentOverride(sourceName, value, true)}
-          onReset={() =>
-            setSharedState(prev => {
-              const next = { ...prev?.typedCommentOverrides };
-              delete next[sourceName];
-              return {
-                ...(prev ?? {}),
-                typedCommentOverrides: next,
-                lastCreateSqlKey: null,
-                lastCreateTableKey: null,
-                typedPreviewSql: null,
-              };
-            })
-          }
-        />
-      );
+  const resetTypedComment = useCallback(
+    (sourceName: string) => {
+      setTypedCommentOverrides(current => {
+        delete current[sourceName];
+        return current;
+      });
     },
-    [
-      catalogDescriptions,
-      inputDataframeMetadata,
-      sharedState?.typedCommentOverrides,
-      sharedState?.columnCommentsSupported,
-      setCommentOverride,
-      setSharedState,
-    ]
+    [setTypedCommentOverrides]
   );
+
+  /* ─────────────── Существующая таблица: сбросы ─────────────── */
+
+  const initialTargetMapping = useCallback(
+    () =>
+      requestedMapping.map(item => ({
+        ...item,
+        target_name:
+          initialTargetNamesRef.current.get(normalizeName(item.source_name)) ??
+          item.target_name,
+      })),
+    [requestedMapping]
+  );
+
+  const hasExistingRenames = requestedMapping.some(item => {
+    const initial = initialTargetNamesRef.current.get(
+      normalizeName(item.source_name)
+    );
+    return initial !== undefined && initial !== item.target_name;
+  });
+
+  const handleResetExistingTargetNames = useCallback(() => {
+    setMappingValue(initialTargetMapping(), true);
+  }, [initialTargetMapping, setMappingValue]);
+
+  const defaultColumnActionsKey = useMemo(
+    () =>
+      JSON.stringify(
+        getDefaultSelectedColumnActions(sharedState?.resolvedColumnRows)
+      ),
+    [sharedState?.resolvedColumnRows]
+  );
+
+  const hasExistingChanges =
+    hasExistingRenames ||
+    Object.keys(sharedState?.dbNullableOverrides ?? {}).length > 0 ||
+    Object.keys(sharedState?.dbCommentOverrides ?? {}).length > 0 ||
+    Object.keys(sharedState?.typedCommentOverrides ?? {}).length > 0 ||
+    JSON.stringify(selectedColumnActions) !== defaultColumnActionsKey;
+
+  const handleResetExistingAll = useCallback(() => {
+    if (hasExistingRenames) {
+      setMappingValue(initialTargetMapping(), true);
+    }
+    setSharedState(prev => ({
+      ...(prev ?? {}),
+      dbNullableOverrides: {},
+      dbCommentOverrides: {},
+      typedCommentOverrides: {},
+      selectedColumnActions: getDefaultSelectedColumnActions(
+        prev?.resolvedColumnRows
+      ),
+    }));
+  }, [
+    hasExistingRenames,
+    initialTargetMapping,
+    setMappingValue,
+    setSharedState,
+  ]);
+
+  /* ─────────────────────────── Рендер ─────────────────────────── */
+
+  const tableParents = [literalDatabaseName, literalSchemaName].filter(
+    (part): part is string => Boolean(part)
+  );
+  const tableName = literalTableName ?? selectedTargetLabel;
+  const handleTablePathClick = goToStep ? () => goToStep(0) : undefined;
 
   if (!isTableNew) {
     return (
-      <MappingValidationSection
-        commentOverrides={sharedState?.dbCommentOverrides}
-        sourceCommentOverrides={sharedState?.typedCommentOverrides}
-        catalogDescriptions={catalogDescriptions}
-        commentsSupported={sharedState?.columnCommentsSupported}
-        onCommentChange={setCommentOverride}
-        columnDiff={existingTableColumnDiff}
-        dbColumns={selectedTable?.columns}
-        diffSummary={existingTableDiffSummary!}
-        hasInvalidTargetName={hasEmptyTargetName}
-        isResolving={sharedState?.isResolvingColumns ?? false}
-        isRecreatingTable={sharedState?.isRecreatingTable ?? false}
-        recreateTableError={sharedState?.recreateTableError ?? null}
-        resolveError={sharedState?.resolveColumnsError ?? null}
-        onRetryResolve={handleRefreshResolvedColumns}
-        selectedActionColumns={selectedActionColumns}
-        selectedActionsByColumn={selectedActionsByColumn}
-        onToggleAction={handleToggleColumnAction}
-        onActionNullableChange={handleColumnActionNullableChange}
-        nullableOverrides={sharedState?.dbNullableOverrides}
-        onExistingNullableChange={handleExistingColumnNullableChange}
-        onTargetNameBlur={handleTargetNameCommit}
-        onTargetNameCancel={handleTargetNameCancel}
-        onTargetNameChange={handleTargetNameEdit}
-        onTargetNameReset={handleTargetNameReset}
-        initialTargetNames={initialTargetNamesRef.current}
-        onRecreateTable={() => void handleRecreateTable()}
-        resolveStates={sharedState?.columnResolveStates ?? {}}
-      />
+      <SchemaStepRoot {...dropdownBoundaryProps}>
+        <ExistingTableMapping
+          tableParents={tableParents}
+          tableName={tableName}
+          onTablePathClick={handleTablePathClick}
+          commentOverrides={sharedState?.dbCommentOverrides}
+          sourceCommentOverrides={sharedState?.typedCommentOverrides}
+          catalogDescriptions={catalogDescriptions}
+          commentsSupported={sharedState?.columnCommentsSupported}
+          onCommentChange={setCommentOverride}
+          columnDiff={existingTableColumnDiff}
+          dbColumns={selectedTable?.columns}
+          hasInvalidTargetName={hasEmptyTargetName}
+          isResolving={sharedState?.isResolvingColumns ?? false}
+          isRecreatingTable={sharedState?.isRecreatingTable ?? false}
+          recreateTableError={sharedState?.recreateTableError ?? null}
+          resolveError={sharedState?.resolveColumnsError ?? null}
+          onRetryResolve={handleRefreshResolvedColumns}
+          selectedActionColumns={selectedActionColumns}
+          selectedActionsByColumn={selectedActionsByColumn}
+          onToggleAction={handleToggleColumnAction}
+          onActionNullableChange={handleColumnActionNullableChange}
+          nullableOverrides={sharedState?.dbNullableOverrides}
+          onExistingNullableChange={handleExistingColumnNullableChange}
+          onTargetNameBlur={handleTargetNameCommit}
+          onTargetNameCancel={handleTargetNameCancel}
+          onTargetNameChange={handleTargetNameEdit}
+          onTargetNameReset={handleTargetNameReset}
+          onResetTargetNames={handleResetExistingTargetNames}
+          onResetAll={handleResetExistingAll}
+          hasChanges={hasExistingChanges}
+          initialTargetNames={initialTargetNamesRef.current}
+          onRecreateTable={() => void handleRecreateTable()}
+          resolveStates={
+            sharedState?.columnResolveStates ?? EMPTY_RESOLVE_STATES
+          }
+        />
+      </SchemaStepRoot>
     );
   }
 
+  const isTyped = selectedCreationMode === 'typed';
+  const rawSql = localInputData?.create_table_sql ?? '';
+  const resolveColumnsError = isTyped
+    ? (sharedState?.resolveColumnsError ?? '').trim()
+    : '';
+  const errorMessages = [...mappingErrors, ...typedSpecErrors];
+
+  const activeCommentIndex = activeCommentSource
+    ? filteredMapping.findIndex(
+        item =>
+          normalizeName(item.source_name) === normalizeName(activeCommentSource)
+      )
+    : -1;
+  const activeCommentItem =
+    isTyped && activeCommentIndex >= 0
+      ? filteredMapping[activeCommentIndex]
+      : null;
+  const activeComment = activeCommentItem?.source_name
+    ? getTypedComment(activeCommentItem.source_name)
+    : null;
+  const moveActiveComment = (offset: number) => {
+    const next = filteredMapping[activeCommentIndex + offset];
+    if (next?.source_name) setActiveCommentSource(next.source_name);
+  };
+
   return (
-    <SchemaCard>
-      <ErrorList>
-        {mappingErrors.length > 0 ? (
-          <Alert severity='error' sx={{ borderRadius: '10px' }}>
-            <Stack spacing={0.25}>
-              {mappingErrors.map(error => (
-                <Typography key={error} variant='body2'>
-                  {error}
-                </Typography>
-              ))}
-            </Stack>
-          </Alert>
+    <SchemaStepRoot {...dropdownBoundaryProps}>
+      <SchemaStepHeader>
+        <TablePathChip
+          parents={tableParents}
+          tableName={tableName}
+          countLabel={formatColumnCount(requestedMapping.length)}
+          onClick={handleTablePathClick}
+        />
+        <HeaderSpacer />
+        {isTyped ? (
+          <SearchField style={{ width: 220, flex: 'none' }}>
+            <SearchLead>
+              <SearchIcon size={14} />
+            </SearchLead>
+            <input
+              aria-label='Поиск колонки'
+              value={mappingSearch}
+              onChange={event => setMappingSearch(event.target.value)}
+              placeholder='Поиск колонки'
+            />
+          </SearchField>
         ) : null}
-        {typedSpecErrors.length > 0 ? (
-          <Alert severity='error' sx={{ borderRadius: '10px' }}>
-            <Stack spacing={0.25}>
-              {typedSpecErrors.map(error => (
-                <Typography key={error} variant='body2'>
-                  {error}
-                </Typography>
-              ))}
-            </Stack>
-          </Alert>
-        ) : null}
-        {sqlErrorMessage ? (
-          <Alert severity='error' sx={{ borderRadius: '10px' }}>
-            {sqlErrorMessage}
-          </Alert>
-        ) : null}
-      </ErrorList>
-
-      <SchemaEditorPanel>
-        <SchemaEditorHeader>
-          <SchemaEditorTarget>
-            <TableIcon size={16} />
-            <SchemaTargetPath title={selectedTargetLabel}>
-              {(selectedTargetParts.length
-                ? selectedTargetParts
-                : [selectedTargetLabel]
-              ).map((part, index) => (
-                <Fragment key={index}>
-                  {index > 0 ? <i aria-hidden>/</i> : null}
-                  <span>{part}</span>
-                </Fragment>
-              ))}
-            </SchemaTargetPath>
-            <CountLabel>· {requestedMapping.length} колонок</CountLabel>
-          </SchemaEditorTarget>
-          <SchemaHeaderActions>
-            {selectedCreationMode === 'typed' ? (
-              <SearchField>
-                <SearchIconWrap>
-                  <SearchIcon />
-                </SearchIconWrap>
-                <SearchInput
-                  aria-label='Поиск колонки'
-                  value={mappingSearch}
-                  onChange={event => setMappingSearch(event.target.value)}
-                  placeholder='Поиск колонки'
-                />
-              </SearchField>
-            ) : null}
-            <SegmentControl aria-label='Режим настройки схемы'>
-              <SegmentButton
-                type='button'
-                active={selectedCreationMode === 'typed'}
-                aria-pressed={selectedCreationMode === 'typed'}
-                onClick={() => handleCreationModeChange('typed')}
-              >
-                <TableIcon />
-                Конструктор
-              </SegmentButton>
-              <SegmentButton
-                type='button'
-                active={selectedCreationMode === 'raw'}
-                aria-pressed={selectedCreationMode === 'raw'}
-                onClick={() => handleCreationModeChange('raw')}
-              >
-                <CodeIcon />
-                SQL
-              </SegmentButton>
-            </SegmentControl>
-            <Tooltip
-              title={
-                selectedCreationMode === 'typed'
-                  ? 'Обновить колонки'
-                  : 'Сгенерировать SQL'
-              }
-            >
-              <span>
-                <SchemaHeaderIconButton
-                  type='button'
-                  sx={{ width: 32, height: 32 }}
-                  aria-label={
-                    selectedCreationMode === 'typed'
-                      ? 'Обновить колонки'
-                      : 'Сгенерировать SQL'
-                  }
-                  onClick={() => {
-                    if (selectedCreationMode === 'typed') {
-                      handleRefreshResolvedColumns();
-                    } else {
-                      void fetchCreateTableSql('raw', true);
-                    }
-                  }}
-                  disabled={
-                    selectedCreationMode === 'typed'
-                      ? !resolveWriteColumnsRequest ||
-                        Boolean(sharedState?.isResolvingColumns)
-                      : !canFetchRawPreviewSql ||
-                        Boolean(sharedState?.isCreateSqlLoading)
-                  }
-                >
-                  <RefreshIconSvg
-                    size={16}
-                    spinning={
-                      selectedCreationMode === 'typed'
-                        ? Boolean(sharedState?.isResolvingColumns)
-                        : Boolean(sharedState?.isCreateSqlLoading)
-                    }
-                  />
-                </SchemaHeaderIconButton>
-              </span>
-            </Tooltip>
-            {selectedCreationMode === 'typed' ? (
-              <OutlineButton
-                type='button'
-                onClick={event => setBulkAnchorEl(event.currentTarget)}
-                sx={{ height: 32, fontSize: 12.5, whiteSpace: 'nowrap' }}
-              >
-                <TuneIcon sx={{ fontSize: 15 }} />
-                Массово
-              </OutlineButton>
-            ) : (
-              <Tooltip
-                title={isSqlCopied === 'raw' ? 'Скопировано' : 'Копировать SQL'}
-              >
-                <span>
-                  <SchemaHeaderIconButton
-                    type='button'
-                    aria-label='Копировать SQL'
-                    sx={{ width: 32, height: 32 }}
-                    onClick={() =>
-                      void copySql(
-                        localInputData?.create_table_sql ?? '',
-                        'raw'
-                      )
-                    }
-                    disabled={!localInputData?.create_table_sql?.trim()}
-                  >
-                    <CopyIconSvg size={16} />
-                  </SchemaHeaderIconButton>
-                </span>
-              </Tooltip>
-            )}
-          </SchemaHeaderActions>
-        </SchemaEditorHeader>
-
-        {selectedCreationMode === 'typed' ? (
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              flex: 1,
-              minHeight: 0,
+        <SegmentGroup role='tablist' aria-label='Режим настройки схемы'>
+          <SegmentTab
+            type='button'
+            role='tab'
+            active={isTyped}
+            aria-selected={isTyped}
+            onClick={() => handleCreationModeChange('typed')}
+          >
+            Конструктор
+          </SegmentTab>
+          <SegmentTab
+            type='button'
+            role='tab'
+            active={!isTyped}
+            aria-selected={!isTyped}
+            onClick={() => {
+              setActiveCommentSource(null);
+              handleCreationModeChange('raw');
             }}
           >
-            <MappingTable
-              renderComment={renderTypedComment}
-              changeStateBySource={mappingChangeStateBySource}
-              flashingEffectiveSourceKeys={flashingEffectiveSourceKeys}
-              filteredMapping={filteredMapping}
-              highlightedSourceName={null}
-              initialTargetNames={initialTargetNamesRef.current}
-              onNullableChange={(sourceName, checked) =>
-                patchMapping(
-                  sourceName,
-                  current => ({
-                    ...current,
-                    nullable: checked,
-                  }),
-                  false
-                )
-              }
-              onTargetNameBlur={handleTargetNameCommit}
-              onTargetNameCancel={handleTargetNameCancel}
-              onTargetNameChange={handleTargetNameEdit}
-              onTargetNameReset={handleTargetNameReset}
-              onTypeChange={(sourceName, value) =>
-                patchMapping(
-                  sourceName,
-                  current => ({
-                    ...current,
-                    dtype: value,
-                  }),
-                  false
-                )
-              }
-              resolveStates={sharedState?.columnResolveStates ?? {}}
-              resolvingEffectiveSourceKeys={resolvingEffectiveSourceKeys}
-              schemaRolesByTarget={schemaRolesByTarget}
-              sourceDtypeBySource={sourceDtypeBySource}
-            />
-
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                flexWrap: 'wrap',
-                p: '10px 14px',
-                flexShrink: 0,
-                borderTop: 1,
-                borderColor: 'divider',
-              }}
+            SQL
+          </SegmentTab>
+        </SegmentGroup>
+        {isTyped ? (
+          <>
+            <IconButtonBase
+              type='button'
+              aria-label='Массовые действия'
+              title='Массовые действия'
+              aria-haspopup='menu'
+              aria-expanded={Boolean(bulkAnchorEl)}
+              active={Boolean(bulkAnchorEl)}
+              onClick={event => setBulkAnchorEl(event.currentTarget)}
             >
-              {MAPPING_ROLE_LEGEND.map(role => (
-                <Box
-                  key={role.key}
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 1,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', opacity: 0.68 }}>
-                    <SchemaRoleBadge tone={role.tone}>
-                      {role.label}
-                    </SchemaRoleBadge>
-                  </Box>
-                  <Typography
-                    sx={{
-                      fontSize: 12,
-                      color:
-                        'rgba(var(--mui-palette-text-secondaryChannel) / 0.6)',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {role.description}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </Box>
+              <MoreIcon />
+            </IconButtonBase>
+            <ActionMenu
+              anchorEl={bulkAnchorEl}
+              open={Boolean(bulkAnchorEl)}
+              onClose={() => setBulkAnchorEl(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              <MenuItem
+                disabled={!bulkAvailability.allNull}
+                onClick={() => applyBulkAction('all_null')}
+              >
+                Разрешить NULL для всех
+              </MenuItem>
+              <MenuItem
+                disabled={!bulkAvailability.allNotNull}
+                onClick={() => applyBulkAction('all_not_null')}
+              >
+                Запретить NULL для всех
+              </MenuItem>
+              <Divider />
+              <MenuItem
+                disabled={!bulkAvailability.snakeCase}
+                onClick={() => applyBulkAction('snake_case')}
+              >
+                Имена в snake_case
+              </MenuItem>
+              <MenuItem
+                disabled={!bulkAvailability.lowercase}
+                onClick={() => applyBulkAction('lowercase')}
+              >
+                Имена в нижний регистр
+              </MenuItem>
+              <MenuItem
+                disabled={!bulkAvailability.resetRenames}
+                onClick={() => applyBulkAction('reset_renames')}
+              >
+                Сбросить переименования
+              </MenuItem>
+              <Divider />
+              <MenuItem
+                disabled={
+                  !bulkAvailability.commentsFromSource ||
+                  Boolean(commentsDisabledReason)
+                }
+                onClick={() => applyBulkAction('comments_from_source')}
+              >
+                Взять комментарии из DataFrame
+              </MenuItem>
+              <MenuItem
+                disabled={
+                  !bulkAvailability.clearComments ||
+                  Boolean(commentsDisabledReason)
+                }
+                onClick={() => applyBulkAction('clear_comments')}
+              >
+                Сбросить комментарии
+              </MenuItem>
+              <Divider />
+              <MenuItem
+                disabled={!bulkAvailability.resetAll}
+                onClick={() => applyBulkAction('reset_all')}
+              >
+                Сбросить все изменения
+              </MenuItem>
+            </ActionMenu>
+          </>
         ) : (
-          <SqlTextArea
-            aria-label='CREATE TABLE SQL'
-            value={localInputData?.create_table_sql ?? ''}
-            onChange={event =>
-              setLocalInputData(prev => ({
-                ...(prev ?? {}),
-                create_table_sql: event.target.value,
-              }))
-            }
-            placeholder='Введите или сгенерируйте CREATE TABLE SQL...'
-          />
+          <>
+            <IconButtonBase
+              type='button'
+              aria-label='Сгенерировать SQL'
+              title='Сгенерировать SQL заново'
+              disabled={
+                !canFetchRawPreviewSql ||
+                Boolean(sharedState?.isCreateSqlLoading)
+              }
+              onClick={() => void fetchCreateTableSql('raw', true)}
+            >
+              {sharedState?.isCreateSqlLoading ? (
+                <Spinner size={12} role='status' aria-label='Генерируем SQL' />
+              ) : (
+                <RefreshIcon />
+              )}
+            </IconButtonBase>
+            <IconButtonBase
+              type='button'
+              aria-label={
+                isSqlCopied === 'raw' ? 'Скопировано' : 'Скопировать SQL'
+              }
+              title={isSqlCopied === 'raw' ? 'Скопировано' : 'Скопировать SQL'}
+              disabled={!rawSql.trim()}
+              onClick={() => void copySql(rawSql, 'raw')}
+            >
+              {isSqlCopied === 'raw' ? (
+                <CheckIcon size={15} strokeWidth={1.8} color='#1E7A43' />
+              ) : (
+                <CopyIcon />
+              )}
+            </IconButtonBase>
+          </>
         )}
-      </SchemaEditorPanel>
+      </SchemaStepHeader>
 
-      <Popover
-        open={Boolean(bulkAnchorEl)}
-        anchorEl={bulkAnchorEl}
-        onClose={() => setBulkAnchorEl(null)}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        slotProps={{
-          paper: {
-            elevation: 0,
-            sx: {
-              background: 'transparent',
-              boxShadow: 'none',
-              overflow: 'visible',
-              mt: 0.5,
-            },
-          },
-        }}
-      >
-        <BulkMenuContainer>
-          <BulkMenuSectionTitle>Применить к всем колонкам</BulkMenuSectionTitle>
+      {errorMessages.length > 0 || sqlErrorMessage || resolveColumnsError ? (
+        <MessageList>
+          {errorMessages.length > 0 ? (
+            <MessageBox tone='error' role='alert'>
+              <span className='message-text'>{errorMessages.join('\n')}</span>
+            </MessageBox>
+          ) : null}
+          {sqlErrorMessage ? (
+            <MessageBox tone='error' role='alert'>
+              <span className='message-text'>{sqlErrorMessage}</span>
+            </MessageBox>
+          ) : null}
+          {resolveColumnsError ? (
+            <MessageBox tone='error' role='alert'>
+              <span className='message-text'>{resolveColumnsError}</span>
+              <LinkButton
+                type='button'
+                disabled={!resolveWriteColumnsRequest}
+                onClick={handleRefreshResolvedColumns}
+              >
+                Повторить
+              </LinkButton>
+            </MessageBox>
+          ) : null}
+        </MessageList>
+      ) : null}
 
-          <BulkMenuItem
-            type='button'
-            onClick={() => applyBulkAction('snake_case')}
-          >
-            <BulkMenuItemTitle>Имена → snake_case</BulkMenuItemTitle>
-            <BulkMenuItemHint>customerName → customer_name</BulkMenuItemHint>
-          </BulkMenuItem>
+      {isTyped ? (
+        <NewTableColumnsTable
+          rows={filteredMapping}
+          isFiltered={Boolean(deferredMappingSearch.trim())}
+          changeStateBySource={mappingChangeStateBySource}
+          sourceDtypeBySource={sourceDtypeBySource}
+          schemaRolesByTarget={schemaRolesByTarget}
+          initialTargetNames={initialTargetNamesRef.current}
+          resolveStates={
+            sharedState?.columnResolveStates ?? EMPTY_RESOLVE_STATES
+          }
+          pendingSourceKeys={pendingEffectiveSourceKeys}
+          resolvingSourceKeys={resolvingEffectiveSourceKeys}
+          flashingSourceKeys={flashingEffectiveSourceKeys}
+          getComment={getTypedComment}
+          commentsDisabledReason={commentsDisabledReason}
+          activeCommentSource={activeCommentItem?.source_name ?? null}
+          onOpenComment={sourceName =>
+            setActiveCommentSource(current =>
+              normalizeName(current) === normalizeName(sourceName)
+                ? null
+                : sourceName
+            )
+          }
+          onNullableChange={(sourceName, checked) =>
+            patchMapping(
+              sourceName,
+              current => ({ ...current, nullable: checked }),
+              false
+            )
+          }
+          onTargetNameBlur={handleTargetNameCommit}
+          onTargetNameCancel={handleTargetNameCancel}
+          onTargetNameChange={handleTargetNameEdit}
+          onTargetNameReset={handleTargetNameReset}
+          onTypeChange={(sourceName, value: DataType) =>
+            patchMapping(
+              sourceName,
+              current => ({ ...current, dtype: value }),
+              false
+            )
+          }
+        />
+      ) : (
+        <SqlEditor
+          aria-label='CREATE TABLE SQL'
+          value={rawSql}
+          spellCheck={false}
+          onChange={event =>
+            setLocalInputData(prev => ({
+              ...(prev ?? {}),
+              create_table_sql: event.target.value,
+            }))
+          }
+          placeholder='Введите или сгенерируйте CREATE TABLE SQL...'
+        />
+      )}
 
-          <BulkMenuItem
-            type='button'
-            onClick={() => applyBulkAction('lowercase')}
-          >
-            <BulkMenuItemTitle>Имена в нижний регистр</BulkMenuItemTitle>
-          </BulkMenuItem>
-
-          <BulkMenuItem
-            type='button'
-            onClick={() => applyBulkAction('reset_types')}
-          >
-            <BulkMenuItemTitle>Сбросить типы к исходным</BulkMenuItemTitle>
-            <BulkMenuItemHint>по dtype из DataFrame</BulkMenuItemHint>
-          </BulkMenuItem>
-
-          <BulkMenuItem
-            type='button'
-            onClick={() => applyBulkAction('all_not_null')}
-          >
-            <BulkMenuItemTitle>Сделать все NOT NULL</BulkMenuItemTitle>
-          </BulkMenuItem>
-
-          <BulkMenuItem
-            type='button'
-            onClick={() => applyBulkAction('all_null')}
-          >
-            <BulkMenuItemTitle>Сделать все NULL</BulkMenuItemTitle>
-          </BulkMenuItem>
-
-          <BulkMenuItem
-            type='button'
-            onClick={() => applyBulkAction('reset_renames')}
-          >
-            <BulkMenuItemTitle>Сбросить все переименования</BulkMenuItemTitle>
-          </BulkMenuItem>
-
-          <BulkMenuItem
-            type='button'
-            onClick={() => applyBulkAction('reset_all')}
-          >
-            <BulkMenuItemTitle>Сбросить все изменения</BulkMenuItemTitle>
-          </BulkMenuItem>
-        </BulkMenuContainer>
-      </Popover>
-    </SchemaCard>
+      {activeCommentItem?.source_name && activeComment ? (
+        <ColumnCommentPanel
+          columnName={
+            getResolvedTargetName(activeCommentItem) ??
+            activeCommentItem.requested_target_name ??
+            activeCommentItem.source_name
+          }
+          value={activeComment.value}
+          onChange={value =>
+            setCommentOverride(activeCommentItem.source_name!, value, true)
+          }
+          sourceComment={activeComment.baseline}
+          onUseSource={() => resetTypedComment(activeCommentItem.source_name!)}
+          sourceAdornment={
+            <CatalogDescriptionNote
+              field={catalogDescriptions[activeCommentItem.source_name]}
+            />
+          }
+          disabled={Boolean(commentsDisabledReason)}
+          disabledReason={commentsDisabledReason ?? undefined}
+          hasPrevious={activeCommentIndex > 0}
+          hasNext={activeCommentIndex < filteredMapping.length - 1}
+          onPrevious={() => moveActiveComment(-1)}
+          onNext={() => moveActiveComment(1)}
+          onClose={() => setActiveCommentSource(null)}
+        />
+      ) : null}
+    </SchemaStepRoot>
   );
 };
-
-const RefreshIconSvg = ({
-  spinning,
-  size = 12,
-  color = 'currentColor',
-}: {
-  spinning?: boolean;
-  size?: number;
-  color?: string;
-}) => (
-  <AutorenewRoundedIcon
-    sx={{
-      width: size,
-      height: size,
-      display: 'block',
-      flexShrink: 0,
-      color,
-      animation: spinning ? 'schemaRefreshSpin 0.9s linear infinite' : 'none',
-      '@keyframes schemaRefreshSpin': {
-        from: {
-          transform: 'rotate(0deg)',
-        },
-        to: {
-          transform: 'rotate(360deg)',
-        },
-      },
-    }}
-  />
-);
-
-const CopyIconSvg = ({ size = 12, color = 'currentColor' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox='0 0 16 16'
-    fill='none'
-    style={{ display: 'block', flexShrink: 0 }}
-  >
-    <rect
-      x='5'
-      y='3.5'
-      width='7.5'
-      height='9'
-      rx='1.5'
-      stroke={color}
-      strokeWidth='1.2'
-    />
-    <path
-      d='M3.5 10.5V5A1.5 1.5 0 015 3.5h4'
-      stroke={color}
-      strokeWidth='1.2'
-      strokeLinecap='round'
-    />
-  </svg>
-);

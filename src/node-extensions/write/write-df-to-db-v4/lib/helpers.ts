@@ -40,6 +40,7 @@ import { isExpressionValue } from '@/shared/lib/node-input-values';
 
 import {
   buildCatalogDescriptionPatch,
+  buildEmptyDbCommentFills,
   type CatalogDescriptions,
 } from './catalogDescriptions';
 import type { ColumnDescriptionPatch } from './catalogDescriptions.types';
@@ -49,13 +50,40 @@ import {
   mergeCommentActions,
 } from './columnComments';
 
-export const getPendingColumnActions = (
+/**
+ * Комментарии существующих колонок к записи в БД: правки пользователя поверх
+ * комментариев DF, подставленных в колонки с пустым комментарием в БД.
+ */
+export const getEffectiveDbCommentOverrides = (
   state?: ExtensionState
+): CommentOverrides => {
+  const metadataComments: Record<string, string | null | undefined> = {};
+  for (const column of state?.inputDataframeMetadata?.columns ?? []) {
+    metadataComments[column.name] = column.comment;
+  }
+  return {
+    ...buildEmptyDbCommentFills({
+      rows: state?.resolvedColumnRows,
+      catalog: state?.catalogDescriptions,
+      metadataComments,
+    }),
+    ...state?.dbCommentOverrides,
+  };
+};
+
+export const getPendingColumnActions = (
+  state?: ExtensionState,
+  {
+    // false — только правки пользователя, без подставленных комментариев DF.
+    includeCommentFills = true,
+  }: { includeCommentFills?: boolean } = {}
 ): TableColumnActionInput[] => {
   const actions = mergeCommentActions(
     state?.selectedColumnActions ?? [],
     state?.resolvedColumnRows ?? [],
-    state?.dbCommentOverrides,
+    includeCommentFills
+      ? getEffectiveDbCommentOverrides(state)
+      : state?.dbCommentOverrides,
     state?.typedCommentOverrides,
     state?.columnCommentsSupported !== false
   );

@@ -52,11 +52,21 @@ vi.mock('@/app/providers/store', () => ({
   useAppSelector: () => null,
 }));
 
+// Как в RTK Query: ссылки стабильны между рендерами. Новый триггер на каждый
+// рендер зацикливает эффект шага схемы, который кладёт его в sharedState.
+const lineageMocks = vi.hoisted(() => {
+  const setNodeColumnDescriptions = vi.fn(() => ({
+    unwrap: () => Promise.resolve({}),
+  }));
+  return {
+    nodeFields: { data: undefined },
+    mutation: [setNodeColumnDescriptions] as const,
+  };
+});
+
 vi.mock('@/entities/data/lineage', () => ({
-  useGetNodeFieldsQuery: () => ({ data: undefined }),
-  useSetNodeColumnDescriptionsMutation: () => [
-    vi.fn(() => ({ unwrap: () => Promise.resolve({}) })),
-  ],
+  useGetNodeFieldsQuery: () => lineageMocks.nodeFields,
+  useSetNodeColumnDescriptionsMutation: () => lineageMocks.mutation,
 }));
 
 vi.mock('@/entities/data/data-catalog', () => ({
@@ -66,6 +76,13 @@ vi.mock('@/entities/data/data-catalog', () => ({
 
 vi.mock('@/entities/data/db-connection/model/hooks/useDbCatalog', () => ({
   useDbCatalogTable: () => ({ item: null }),
+  useDbCatalogTablePreview: () => ({
+    data: null,
+    state: 'idle',
+    error: null,
+    isRefreshing: false,
+    retry: vi.fn(),
+  }),
 }));
 
 vi.mock('@/entities/node/node-metadata', () => ({
@@ -121,20 +138,6 @@ vi.mock('@/shared/gatewayClient', async importOriginal => {
         },
       },
     },
-  };
-});
-
-vi.mock('@/features/node/table-create-spec-editor', async importOriginal => {
-  const actual =
-    await importOriginal<
-      typeof import('@/features/node/table-create-spec-editor')
-    >();
-
-  return {
-    ...actual,
-    TableCreateSpecEditor: ({ value }: { value: unknown }) => (
-      <div data-testid='table-create-spec-editor'>{JSON.stringify(value)}</div>
-    ),
   };
 });
 
@@ -358,6 +361,9 @@ const setupGatewayMocks = () => {
   confirmMock.mockResolvedValue(true);
 };
 
+const getCommentInput = () =>
+  screen.getByRole('textbox', { name: 'Комментарий к колонке' });
+
 type StepKind = 'schema' | 'mode' | 'write';
 
 const renderStepHarness = ({
@@ -469,14 +475,18 @@ describe('write-df-to-db-v4 step placement', () => {
       initialSharedState: buildExistingTableSharedState(),
     });
 
-    expect(screen.getByText('Сопоставление DF и DB')).toBeInTheDocument();
+    expect(
+      screen.getByRole('table', { name: 'Сопоставление колонок DF и БД' })
+    ).toBeInTheDocument();
     expect(
       screen.queryByText(
         'Выбрана существующая таблица. Шаг SCHEMA STRATEGY не требуется.'
       )
     ).not.toBeInTheDocument();
 
-    expect(screen.getByText('Комментарий DB')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Комментарий' })
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Действия с таблицей' })
     ).toBeInTheDocument();
@@ -491,16 +501,18 @@ describe('write-df-to-db-v4 step placement', () => {
       },
     });
 
-    expect(screen.getByText('SQL-скрипт')).toBeInTheDocument();
-    const constructorButton = screen.getByRole('button', {
-      name: 'Конструктор таблицы',
-    });
-    expect(constructorButton).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'SQL' })).toBeInTheDocument();
+    const constructorTab = screen.getByRole('tab', { name: 'Конструктор' });
+    expect(constructorTab).toBeInTheDocument();
 
-    fireEvent.click(constructorButton);
+    fireEvent.click(constructorTab);
 
-    expect(screen.getByText('Маппинг колонок')).toBeInTheDocument();
-    expect(screen.getByText('Колонка в DataFrame')).toBeInTheDocument();
+    expect(
+      screen.getByRole('table', { name: 'Колонки новой таблицы' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Колонка DataFrame' })
+    ).toBeInTheDocument();
     expect(screen.queryByText('Настроить колонки')).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -536,9 +548,10 @@ describe('write-df-to-db-v4 step placement', () => {
     });
 
     fireEvent.click(screen.getByLabelText('Nullable for client_id'));
-    fireEvent.change(screen.getByDisplayValue('INT'), {
-      target: { value: 'FLOAT' },
-    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Тип колонки client_id' })
+    );
+    fireEvent.click(screen.getByRole('option', { name: 'FLOAT' }));
 
     expect(
       harness.getState()?.localInputData.column_mapping?.[0]
@@ -549,7 +562,7 @@ describe('write-df-to-db-v4 step placement', () => {
     });
 
     harness.rerenderHarness('write');
-    fireEvent.click(screen.getByRole('button', { name: 'Сгенерировать' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Обновить DDL' }));
 
     await act(async () => {
       await Promise.resolve();
@@ -640,11 +653,8 @@ describe('write-df-to-db-v4 step placement', () => {
       )
     ).toBeInTheDocument();
 
-    act(() => {
-      fireEvent.change(screen.getByLabelText('column-dropdown-select'), {
-        target: { value: 'client_id' },
-      });
-    });
+    fireEvent.click(screen.getByRole('button', { name: /Ключ сопоставления/ }));
+    fireEvent.click(screen.getByRole('option', { name: 'client_id' }));
 
     expect(harness.getState()?.localInputData).toMatchObject({
       upsert_config: { key_column: 'client_id' },
@@ -658,13 +668,11 @@ describe('write-df-to-db-v4 step placement', () => {
     });
 
     harness.rerenderHarness('write');
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Дополнительные параметры' })
-    );
 
-    expect(screen.getByTestId('table-create-spec-editor')).toHaveTextContent(
-      '"columns":["client_id"]'
-    );
+    expect(screen.getByText('idx_client_id')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Действия: idx_client_id' })
+    ).toBeInTheDocument();
   });
 
   it('does not show the upsert table creation hint for an existing table', () => {
@@ -693,8 +701,12 @@ describe('write-df-to-db-v4 step placement', () => {
       initialSharedState: buildExistingTableSharedState(),
     });
 
-    expect(screen.getByText('Настройки записи')).toBeInTheDocument();
-    expect(screen.queryByText('Сопоставление DF и DB')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('spinbutton', { name: 'Размер чанка' })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('table', { name: 'Сопоставление колонок DF и БД' })
+    ).not.toBeInTheDocument();
   });
 
   it('renders the catalog sync switch on by default and stores an explicit opt-out', () => {
@@ -704,7 +716,7 @@ describe('write-df-to-db-v4 step placement', () => {
       initialSharedState: buildExistingTableSharedState(),
     });
 
-    const toggle = screen.getByRole('checkbox', {
+    const toggle = screen.getByRole('switch', {
       name: 'Синхронизировать описания колонок с каталогом',
     });
     expect(toggle).toBeChecked();
@@ -718,7 +730,7 @@ describe('write-df-to-db-v4 step placement', () => {
       false
     );
     expect(
-      screen.getByRole('checkbox', {
+      screen.getByRole('switch', {
         name: 'Синхронизировать описания колонок с каталогом',
       })
     ).not.toBeChecked();
@@ -1136,32 +1148,39 @@ describe('write-df-to-db-v4 step placement', () => {
     expect(
       screen.getByRole('columnheader', { name: 'NULL' })
     ).toBeInTheDocument();
-    const nullableCheckbox = screen.getByRole('checkbox', {
+    const nullableSwitch = screen.getByRole('switch', {
       name: 'Nullable for missing_column',
     });
-    expect(nullableCheckbox).not.toBeChecked();
+    expect(nullableSwitch).toBeEnabled();
+    expect(nullableSwitch).not.toBeChecked();
     expect(
-      screen.queryByRole('checkbox', { name: 'Nullable for legacy_column' })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByLabelText('Nullable for legacy_column: NULL')
-    ).toBeInTheDocument();
+      screen.getByRole('switch', { name: 'Nullable for legacy_column' })
+    ).toBeChecked();
 
-    fireEvent.click(nullableCheckbox);
+    fireEvent.click(nullableSwitch);
 
     expect(
       harness.getState()?.sharedState.selectedColumnActions?.[0]?.column
         ?.nullable
     ).toBe(true);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Будет создана' }));
+    const createCheckbox = screen.getByRole('checkbox', { name: 'Создать' });
+    expect(createCheckbox).toHaveAttribute('aria-checked', 'true');
+    expect(createCheckbox).toHaveAttribute(
+      'title',
+      'Сейчас: Создать. Нажмите, чтобы не создавать'
+    );
+    fireEvent.click(createCheckbox);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
 
-    expect(
-      screen.queryByRole('checkbox', { name: 'Nullable for missing_column' })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByLabelText('Nullable for missing_column: NOT NULL')
-    ).toBeInTheDocument();
+    expect(harness.getState()?.sharedState.selectedColumnActions).toEqual([]);
+    const readOnlySwitch = screen.getByRole('switch', {
+      name: 'Nullable for missing_column',
+    });
+    expect(readOnlySwitch).toBeDisabled();
+    expect(readOnlySwitch).not.toBeChecked();
   }, 10000);
 
   it('confirms, recreates, updates metadata and resolves the refreshed table', async () => {
@@ -1322,13 +1341,12 @@ describe('write-df-to-db-v4 step placement', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Комментарий колонки client_id' })
     );
-    expect(screen.getByLabelText('Комментарий')).toHaveValue('DB baseline');
-    fireEvent.click(screen.getByRole('button', { name: 'Взять из DF' }));
-    expect(screen.getByLabelText('Комментарий')).toHaveValue('DF source');
-    fireEvent.change(screen.getByLabelText('Комментарий'), {
+    expect(getCommentInput()).toHaveValue('DB baseline');
+    fireEvent.click(screen.getByRole('button', { name: 'Подставить' }));
+    expect(getCommentInput()).toHaveValue('DF source');
+    fireEvent.change(getCommentInput(), {
       target: { value: '  draft\nsecond line  ' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Принять' }));
     expect(getPendingColumnActions(harness.getState()?.sharedState)).toEqual([
       {
         type: 'set_column_comment',
@@ -1405,25 +1423,23 @@ describe('write-df-to-db-v4 step placement', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Комментарий колонки client_id' })
     );
-    expect(screen.getByLabelText('Комментарий')).toHaveValue('DF inherited');
-    fireEvent.click(screen.getByRole('button', { name: 'Удалить' }));
+    expect(getCommentInput()).toHaveValue('DF inherited');
+    fireEvent.change(getCommentInput(), { target: { value: '' } });
     expect(harness.getState()?.sharedState.typedCommentOverrides).toEqual({
       clientId: null,
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(220);
     });
-    fireEvent.click(screen.getByRole('button', { name: 'SQL-скрипт' }));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Конструктор таблицы' })
-    );
+    fireEvent.click(screen.getByRole('tab', { name: 'SQL' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Конструктор' }));
     fireEvent.click(
       screen.getByRole('button', { name: 'Комментарий колонки client_id' })
     );
-    expect(screen.getByLabelText('Комментарий')).toHaveValue('');
-    fireEvent.click(screen.getByRole('button', { name: 'Отмена' }));
+    expect(getCommentInput()).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: 'Закрыть' }));
     harness.rerenderHarness('write');
-    fireEvent.click(screen.getByRole('button', { name: 'Сгенерировать' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Обновить DDL' }));
     await act(async () => {
       await Promise.resolve();
     });
