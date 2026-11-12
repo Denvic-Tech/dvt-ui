@@ -282,6 +282,9 @@ import type {
   GetOrganizationsOrganizationsGetResponses,
   GetOrganizationsPublicOrganizationsGetData,
   GetOrganizationsPublicOrganizationsGetResponses,
+  GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData,
+  GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostError,
+  GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses,
   GetProjectByIdProjectsProjectIdGetData,
   GetProjectByIdProjectsProjectIdGetError,
   GetProjectByIdProjectsProjectIdGetResponses,
@@ -770,6 +773,8 @@ import {
   zGetOrganizationsOrganizationsGetResponse,
   zGetOrganizationsPublicOrganizationsGetData,
   zGetOrganizationsPublicOrganizationsGetResponse,
+  zGetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData,
+  zGetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponse,
   zGetProjectByIdProjectsProjectIdGetData,
   zGetProjectByIdProjectsProjectIdGetResponse,
   zGetProjectColumnsProjectsProjectIdLineageColumnsGetData,
@@ -6147,6 +6152,67 @@ export const nestedClient = {
                 path,
               });
             },
+          },
+        },
+        partitioningAdvice: {
+          /**
+           * Profile partition-key candidates for ReadTableFromDBV3/ReadQueryFromDBV3
+           */
+          post: async (
+            params?: OperationParams<GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData>,
+            config?: OperationConfig<
+              GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData,
+              GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses[keyof GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses]
+            >
+          ): OperationResult<
+            GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses[keyof GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses],
+            GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostError
+          > => {
+            const requestParams = (params ??
+              {}) as OperationParams<GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData>;
+            const { client: clientOverride, ...requestConfig } = (config ??
+              {}) as OperationConfig<
+              GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData,
+              GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses[keyof GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses]
+            >;
+            const requestClient = clientOverride ?? client;
+            const requestOptions = {
+              ...requestConfig,
+              ...requestParams,
+            } satisfies Omit<
+              OperationBaseOptions<
+                GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData,
+                GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses[keyof GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses]
+              >,
+              'path'
+            >;
+            if (requestOptions.requestValidator == null) {
+              requestOptions.requestValidator = async data => {
+                return await zGetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData.parseAsync(
+                  data
+                );
+              };
+            }
+            if (requestOptions.responseValidator == null) {
+              requestOptions.responseValidator = async data => {
+                return await zGetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponse.parseAsync(
+                  data
+                );
+              };
+            }
+            const path = {
+              ...rootPathContext_connectionId,
+            } satisfies PathContext;
+            return requestClient.request<
+              GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses[keyof GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses],
+              GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostError,
+              true
+            >({
+              ...requestOptions,
+              method: 'POST',
+              url: '/db-connections/{connection_id}/partitioning-advice',
+              path,
+            });
           },
         },
         /**

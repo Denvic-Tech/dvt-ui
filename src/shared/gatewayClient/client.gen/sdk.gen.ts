@@ -286,6 +286,9 @@ import type {
   GetOrganizationsOrganizationsGetResponses,
   GetOrganizationsPublicOrganizationsGetData,
   GetOrganizationsPublicOrganizationsGetResponses,
+  GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData,
+  GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostErrors,
+  GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses,
   GetProjectByIdProjectsProjectIdGetData,
   GetProjectByIdProjectsProjectIdGetErrors,
   GetProjectByIdProjectsProjectIdGetResponses,
@@ -777,6 +780,8 @@ import {
   zGetOrganizationsOrganizationsGetResponse,
   zGetOrganizationsPublicOrganizationsGetData,
   zGetOrganizationsPublicOrganizationsGetResponse,
+  zGetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData,
+  zGetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponse,
   zGetProjectByIdProjectsProjectIdGetData,
   zGetProjectByIdProjectsProjectIdGetResponse,
   zGetProjectColumnsProjectsProjectIdLineageColumnsGetData,
@@ -3726,6 +3731,41 @@ export const refreshCatalogDbConnectionsConnectionIdCatalogRefreshPost = <
     ...options,
   });
 };
+
+/**
+ * Profile partition-key candidates for ReadTableFromDBV3/ReadQueryFromDBV3
+ */
+export const getPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePost =
+  <ThrowOnError extends boolean = false>(
+    options: Options<
+      GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData,
+      ThrowOnError
+    >
+  ) => {
+    return (options.client ?? client).post<
+      GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses,
+      GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostErrors,
+      ThrowOnError
+    >({
+      requestValidator: async data => {
+        return await zGetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData.parseAsync(
+          data
+        );
+      },
+      responseType: 'json',
+      responseValidator: async data => {
+        return await zGetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponse.parseAsync(
+          data
+        );
+      },
+      url: '/db-connections/{connection_id}/partitioning-advice',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  };
 
 /**
  * Search Datasets
