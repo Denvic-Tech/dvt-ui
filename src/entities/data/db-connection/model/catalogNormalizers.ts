@@ -178,6 +178,12 @@ export const normalizeTablePreview = (
   })),
   rows: response.rows,
   truncated: response.truncated ?? false,
+  rowCount:
+    typeof response.row_count === 'number' &&
+    Number.isFinite(response.row_count)
+      ? response.row_count
+      : null,
+  rowCountExact: response.row_count_exact ?? false,
 });
 
 export const toDbCatalogError = (

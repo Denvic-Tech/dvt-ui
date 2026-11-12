@@ -1,13 +1,6 @@
-import {
-  type ColumnBaseType,
-  type PartitionGrouping,
-} from '@/features/node/db-partitioning-grouping-input';
+import { type PartitionGrouping } from '@/features/node/db-partitioning-grouping-input';
 
-import type {
-  DbMetadata as DBMetadata,
-  DbTable as DBTable,
-  NodeInputExpressionValue,
-} from '@/shared/gatewayClient';
+import type { NodeInputExpressionValue } from '@/shared/gatewayClient';
 
 export type ReadTableFromDBV3SelectorValue =
   | string
@@ -33,31 +26,22 @@ export type ReadTableFromDBV3Errors = Partial<
   Record<keyof ReadTableFromDBV3Values, string>
 >;
 
-export type ReadTableFromDBV3SectionId =
-  | 'database'
-  | 'schema'
-  | 'table'
-  | 'columns'
-  | 'options';
+export type ReadTableFromDBV3SelectorField =
+  | 'database_name'
+  | 'schema_name'
+  | 'table_name';
+
+/** Вкладки правой панели настроек. */
+export type ReadTableFromDBV3PaneTab = 'params' | 'columns' | 'preview';
 
 export type ReadTableFromDBV3SectionErrors = {
   table: boolean;
   options: boolean;
+  advanced: boolean;
 };
 
 export type ReadTableFromDBV3ValidationResult = {
   errors: ReadTableFromDBV3Errors;
   partitionGroupingErrors?: Record<string, string> | undefined;
   isValid: boolean;
-};
-
-export type ReadTableFromDBV3DerivedState = {
-  inputMetadata: DBMetadata | null;
-  selectedTable: DBTable | null;
-  selectedTableLabel: string;
-  selectedColumnsCount: number;
-  hasSinglePrimaryKey: boolean;
-  isPartitionColumnRequired: boolean;
-  partitionColumnType: ColumnBaseType;
-  sectionErrors: ReadTableFromDBV3SectionErrors;
 };

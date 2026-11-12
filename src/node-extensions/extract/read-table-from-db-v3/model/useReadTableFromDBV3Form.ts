@@ -9,42 +9,50 @@ import React, {
 import type { NodeModalExtensionProps } from '@/app/providers/node-extensions/lib/types';
 
 import { type PartitionGrouping } from '@/features/node/db-partitioning-grouping-input';
-import { useDbTargetCatalogController } from '@/features/node/db-target-selector/model/useDbTargetCatalogController';
 import { useConnectedNodeMetadata } from '@/features/node/get-node-metadata';
 
-import { resolveDbCatalogMode } from '@/entities/data/db-connection/model/catalogNormalizers';
-import type { DbCatalogTableDetail } from '@/entities/data/db-connection/model/catalogTypes';
-import { getDbCatalogCapabilities } from '@/entities/data/db-connection/model/hooks/useDbCatalog';
+import {
+  normalizeDbCatalogParentNames,
+  resolveDbCatalogMode,
+} from '@/entities/data/db-connection/model/catalogNormalizers';
+import type {
+  DbCatalogTableDetail,
+  DbCatalogTableRef,
+} from '@/entities/data/db-connection/model/catalogTypes';
+import {
+  getDbCatalogCapabilities,
+  useDbCatalogTable,
+} from '@/entities/data/db-connection/model/hooks/useDbCatalog';
 
 import type {
   DataType,
   DbMetadata as DBMetadata,
   DbTable as DBTable,
 } from '@/shared/gatewayClient';
+import { findDbMetadataTable } from '@/shared/lib/db-metadata';
 import { isExpressionValue } from '@/shared/lib/node-input-values';
 
 import {
-  buildSelectedTableLabel,
   findSelectedTable,
-  getDatabaseOptions,
-  getFilteredTables,
-  getFirstErrorSection,
-  getInitialActiveSection,
   getLiteralStringValue,
   getPartitionColumnType,
-  getSchemaOptions,
   getSectionErrors,
   getSelectedColumnsCount,
-  getSelectorCollapsedValue,
+  hasConfiguredSelectorValue,
+  hasSelectorExpression,
   hasSinglePrimaryKeyColumn,
   isPartitionGroupingModeCompatible,
   parseOptionalInteger,
   sanitizeTTLCache,
   toggleColumnSelection,
+  toSelectorExpression,
 } from '../lib/helpers';
+import type { PartitioningSettings } from '../lib/partitioningAdvice';
 import type {
   ReadTableFromDBV3Errors,
-  ReadTableFromDBV3SectionId,
+  ReadTableFromDBV3PaneTab,
+  ReadTableFromDBV3SelectorField,
+  ReadTableFromDBV3SelectorValue,
   ReadTableFromDBV3Values,
 } from '../lib/types';
 import { validateReadTableFromDBV3 } from '../lib/validation';
@@ -55,6 +63,35 @@ type UseReadTableFromDBV3FormArgs = {
   setLocalInputData: NodeModalExtensionProps<ReadTableFromDBV3Values>['setLocalInputData'];
   setValidationCallback?: NodeModalExtensionProps<ReadTableFromDBV3Values>['setValidationCallback'];
 };
+
+type SelectorSnapshot = Pick<
+  ReadTableFromDBV3Values,
+  'database_name' | 'schema_name' | 'table_name' | 'columns'
+>;
+
+const TABLE_DEPENDENT_ERRORS: Array<keyof ReadTableFromDBV3Errors> = [
+  'table_name',
+  'partition_col',
+  'partition_grouping',
+  'npartitions',
+  'max_rows_per_partition',
+];
+
+const pickSelectorSnapshot = (
+  values: ReadTableFromDBV3Values
+): SelectorSnapshot => ({
+  database_name: values.database_name,
+  schema_name: values.schema_name,
+  table_name: values.table_name,
+  columns: values.columns ?? null,
+});
+
+const hasAnySelectorValue = (
+  values: ReadTableFromDBV3Values | null | undefined
+) =>
+  hasConfiguredSelectorValue(values?.database_name) ||
+  hasConfiguredSelectorValue(values?.schema_name) ||
+  hasConfiguredSelectorValue(values?.table_name);
 
 export const useReadTableFromDBV3Form = ({
   nodeID,
@@ -90,24 +127,30 @@ export const useReadTableFromDBV3Form = ({
   const [partitionGroupingErrors, setPartitionGroupingErrors] = useState<
     Record<string, string> | undefined
   >(undefined);
-  const [activeSectionId, setActiveSectionId] =
-    useState<ReadTableFromDBV3SectionId>(() =>
-      getInitialActiveSection(localInputData, inputMetadata)
-    );
-  const wasConnectionMetadataLoadingRef = useRef(isConnectionMetadataLoading);
+  const [activeTab, setActiveTab] =
+    useState<ReadTableFromDBV3PaneTab>('params');
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isExpressionMode, setIsExpressionMode] = useState(() =>
+    hasSelectorExpression(localInputData)
+  );
+  const expressionModeResolvedRef = useRef(hasAnySelectorValue(localInputData));
+  const literalSnapshotRef = useRef<SelectorSnapshot | null>(null);
+  const expressionSnapshotRef = useRef<SelectorSnapshot | null>(null);
   const pendingLazyTableSelectionRef = useRef(false);
 
+  // Черновик гидрируется после первого рендера: режим выражений
+  // определяем по первым непустым значениям селекторов.
   useEffect(() => {
     if (
-      wasConnectionMetadataLoadingRef.current &&
-      !isConnectionMetadataLoading
+      expressionModeResolvedRef.current ||
+      !hasAnySelectorValue(localInputData)
     ) {
-      setActiveSectionId(
-        getInitialActiveSection(localInputData, inputMetadata)
-      );
+      return;
     }
-    wasConnectionMetadataLoadingRef.current = isConnectionMetadataLoading;
-  }, [inputMetadata, isConnectionMetadataLoading, localInputData]);
+
+    expressionModeResolvedRef.current = true;
+    setIsExpressionMode(hasSelectorExpression(localInputData));
+  }, [localInputData]);
 
   const literalDatabaseName = useMemo(() => {
     return getLiteralStringValue(localInputData?.database_name);
@@ -120,32 +163,15 @@ export const useReadTableFromDBV3Form = ({
   const literalTableName = useMemo(() => {
     return getLiteralStringValue(localInputData?.table_name);
   }, [localInputData?.table_name]);
-  const catalog = useDbTargetCatalogController(inputMetadata, {
-    databaseName: literalDatabaseName,
-    schemaName: literalSchemaName,
-    tableName: literalTableName,
-    databasesEnabled: activeSectionId === 'database',
-    schemasEnabled: activeSectionId === 'schema',
-    tablesEnabled: activeSectionId === 'table',
-    detailEnabled: Boolean(literalTableName),
-  });
-  const lazyTable = catalog.table;
-  const lazyTableItems = catalog.tableItems;
-  const lazySelectedTableItem = catalog.selectedTableItem;
-  const lazyDatabaseOptions = catalog.databaseOptions;
-  const lazySchemaOptions = catalog.schemaOptions;
-  const lazyDatabases = catalog.databases;
-  const lazySchemas = catalog.schemas;
-  const lazyTables = catalog.tables;
-  const lazyCatalogRefresh = catalog.refresh;
-  const {
-    databaseSearch: lazyDatabaseSearch,
-    setDatabaseSearch: setLazyDatabaseSearch,
-    schemaSearch: lazySchemaSearch,
-    setSchemaSearch: setLazySchemaSearch,
-    tableSearch: lazyTableSearch,
-    setTableSearch: setLazyTableSearch,
-  } = catalog;
+
+  const lazyTable = useDbCatalogTable(
+    inputMetadata,
+    literalDatabaseName,
+    literalSchemaName,
+    literalTableName,
+    { enabled: Boolean(literalTableName) }
+  );
+
   const selectedTable = useMemo<DBTable | null>(() => {
     if (catalogMode !== 'lazy') {
       return findSelectedTable(inputMetadata, localInputData);
@@ -170,48 +196,13 @@ export const useReadTableFromDBV3Form = ({
     };
   }, [catalogMode, inputMetadata, lazyTable.item, localInputData]);
 
-  const selectedTableLabel = useMemo(() => {
-    return buildSelectedTableLabel(localInputData);
-  }, [localInputData]);
-
-  const databaseCollapsedValue = useMemo(() => {
-    return getSelectorCollapsedValue(
-      localInputData?.database_name,
-      'Не выбрана'
-    );
-  }, [localInputData?.database_name]);
-
-  const schemaCollapsedValue = useMemo(() => {
-    return getSelectorCollapsedValue(localInputData?.schema_name, 'Не выбрана');
-  }, [localInputData?.schema_name]);
-
-  const tableCollapsedValue = useMemo(() => {
-    return getSelectorCollapsedValue(localInputData?.table_name, 'Не выбрана');
-  }, [localInputData?.table_name]);
-
-  const databaseOptions = useMemo(() => {
-    return getDatabaseOptions(inputMetadata);
-  }, [inputMetadata]);
-
-  const schemaOptions = useMemo(() => {
-    return getSchemaOptions(inputMetadata, localInputData?.database_name);
-  }, [inputMetadata, localInputData?.database_name]);
-
-  const filteredTables = useMemo(() => {
-    return getFilteredTables(
-      inputMetadata,
-      localInputData?.database_name,
-      localInputData?.schema_name
-    );
-  }, [
-    inputMetadata,
-    localInputData?.database_name,
-    localInputData?.schema_name,
-  ]);
-
   const availableColumns = useMemo(() => {
     return selectedTable?.columns ?? [];
   }, [selectedTable]);
+
+  const availableColumnNames = useMemo(() => {
+    return availableColumns.map(column => column.name);
+  }, [availableColumns]);
 
   const selectedColumnsCount = useMemo(() => {
     return getSelectedColumnsCount(localInputData?.columns);
@@ -269,7 +260,6 @@ export const useReadTableFromDBV3Form = ({
         table.database_name === localInputData?.database_name &&
         table.schema_name === localInputData?.schema_name
       ) {
-        setActiveSectionId('columns');
         return;
       }
 
@@ -287,14 +277,8 @@ export const useReadTableFromDBV3Form = ({
         };
       });
 
-      clearErrors([
-        'table_name',
-        'partition_col',
-        'partition_grouping',
-        'npartitions',
-        'max_rows_per_partition',
-      ]);
-      setActiveSectionId('columns');
+      clearErrors(TABLE_DEPENDENT_ERRORS);
+      setActiveTab('params');
     },
     [
       clearErrors,
@@ -305,21 +289,40 @@ export const useReadTableFromDBV3Form = ({
     ]
   );
 
-  const handleLazyTableSelect = useCallback(
-    (table: (typeof lazyTableItems)[number]) => {
-      const ref = table.catalogRef;
+  const handleCatalogTableSelect = useCallback(
+    (ref: DbCatalogTableRef) => {
+      if (catalogMode !== 'lazy') {
+        const table = findDbMetadataTable(inputMetadata, {
+          databaseName: ref.databaseName,
+          schemaName: ref.schemaName,
+          tableName: ref.name,
+        });
+        if (table) {
+          handleTableSelect(table);
+        }
+        return;
+      }
+
+      const current = normalizeDbCatalogParentNames(
+        catalogCapabilities,
+        literalDatabaseName,
+        literalSchemaName
+      );
+      const next = normalizeDbCatalogParentNames(
+        catalogCapabilities,
+        ref.databaseName,
+        ref.schemaName
+      );
       if (
-        lazyTable.item &&
         ref.name === literalTableName &&
-        ref.databaseName === literalDatabaseName &&
-        ref.schemaName === literalSchemaName
+        next.databaseName === current.databaseName &&
+        next.schemaName === current.schemaName
       ) {
-        setActiveSectionId('columns');
         return;
       }
 
       pendingLazyTableSelectionRef.current = true;
-      setActiveSectionId('columns');
+      setActiveTab('params');
       updateInputData(current => ({
         ...current,
         database_name: ref.databaseName,
@@ -331,17 +334,14 @@ export const useReadTableFromDBV3Form = ({
         max_rows_per_partition: undefined,
         partition_grouping: undefined,
       }));
-      clearErrors([
-        'table_name',
-        'partition_col',
-        'partition_grouping',
-        'npartitions',
-        'max_rows_per_partition',
-      ]);
+      clearErrors(TABLE_DEPENDENT_ERRORS);
     },
     [
+      catalogCapabilities,
+      catalogMode,
       clearErrors,
-      lazyTable.item,
+      handleTableSelect,
+      inputMetadata,
       literalDatabaseName,
       literalSchemaName,
       literalTableName,
@@ -386,7 +386,6 @@ export const useReadTableFromDBV3Form = ({
 
     pendingLazyTableSelectionRef.current = false;
     handleLazyTableDetail(lazyTable.item);
-    setActiveSectionId('columns');
   }, [
     catalogMode,
     handleLazyTableDetail,
@@ -402,159 +401,66 @@ export const useReadTableFromDBV3Form = ({
     !lazyTable.item &&
     (lazyTable.state === 'loading' || lazyTable.isRefreshing);
 
-  const handleDatabaseValueChange = useCallback(
-    (nextValue: unknown) => {
-      if (nextValue === localInputData?.database_name) {
-        return;
-      }
-
-      updateInputData(current => {
-        return {
-          ...current,
-          database_name: nextValue as ReadTableFromDBV3Values['database_name'],
-          schema_name: undefined,
-          table_name: undefined,
-          columns: null,
-          partition_col: undefined,
-          npartitions: undefined,
-          max_rows_per_partition: undefined,
-          partition_grouping: undefined,
-        };
-      });
-
-      clearErrors([
-        'table_name',
-        'partition_col',
-        'partition_grouping',
-        'npartitions',
-        'max_rows_per_partition',
-      ]);
-    },
-    [clearErrors, localInputData?.database_name, updateInputData]
+  const selectorFields = useMemo<ReadTableFromDBV3SelectorField[]>(
+    () => [
+      ...(isDatabaseSelectionSupported ? (['database_name'] as const) : []),
+      ...(isSchemaSupported ? (['schema_name'] as const) : []),
+      'table_name',
+    ],
+    [isDatabaseSelectionSupported, isSchemaSupported]
   );
 
-  const handleSchemaValueChange = useCallback(
-    (nextValue: unknown) => {
-      if (nextValue === localInputData?.schema_name) {
-        return;
+  const enterExpressionMode = useCallback(() => {
+    const current = localInputData ?? {};
+    const restored = expressionSnapshotRef.current;
+    const patch: Partial<ReadTableFromDBV3Values> = { columns: null };
+
+    selectorFields.forEach(field => {
+      const restoredValue = restored?.[field];
+      patch[field] =
+        restoredValue !== undefined
+          ? restoredValue
+          : toSelectorExpression(current[field]);
+    });
+
+    literalSnapshotRef.current = pickSelectorSnapshot(current);
+    expressionModeResolvedRef.current = true;
+    updateInputData(prev => ({ ...prev, ...patch }));
+    clearErrors(['table_name']);
+    setIsExpressionMode(true);
+  }, [clearErrors, localInputData, selectorFields, updateInputData]);
+
+  const exitExpressionMode = useCallback(() => {
+    const current = localInputData ?? {};
+    const restored = literalSnapshotRef.current;
+    const patch: Partial<ReadTableFromDBV3Values> = {};
+
+    selectorFields.forEach(field => {
+      if (isExpressionValue(current[field])) {
+        patch[field] = restored?.[field] ?? undefined;
       }
+    });
+    if (isExpressionValue(current.table_name)) {
+      patch.columns = restored?.columns ?? null;
+    }
 
-      updateInputData(current => {
-        return {
-          ...current,
-          schema_name: nextValue as ReadTableFromDBV3Values['schema_name'],
-          table_name: undefined,
-          columns: null,
-          partition_col: undefined,
-          npartitions: undefined,
-          max_rows_per_partition: undefined,
-          partition_grouping: undefined,
-        };
-      });
+    expressionSnapshotRef.current = pickSelectorSnapshot(current);
+    updateInputData(prev => ({ ...prev, ...patch }));
+    clearErrors(['table_name']);
+    setIsExpressionMode(false);
+  }, [clearErrors, localInputData, selectorFields, updateInputData]);
 
-      clearErrors([
-        'table_name',
-        'partition_col',
-        'partition_grouping',
-        'npartitions',
-        'max_rows_per_partition',
-      ]);
-    },
-    [clearErrors, localInputData?.schema_name, updateInputData]
-  );
-
-  const handleTableValueChange = useCallback(
-    (nextValue: unknown) => {
-      if (nextValue === localInputData?.table_name) {
-        return;
+  const handleSelectorExpressionChange = useCallback(
+    (field: ReadTableFromDBV3SelectorField, value: unknown) => {
+      updateInputData(current => ({
+        ...current,
+        [field]: value as ReadTableFromDBV3SelectorValue,
+      }));
+      if (field === 'table_name') {
+        clearErrors(['table_name']);
       }
-
-      updateInputData(current => {
-        return {
-          ...current,
-          table_name: nextValue as ReadTableFromDBV3Values['table_name'],
-          columns: null,
-          partition_col: undefined,
-          npartitions: undefined,
-          max_rows_per_partition: undefined,
-          partition_grouping: undefined,
-        };
-      });
-
-      clearErrors([
-        'table_name',
-        'partition_col',
-        'partition_grouping',
-        'npartitions',
-        'max_rows_per_partition',
-      ]);
     },
-    [clearErrors, localInputData?.table_name, updateInputData]
-  );
-
-  const handleDatabaseSelect = useCallback(
-    (databaseName: string) => {
-      if (databaseName === literalDatabaseName) {
-        setActiveSectionId(isSchemaSupported ? 'schema' : 'table');
-        return;
-      }
-
-      updateInputData(current => {
-        return {
-          ...current,
-          database_name: databaseName,
-          schema_name: undefined,
-          table_name: undefined,
-          columns: null,
-          partition_col: undefined,
-          npartitions: undefined,
-          max_rows_per_partition: undefined,
-          partition_grouping: undefined,
-        };
-      });
-
-      clearErrors([
-        'table_name',
-        'partition_col',
-        'partition_grouping',
-        'npartitions',
-        'max_rows_per_partition',
-      ]);
-      setActiveSectionId(isSchemaSupported ? 'schema' : 'table');
-    },
-    [clearErrors, isSchemaSupported, literalDatabaseName, updateInputData]
-  );
-
-  const handleSchemaSelect = useCallback(
-    (schemaName: string) => {
-      if (schemaName === literalSchemaName) {
-        setActiveSectionId('table');
-        return;
-      }
-
-      updateInputData(current => {
-        return {
-          ...current,
-          schema_name: schemaName,
-          table_name: undefined,
-          columns: null,
-          partition_col: undefined,
-          npartitions: undefined,
-          max_rows_per_partition: undefined,
-          partition_grouping: undefined,
-        };
-      });
-
-      clearErrors([
-        'table_name',
-        'partition_col',
-        'partition_grouping',
-        'npartitions',
-        'max_rows_per_partition',
-      ]);
-      setActiveSectionId('table');
-    },
-    [clearErrors, literalSchemaName, updateInputData]
+    [clearErrors, updateInputData]
   );
 
   const handlePartitionColumnSelect = useCallback(
@@ -650,16 +556,34 @@ export const useReadTableFromDBV3Form = ({
     [clearErrors, localInputData?.partition_grouping, updateInputData]
   );
 
-  const handleColumnSelect = useCallback(
+  /** Колонка и группировка одним обновлением: подбор настроек и его отмена. */
+  const applyPartitioningSettings = useCallback(
+    (settings: PartitioningSettings) => {
+      updateInputData(current => ({
+        ...current,
+        partition_col: settings.partition_col ?? undefined,
+        partition_grouping: settings.partition_grouping ?? undefined,
+      }));
+      clearErrors(['partition_col', 'partition_grouping']);
+      setPartitionGroupingErrors(undefined);
+    },
+    [clearErrors, updateInputData]
+  );
+
+  const handleColumnToggle = useCallback(
     (columnName: string) => {
       updateInputData(current => {
         return {
           ...current,
-          columns: toggleColumnSelection(current.columns, columnName),
+          columns: toggleColumnSelection(
+            availableColumnNames,
+            current.columns,
+            columnName
+          ),
         };
       });
     },
-    [updateInputData]
+    [availableColumnNames, updateInputData]
   );
 
   const setSelectedColumns = useCallback(
@@ -780,8 +704,9 @@ export const useReadTableFromDBV3Form = ({
     setPartitionGroupingErrors(validationResult.partitionGroupingErrors);
 
     if (!validationResult.isValid) {
-      const firstErrorSection = getFirstErrorSection(validationResult.errors);
-      if (firstErrorSection) setActiveSectionId(firstErrorSection);
+      const nextSectionErrors = getSectionErrors(validationResult.errors);
+      if (nextSectionErrors.options) setActiveTab('params');
+      if (nextSectionErrors.advanced) setIsAdvancedOpen(true);
     }
 
     return validationResult.isValid;
@@ -796,68 +721,59 @@ export const useReadTableFromDBV3Form = ({
     setValidationCallback?.(() => validateInputData);
   }, [setValidationCallback, validateInputData]);
 
+  const isDatabaseExpression = isExpressionValue(localInputData?.database_name);
+  const isSchemaExpression = isExpressionValue(localInputData?.schema_name);
+  const isTableExpression = isExpressionValue(localInputData?.table_name);
+
   return {
-    activeSectionId,
+    activeTab,
+    applyPartitioningSettings,
     availableColumns,
+    catalogCapabilities,
     catalogMode,
-    databaseCollapsedValue,
-    databaseOptions,
+    enterExpressionMode,
     errors,
-    filteredTables,
-    handleDatabaseSelect,
-    handleDatabaseValueChange,
-    handleColumnSelect,
+    exitExpressionMode,
+    handleCatalogTableSelect,
+    handleColumnToggle,
+    handleLazyTableDetail,
     handleLimitChange,
     handleMaxRowsPerPartitionChange,
     handleNPartitionsChange,
     handlePartitionColumnSelect,
     handlePartitionGroupingChange,
-    handleSchemaSelect,
-    handleSchemaValueChange,
+    handleSelectorExpressionChange,
     handleTTLCacheChange,
     handleTableSelect,
-    handleLazyTableDetail,
-    handleLazyTableSelect,
-    handleTableValueChange,
+    hasMetadataExpression:
+      isDatabaseExpression || isSchemaExpression || isTableExpression,
     inputMetadata,
+    isAdvancedOpen,
     isConnectionMetadataLoading,
+    isDatabaseExpression,
     isDatabaseSelectionSupported,
+    isExpressionMode,
     isPartitionColumnRequired,
+    isSchemaExpression,
     isSchemaSupported,
+    isTableExpression,
     isTableMetadataLoading,
     literalDatabaseName,
     literalSchemaName,
     literalTableName,
-    lazyDatabaseOptions,
-    lazyDatabaseSearch,
-    lazyDatabases,
-    lazyCatalogRefresh,
-    lazySchemaOptions,
-    lazySchemaSearch,
-    lazySchemas,
-    lazySelectedTableItem,
-    lazyTableItems,
-    lazyTableSearch,
-    lazyTables,
-    setLazyDatabaseSearch,
-    setLazySchemaSearch,
-    setLazyTableSearch,
-    isDatabaseExpression: isExpressionValue(localInputData?.database_name),
-    isSchemaExpression: isExpressionValue(localInputData?.schema_name),
-    isTableExpression: isExpressionValue(localInputData?.table_name),
     partitionColumnType,
     partitionGroupingErrors,
-    schemaCollapsedValue,
-    schemaOptions,
+    retryTableMetadata: lazyTable.retry,
     sectionErrors,
     selectedColumnsCount,
     selectedTable,
-    tableCollapsedValue,
-    selectedTableLabel,
+    selectorFields,
+    setActiveTab,
+    setIsAdvancedOpen,
     setSelectedColumns,
-    setActiveSectionId,
     tableMetadataError: lazyTable.error,
     tableMetadataState: lazyTable.state,
-    retryTableMetadata: lazyTable.retry,
   };
 };
+
+export type ReadTableFromDBV3Form = ReturnType<typeof useReadTableFromDBV3Form>;

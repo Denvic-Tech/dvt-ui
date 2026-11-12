@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { makeExpressionValue } from '@/shared/lib/node-input-values';
 
 import type { ReadTableFromDBV3Values } from '../lib/types';
 
@@ -158,51 +160,57 @@ describe('useReadTableFromDBV3Form', () => {
     tableDetailRef.current = null;
   });
 
-  it('opens the first incomplete required section and falls back to table', () => {
-    metadataRef.current = { connection: baseMetadata };
-
-    const incomplete = renderReadTableForm({});
-    expect(incomplete.result.current.form.activeSectionId).toBe('database');
-    incomplete.unmount();
-
-    const configured = renderReadTableForm({
-      database_name: 'analytics',
-      schema_name: 'public',
-      table_name: 'orders',
-    });
-    expect(configured.result.current.form.activeSectionId).toBe('table');
-  });
-
-  it('resets downstream values when database changes', () => {
+  it('starts on the parameters tab with advanced settings collapsed', () => {
     metadataRef.current = { connection: baseMetadata };
 
     const { result } = renderReadTableForm({
       database_name: 'analytics',
       schema_name: 'public',
       table_name: 'orders',
-      columns: ['id'],
-      partition_col: 'id',
+    });
+
+    expect(result.current.form.activeTab).toBe('params');
+    expect(result.current.form.isAdvancedOpen).toBe(false);
+    expect(result.current.form.isExpressionMode).toBe(false);
+    expect(result.current.form.selectedTable?.name).toBe('orders');
+  });
+
+  it('writes database, schema and table fields on tree table selection', () => {
+    metadataRef.current = { connection: baseMetadata };
+
+    const { result } = renderReadTableForm({
+      database_name: 'analytics',
+      schema_name: 'public',
+      table_name: 'orders',
+      columns: ['legacy'],
+      partition_col: 'legacy',
       npartitions: 4,
-      max_rows_per_partition: 100,
     });
 
     act(() => {
-      result.current.form.handleDatabaseSelect('warehouse');
+      result.current.form.setActiveTab('columns');
+    });
+    act(() => {
+      result.current.form.handleCatalogTableSelect({
+        name: 'events',
+        kind: 'table',
+        databaseName: 'warehouse',
+        schemaName: 'staging',
+      });
     });
 
     expect(result.current.localInputData).toMatchObject({
       database_name: 'warehouse',
-      schema_name: undefined,
-      table_name: undefined,
-      columns: null,
+      schema_name: 'staging',
+      table_name: 'events',
+      columns: ['event_id'],
       partition_col: undefined,
       npartitions: undefined,
-      max_rows_per_partition: undefined,
     });
-    expect(result.current.form.activeSectionId).toBe('schema');
+    expect(result.current.form.activeTab).toBe('params');
   });
 
-  it('resets downstream values when schema changes', () => {
+  it('switches selectors to expressions and back without losing values', () => {
     metadataRef.current = { connection: baseMetadata };
 
     const { result } = renderReadTableForm({
@@ -210,61 +218,95 @@ describe('useReadTableFromDBV3Form', () => {
       schema_name: 'public',
       table_name: 'orders',
       columns: ['id'],
-      partition_col: 'id',
     });
 
     act(() => {
-      result.current.form.handleSchemaSelect('archive');
+      result.current.form.enterExpressionMode();
     });
 
+    expect(result.current.form.isExpressionMode).toBe(true);
+    expect(result.current.localInputData).toMatchObject({
+      database_name: makeExpressionValue('"analytics"', 'single'),
+      schema_name: makeExpressionValue('"public"', 'single'),
+      table_name: makeExpressionValue('"orders"', 'single'),
+      columns: null,
+    });
+
+    act(() => {
+      result.current.form.handleSelectorExpressionChange(
+        'table_name',
+        makeExpressionValue('{{ table }}', 'template')
+      );
+    });
+    act(() => {
+      result.current.form.exitExpressionMode();
+    });
+
+    expect(result.current.form.isExpressionMode).toBe(false);
     expect(result.current.localInputData).toMatchObject({
       database_name: 'analytics',
-      schema_name: 'archive',
-      table_name: undefined,
-      columns: null,
-      partition_col: undefined,
-    });
-    expect(result.current.form.activeSectionId).toBe('table');
-  });
-
-  it('filters tables by selected database and schema', () => {
-    metadataRef.current = { connection: baseMetadata };
-
-    const { result } = renderReadTableForm({
-      database_name: 'analytics',
       schema_name: 'public',
+      table_name: 'orders',
+      columns: ['id'],
     });
 
-    expect(result.current.form.filteredTables.map(table => table.name)).toEqual(
-      ['orders', 'customers']
+    act(() => {
+      result.current.form.enterExpressionMode();
+    });
+
+    expect(result.current.localInputData?.table_name).toEqual(
+      makeExpressionValue('{{ table }}', 'template')
     );
   });
 
-  it('writes database, schema and table fields on table selection', () => {
+  it('opens expression mode for saved expression selectors', () => {
     metadataRef.current = { connection: baseMetadata };
 
     const { result } = renderReadTableForm({
       database_name: 'analytics',
       schema_name: 'public',
-      table_name: undefined,
-      columns: ['legacy'],
-      partition_col: 'legacy',
+      table_name: makeExpressionValue('{{ table }}', 'template'),
+    });
+
+    expect(result.current.form.isExpressionMode).toBe(true);
+    expect(result.current.form.hasMetadataExpression).toBe(true);
+  });
+
+  it('opens the parameters tab and advanced block on validation errors', () => {
+    metadataRef.current = { connection: baseMetadata };
+    let validate: (() => boolean) | undefined;
+    const setValidationCallback = (callback: () => () => boolean) => {
+      validate = callback();
+    };
+
+    const { result } = renderHook(() => {
+      const [localInputData, setLocalInputData] =
+        useState<ReadTableFromDBV3Values>({
+          database_name: 'analytics',
+          schema_name: 'public',
+          table_name: 'orders',
+          npartitions: 4,
+        });
+      const form = useReadTableFromDBV3Form({
+        nodeID: 'node-1',
+        localInputData,
+        setLocalInputData,
+        setValidationCallback: setValidationCallback as never,
+      });
+      return { form };
     });
 
     act(() => {
-      result.current.form.handleTableSelect(
-        result.current.form.filteredTables[1]
-      );
+      result.current.form.setActiveTab('columns');
+    });
+    let isValid = true;
+    act(() => {
+      isValid = validate?.() ?? true;
     });
 
-    expect(result.current.localInputData).toMatchObject({
-      database_name: 'analytics',
-      schema_name: 'public',
-      table_name: 'customers',
-      columns: ['id', 'email'],
-      partition_col: undefined,
-    });
-    expect(result.current.form.activeSectionId).toBe('columns');
+    expect(isValid).toBe(false);
+    expect(result.current.form.errors.partition_col).toBeTruthy();
+    expect(result.current.form.activeTab).toBe('params');
   });
 
   it('disables schema flow for clickhouse connections', () => {
