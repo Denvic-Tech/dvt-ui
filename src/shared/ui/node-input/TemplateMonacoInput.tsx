@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { OnMount } from '@monaco-editor/react';
 import { FormControl, FormHelperText, OutlinedInput } from '@mui/material';
-import * as monacoTypes from 'monaco-editor';
+import type * as monacoTypes from 'monaco-editor';
 
 import type { ExpressionsConfig } from '@/shared/gatewayClient';
 import {

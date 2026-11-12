@@ -19,19 +19,14 @@ import { AlertStack } from '@/app/notifications';
 import { ConfirmDialogProvider } from '@/app/providers/confirm-dialog';
 import { LanguageProvider } from '@/app/providers/language';
 import { RuntimeConfigProvider } from '@/app/providers/runtime-config';
-import { persistor, store } from '@/app/providers/store';
+import { persistor, store } from '@/app/providers/store/store';
 import { AppThemeProvider } from '@/app/providers/theme/AppThemeProvider';
 import { PageTitle } from '@/app/router/ui/PageTitle';
 import { ProtectedRoute } from '@/app/router/ui/ProtectedRoute';
+import { RouteFallback } from '@/app/router/ui/RouteFallback';
 import { useSetup } from '@/app/setup';
 
-import HomePage from '@/pages/HomePage';
-import { ProjectEditorRoute } from '@/pages/ProjectEditorPage';
-import ProjectsPage from '@/pages/ProjectsPage';
-import SetupPage from '@/pages/SetupPage';
 import SignInPage from '@/pages/SigninPage';
-import UIKitPage from '@/pages/UIKitPage';
-import UserProfilePage from '@/pages/UserProfilePage';
 
 import { MenuAppBar } from '@/widgets/menu-app-bar';
 
@@ -44,6 +39,24 @@ import { NodeInputExpressionsConfigProvider } from '@/entities/config/expression
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
 import '@/App.css';
+
+// Every page except sign-in is its own chunk. The project editor carries
+// React Flow, the node-extension registry and the Monaco wrappers, so keeping
+// it out of the entry bundle is what makes the first load fast.
+const HomePage = React.lazy(() => import('@/pages/HomePage'));
+const ProjectsPage = React.lazy(() => import('@/pages/ProjectsPage'));
+const SetupPage = React.lazy(() => import('@/pages/SetupPage'));
+const UserProfilePage = React.lazy(() => import('@/pages/UserProfilePage'));
+const ProjectEditorRoute = React.lazy(() =>
+  import('@/pages/ProjectEditorPage').then(module => ({
+    default: module.ProjectEditorRoute,
+  }))
+);
+// The UI kit is a development showcase; Vite drops the import (and the chunk)
+// from production builds.
+const UIKitPage = import.meta.env.DEV
+  ? React.lazy(() => import('@/pages/UIKitPage'))
+  : null;
 
 const SetupStatusGuard: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -129,18 +142,7 @@ const SetupStatusGuard: React.FC<{ children: React.ReactNode }> = ({
   // Only the first check blocks rendering: later ones run in the background so
   // that navigation does not remount the whole route tree.
   if (isChecking && !status) {
-    return (
-      <Box
-        sx={{
-          minHeight: 320,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
+    return <RouteFallback />;
   }
 
   return <>{children}</>;
@@ -240,89 +242,93 @@ const RoutedAppContent = () => {
                   }}
                 >
                   <SetupStatusGuard>
-                    <Routes>
-                      <Route
-                        path='/'
-                        element={
-                          <ProtectedRoute requireAuth={true}>
-                            <PageTitle title='Home'>
-                              <HomePage />
-                            </PageTitle>
-                          </ProtectedRoute>
-                        }
-                      />
+                    <React.Suspense fallback={<RouteFallback />}>
+                      <Routes>
+                        <Route
+                          path='/'
+                          element={
+                            <ProtectedRoute requireAuth={true}>
+                              <PageTitle title='Home'>
+                                <HomePage />
+                              </PageTitle>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path='/profile/*'
-                        element={
-                          <ProtectedRoute requireAuth={true}>
-                            <PageTitle title='Profile'>
-                              <UserProfilePage />
-                            </PageTitle>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path='/profile/*'
+                          element={
+                            <ProtectedRoute requireAuth={true}>
+                              <PageTitle title='Profile'>
+                                <UserProfilePage />
+                              </PageTitle>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path='/ui-kit/*'
-                        element={
-                          <ProtectedRoute allowAll={true}>
-                            <PageTitle title='UI Kit'>
-                              <UIKitPage />
-                            </PageTitle>
-                          </ProtectedRoute>
-                        }
-                      />
+                        {UIKitPage ? (
+                          <Route
+                            path='/ui-kit/*'
+                            element={
+                              <ProtectedRoute allowAll={true}>
+                                <PageTitle title='UI Kit'>
+                                  <UIKitPage />
+                                </PageTitle>
+                              </ProtectedRoute>
+                            }
+                          />
+                        ) : null}
 
-                      <Route
-                        path='/sign_in'
-                        element={
-                          <ProtectedRoute requireAuth={false}>
-                            <PageTitle title='Sign in'>
-                              <SignInPage />
-                            </PageTitle>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path='/sign_in'
+                          element={
+                            <ProtectedRoute requireAuth={false}>
+                              <PageTitle title='Sign in'>
+                                <SignInPage />
+                              </PageTitle>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path='/setup'
-                        element={
-                          <ProtectedRoute allowAll={true}>
-                            <PageTitle title='Setup'>
-                              <SetupPage />
-                            </PageTitle>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path='/setup'
+                          element={
+                            <ProtectedRoute allowAll={true}>
+                              <PageTitle title='Setup'>
+                                <SetupPage />
+                              </PageTitle>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path='/home'
-                        element={<Navigate to='/' replace />}
-                      />
+                        <Route
+                          path='/home'
+                          element={<Navigate to='/' replace />}
+                        />
 
-                      <Route
-                        path='/projects'
-                        element={
-                          <ProtectedRoute requireAuth={true}>
-                            <PageTitle title='Projects'>
-                              <ProjectsPage />
-                            </PageTitle>
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path='/projects'
+                          element={
+                            <ProtectedRoute requireAuth={true}>
+                              <PageTitle title='Projects'>
+                                <ProjectsPage />
+                              </PageTitle>
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path='/project-editor/:projectID'
-                        element={
-                          <ProtectedRoute requireAuth={true}>
-                            <ProjectEditorRoute />
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path='/project-editor/:projectID'
+                          element={
+                            <ProtectedRoute requireAuth={true}>
+                              <ProjectEditorRoute />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route path='*' element={<Navigate to='/' replace />} />
-                    </Routes>
+                        <Route path='*' element={<Navigate to='/' replace />} />
+                      </Routes>
+                    </React.Suspense>
                   </SetupStatusGuard>
                 </Box>
               </Box>

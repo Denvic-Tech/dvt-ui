@@ -1,8 +1,6 @@
 import React from 'react';
 import {
-  Box,
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -12,6 +10,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import { PageTitle } from '@/app/router/ui/PageTitle.tsx';
+import { RouteFallback } from '@/app/router/ui/RouteFallback';
 
 import {
   useFlushGraphOnLeave,
@@ -63,16 +62,7 @@ export const ProjectEditorRoute = () => {
   if (isResolvingProject || (isProjectLoading && !currentProject)) {
     return (
       <PageTitle title={pageTitle}>
-        <Box
-          sx={{
-            minHeight: 320,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <CircularProgress />
-        </Box>
+        <RouteFallback />
       </PageTitle>
     );
   }

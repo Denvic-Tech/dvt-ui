@@ -9,15 +9,15 @@ import {
 } from '@/features/profile/system-update';
 
 import type { UserReadSchema } from '@/shared/gatewayClient';
+import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { PageLayout } from '@/shared/ui/page-layout';
 import {
   Alert,
   AlertDescription,
   AlertTitle,
   Button,
   Spinner,
-} from '@/shared/ui';
-import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { PageLayout } from '@/shared/ui/page-layout';
+} from '@/shared/ui/primitives';
 
 import {
   FieldHint,

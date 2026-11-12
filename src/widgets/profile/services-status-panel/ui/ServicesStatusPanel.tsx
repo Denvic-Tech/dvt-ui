@@ -5,8 +5,8 @@ import { useServicesStatus } from '@/features/profile/services-status';
 
 import type { ServicesStatus } from '@/shared/gatewayClient';
 import { useDelayedLoading } from '@/shared/lib/hooks/useDelayedLoading';
-import { Alert } from '@/shared/ui';
 import { PageLayout } from '@/shared/ui/page-layout';
+import { Alert } from '@/shared/ui/primitives';
 import { TokenListMessage } from '@/shared/ui/token-list';
 
 import { getElapsedSeconds } from './lib/formatters.ts';

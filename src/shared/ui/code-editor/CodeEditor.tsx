@@ -12,6 +12,7 @@ import type * as monacoTypes from 'monaco-editor';
 
 import { getControlRadius } from '@/shared/ui/primitives/components/theme-style-helpers';
 
+import { MonacoRuntimeGate } from './runtime/MonacoRuntimeGate';
 import {
   collectTriggerCharacters,
   getWordRangeAtPosition,
@@ -432,15 +433,18 @@ export function CodeEditor<TContext = unknown>({
           },
         })}
       >
-        <MonacoEditor
-          height={typeof height === 'number' ? `${height}px` : '100%'}
-          language={language}
-          value={value}
-          onChange={nextValue => onChange(nextValue ?? '')}
-          onMount={handleMount}
-          options={resolvedOptions}
-          theme='vs'
-        />
+        <MonacoRuntimeGate fallback={<Box sx={{ height: '100%' }} />}>
+          <MonacoEditor
+            height={typeof height === 'number' ? `${height}px` : '100%'}
+            language={language}
+            value={value}
+            onChange={nextValue => onChange(nextValue ?? '')}
+            onMount={handleMount}
+            options={resolvedOptions}
+            loading={null}
+            theme='vs'
+          />
+        </MonacoRuntimeGate>
       </Box>
       {helperText ? <FormHelperText>{helperText}</FormHelperText> : null}
     </FormControl>

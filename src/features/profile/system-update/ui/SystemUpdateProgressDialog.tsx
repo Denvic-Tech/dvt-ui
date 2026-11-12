@@ -3,7 +3,7 @@ import Dialog from '@mui/material/Dialog';
 import { IconArrowDown, IconCopy } from '@tabler/icons-react';
 
 import type { UpdateStepSchema } from '@/shared/gatewayClient';
-import { Spinner } from '@/shared/ui';
+import { Spinner } from '@/shared/ui/primitives';
 
 import type { SystemUpdateState } from '../model/types';
 

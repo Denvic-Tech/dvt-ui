@@ -14,7 +14,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import * as monacoTypes from 'monaco-editor';
+import type * as monacoTypes from 'monaco-editor';
 
 import { useNodeDefinition } from '@/features/node/get-node-definition';
 import { useNodeData } from '@/features/node/manage-node-data';
@@ -23,6 +23,8 @@ import { DEFAULT_JSON_LIMIT, useJsonData } from '@/entities/data/json-data';
 import { useNodeJsonViewer } from '@/entities/node/node-json-viewer';
 import { useCurrentProject } from '@/entities/project/projects';
 import { useTaskExecutionStatus } from '@/entities/project/task-execution-status';
+
+import { MonacoRuntimeGate } from '@/shared/ui/code-editor';
 
 import { StyledDialog } from './styles.ts';
 
@@ -467,23 +469,42 @@ const NodeJsonViewerContent: React.FC<NodeJsonViewerContentProps> = ({
           )}
 
           {status !== 'loading' && status !== 'failed' && (
-            <Editor
-              onMount={onMount}
-              defaultLanguage='json'
-              value={editorValue}
-              options={{
-                readOnly: true,
-                minimap: { enabled: false },
-                wordWrap: 'on',
-                fontSize: 13,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                renderWhitespace: 'none',
-                folding: true,
-              }}
-              theme='vs'
-            />
+            <MonacoRuntimeGate
+              fallback={
+                <Box
+                  sx={{
+                    height: '100%',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'text.secondary',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={20} />
+                    <Typography variant='body2'>Загрузка JSON...</Typography>
+                  </Box>
+                </Box>
+              }
+            >
+              <Editor
+                onMount={onMount}
+                defaultLanguage='json'
+                value={editorValue}
+                loading={null}
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: false },
+                  wordWrap: 'on',
+                  fontSize: 13,
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  renderWhitespace: 'none',
+                  folding: true,
+                }}
+                theme='vs'
+              />
+            </MonacoRuntimeGate>
           )}
         </Box>
       </Box>

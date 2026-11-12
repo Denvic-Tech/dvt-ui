@@ -19,7 +19,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import * as monacoTypes from 'monaco-editor';
+import type * as monacoTypes from 'monaco-editor';
 
 import {
   getSingleVariableNameFromValue,
@@ -30,6 +30,7 @@ import {
 import type { VariableOutput, VariableType } from '@/shared/lib/variables';
 import { remeasureFontsWhenReady } from '@/shared/ui/code-editor/fontMeasurement';
 import { attachEditorPlaceholder } from '@/shared/ui/code-editor/placeholder';
+import { MonacoRuntimeGate } from '@/shared/ui/code-editor/runtime/MonacoRuntimeGate';
 import { VariableOption } from '@/shared/ui/variable-option';
 
 import { CompactVariablePicker } from './CompactVariablePicker';
@@ -955,39 +956,42 @@ export const JSONNodeInput: React.FC<JSONNodeInputProps> = ({
             backgroundColor: 'background.paper',
           }}
         >
-          <MonacoEditor
-            height={height}
-            defaultLanguage={editorLanguage}
-            value={editorValue}
-            onChange={handleEditorChange}
-            onMount={handleEditorMount}
-            options={{
-              minimap: { enabled: false },
-              wordWrap: 'on',
-              fontSize: 13,
-              automaticLayout: true,
-              acceptSuggestionOnCommitCharacter: false,
-              acceptSuggestionOnEnter: isTemplateMode ? 'on' : 'off',
-              quickSuggestions: isTemplateMode
-                ? { other: true, comments: false, strings: true }
-                : false,
-              suggestOnTriggerCharacters: isTemplateMode,
-              tabCompletion: isTemplateMode ? 'on' : 'off',
-              scrollBeyondLastLine: false,
-              renderWhitespace: 'none',
-              renderValidationDecorations: 'on',
-              lineNumbers: showLineNumbers ? 'on' : 'off',
-              ...(showLineNumbers
-                ? {
-                    fontFamily:
-                      '"JetBrains Mono", "Fira Code", "SFMono-Regular", monospace',
-                    lineNumbersMinChars: 3,
-                    padding: { top: 8, bottom: 8 },
-                  }
-                : {}),
-            }}
-            theme='vs'
-          />
+          <MonacoRuntimeGate fallback={<Box sx={{ height }} />}>
+            <MonacoEditor
+              height={height}
+              defaultLanguage={editorLanguage}
+              value={editorValue}
+              onChange={handleEditorChange}
+              onMount={handleEditorMount}
+              loading={null}
+              options={{
+                minimap: { enabled: false },
+                wordWrap: 'on',
+                fontSize: 13,
+                automaticLayout: true,
+                acceptSuggestionOnCommitCharacter: false,
+                acceptSuggestionOnEnter: isTemplateMode ? 'on' : 'off',
+                quickSuggestions: isTemplateMode
+                  ? { other: true, comments: false, strings: true }
+                  : false,
+                suggestOnTriggerCharacters: isTemplateMode,
+                tabCompletion: isTemplateMode ? 'on' : 'off',
+                scrollBeyondLastLine: false,
+                renderWhitespace: 'none',
+                renderValidationDecorations: 'on',
+                lineNumbers: showLineNumbers ? 'on' : 'off',
+                ...(showLineNumbers
+                  ? {
+                      fontFamily:
+                        '"JetBrains Mono", "Fira Code", "SFMono-Regular", monospace',
+                      lineNumbersMinChars: 3,
+                      padding: { top: 8, bottom: 8 },
+                    }
+                  : {}),
+              }}
+              theme='vs'
+            />
+          </MonacoRuntimeGate>
         </Box>
       )}
 

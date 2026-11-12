@@ -16,7 +16,7 @@ import {
   NodeContextMenuExtension,
   NodeContextMenuItem,
 } from '@/app/providers/node-extensions';
-import { store } from '@/app/providers/store';
+import { store } from '@/app/providers/store/store';
 
 import { clearNodeMetadata } from '@/features/node/reset-node-metadata';
 import { selectNodeActions } from '@/features/project-editor/select-node';

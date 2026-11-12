@@ -25,7 +25,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import * as monacoTypes from 'monaco-editor';
+import type * as monacoTypes from 'monaco-editor';
 
 import { NodeModalExtensionProps } from '@/app/providers/node-extensions/lib/types';
 

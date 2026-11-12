@@ -1,9 +1,6 @@
-import { Edge } from '@xyflow/react';
+import type { Edge } from '@xyflow/react';
 
-import {
-  CustomNodeData,
-  CustomNodeType,
-} from '@/entities/project-editor/graph';
+import type { CustomNodeData, CustomNodeType } from './types';
 
 export function isCustomNodeData(data: any): data is CustomNodeData {
   if (typeof data !== 'object' || data === null) return false;
