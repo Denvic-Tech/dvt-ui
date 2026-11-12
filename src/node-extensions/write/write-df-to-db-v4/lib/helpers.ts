@@ -5,6 +5,7 @@
 } from '@/app/providers/node-extensions';
 
 import {
+  getDbCatalogCapabilities,
   getDbCatalogConnectionId,
   requireDbConnectionId,
 } from '@/entities/data/db-connection/model/catalogNormalizers';
@@ -32,8 +33,6 @@ import {
 import {
   buildDbMetadataTableLabel,
   findDbMetadataTable,
-  isDialectSupportsDatabases,
-  isDialectSupportsSchemas,
 } from '@/shared/lib/db-metadata';
 import { ApiError } from '@/shared/lib/errors';
 import { isExpressionValue } from '@/shared/lib/node-input-values';
@@ -580,11 +579,13 @@ export const getSelectorCollapsedValue = (
   return isExpressionValue(value) ? 'Expression' : fallback;
 };
 
+// Уровни берутся из каталога, как в дереве шага 1: у lazy-каталога MySQL —
+// база без схем, а не схема по старой таблице диалектов.
 export const supportsSchemas = (inputMetadata: DBMetadata | null) =>
-  Boolean(inputMetadata && isDialectSupportsSchemas(inputMetadata.dialect));
+  getDbCatalogCapabilities(inputMetadata).supportsSchemas;
 
 export const supportsDatabaseSelection = (inputMetadata: DBMetadata | null) =>
-  Boolean(inputMetadata && isDialectSupportsDatabases(inputMetadata.dialect));
+  getDbCatalogCapabilities(inputMetadata).supportsDatabases;
 
 export const buildSelectedWriteTargetLabel = (
   inputData?: WriteDataFrameToDBValues | null

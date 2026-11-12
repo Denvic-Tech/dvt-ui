@@ -20,15 +20,14 @@ import {
 } from '../../api/dbCatalogApi';
 import {
   classifyDbCatalogError,
+  getDbCatalogCapabilities,
   getDbCatalogConnectionId,
-  normalizeDbCatalogCapabilities,
   normalizeDbCatalogKinds,
   normalizeDbCatalogParentNames,
   normalizeDbCatalogSearch,
   resolveDbCatalogMode,
 } from '../catalogNormalizers';
 import type {
-  DbCatalogCapabilities,
   DbCatalogDatabase,
   DbCatalogDetailResult,
   DbCatalogListResult,
@@ -48,38 +47,8 @@ type CatalogOptions = {
 
 const NOOP_ASYNC = async () => undefined;
 
-const getEmbeddedCapabilities = (
-  metadata: DbMetadata | null | undefined
-): DbCatalogCapabilities => {
-  const dialect = metadata?.dialect?.toLowerCase() ?? '';
-  return {
-    supportsDatabases: [
-      'postgresql',
-      'mssql',
-      'sqlserver',
-      'clickhouse',
-    ].includes(dialect),
-    supportsSchemas: [
-      'postgresql',
-      'mysql',
-      'mariadb',
-      'mssql',
-      'sqlserver',
-      'oracle',
-    ].includes(dialect),
-    supportsTables: true,
-    supportsViews: true,
-    supportsSearch: true,
-    maxPageSize: 200,
-  };
-};
-
-export const getDbCatalogCapabilities = (
-  metadata: DbMetadata | null | undefined
-): DbCatalogCapabilities =>
-  resolveDbCatalogMode(metadata) === 'lazy'
-    ? normalizeDbCatalogCapabilities(metadata)
-    : getEmbeddedCapabilities(metadata);
+// Живёт в catalogNormalizers, чтобы lib-код брал его без модуля хуков.
+export { getDbCatalogCapabilities };
 
 const asError = (error: unknown): ApiErrorPayload | null =>
   (error as ApiErrorPayload | undefined) ?? null;

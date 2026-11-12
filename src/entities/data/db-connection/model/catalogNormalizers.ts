@@ -51,6 +51,44 @@ export const normalizeDbCatalogCapabilities = (
   };
 };
 
+// Каталог, встроенный в метаданные подключения: уровни по диалекту.
+const getEmbeddedCapabilities = (
+  metadata: DbMetadata | null | undefined
+): DbCatalogCapabilities => {
+  const dialect = metadata?.dialect?.toLowerCase() ?? '';
+  return {
+    supportsDatabases: [
+      'postgresql',
+      'mssql',
+      'sqlserver',
+      'clickhouse',
+    ].includes(dialect),
+    supportsSchemas: [
+      'postgresql',
+      'mysql',
+      'mariadb',
+      'mssql',
+      'sqlserver',
+      'oracle',
+    ].includes(dialect),
+    supportsTables: true,
+    supportsViews: true,
+    supportsSearch: true,
+    maxPageSize: MAX_CATALOG_PAGE_SIZE,
+  };
+};
+
+/**
+ * Уровни каталога подключения: для lazy — как их отдаёт бэкенд (у MySQL это
+ * база без схем), для встроенного каталога — по диалекту.
+ */
+export const getDbCatalogCapabilities = (
+  metadata: DbMetadata | null | undefined
+): DbCatalogCapabilities =>
+  resolveDbCatalogMode(metadata) === 'lazy'
+    ? normalizeDbCatalogCapabilities(metadata)
+    : getEmbeddedCapabilities(metadata);
+
 export const getDbCatalogConnectionId = (
   metadata: DbMetadata | null | undefined
 ): string | null => {
