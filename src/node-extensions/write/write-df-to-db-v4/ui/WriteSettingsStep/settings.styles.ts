@@ -49,7 +49,9 @@ export const SettingsBox = styled('div')({
   padding: '0 14px',
   borderRadius: 8,
   backgroundColor: tokens.surfaceMuted,
-  '& > :first-of-type': { borderTop: 'none' },
+  // first-child, а не first-of-type: у свёрнутого блока под кнопкой первым
+  // div-ом может оказаться строка ошибки, и ей нужен разделитель.
+  '& > :first-child': { borderTop: 'none' },
 });
 
 /** Строка «подпись — контрол» (макет: `.qr`). */
@@ -147,6 +149,9 @@ export const SettingInput = styled('label', {
   ({ invalid = false, numeric = false, fullWidth = false }) => ({
     width: fullWidth ? '100%' : numeric ? 180 : 280,
     height: 32,
+    // `flex: 1` делит ширину в строке, но в колонке (поля диалога) базис 0
+    // сжимал поле по высоте до текста — держим высоту минимумом.
+    minHeight: 32,
     flex: fullWidth ? 1 : 'none',
     boxSizing: 'border-box',
     display: 'flex',
@@ -398,8 +403,14 @@ export const DeleteIconButton = styled('button')({
   },
 });
 
-export const SettingsError = styled('p')({
-  margin: 0,
+/** Ошибка группы последней строкой своего бокса (макет: `.qr.qem`). */
+export const SettingsErrorRow = styled('div')({
+  minHeight: 44,
+  boxSizing: 'border-box',
+  display: 'flex',
+  alignItems: 'center',
+  padding: '12px 0',
+  borderTop: `1px solid ${tokens.boxDivider}`,
   fontSize: 12.5,
   lineHeight: '18px',
   color: tokens.errorText,

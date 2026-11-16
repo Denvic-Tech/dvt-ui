@@ -56,7 +56,10 @@ import {
 } from '../../lib/helpers';
 import { MessageBox, MessageList } from '../schema-step/SchemaStep.styles';
 
-import { BatchSettingsSection } from './sections/BatchSettingsSection';
+import {
+  AdvancedSettingsSection,
+  SyncDescriptionsSection,
+} from './sections/BatchSettingsSection';
 import { StatusAlertsSection } from './sections/StatusAlertsSection';
 import { ColumnsSelect } from './ColumnsSelect';
 import { DdlPreviewPane } from './DdlPreviewPane';
@@ -72,11 +75,9 @@ import {
 import { TableSpecSections } from './TableSpecSections';
 
 const NO_COLUMN_OPTIONS: readonly string[] = [];
-const INLINE_ERROR_KEYS = new Set([
-  'chunksize',
-  'min_batch_rows',
-  'table_create_spec',
-]);
+const INLINE_ERROR_KEYS = new Set(['rows_per_batch', 'table_create_spec']);
+// Пауза после последней правки параметров перед автообновлением DDL.
+const DDL_AUTO_REFRESH_DELAY_MS = 600;
 const ignoreChange = () => undefined;
 
 const toOptionalInt = (value: unknown): number | null => {
@@ -139,83 +140,22 @@ export const WriteSettingsStep: React.FC<
     [nodeDefinition.input_definitions]
   );
 
-  const chunkSizeInputDef = useMemo(() => {
-    return getInputDefinition('chunksize');
-  }, [getInputDefinition]);
-
-  const minBatchRowsInputDef = useMemo(() => {
-    return getInputDefinition('min_batch_rows');
-  }, [getInputDefinition]);
-
-  const parseBounds = useCallback(
-    (
-      inputDef:
-        | Pick<InputDefinitionModel, 'min_value' | 'max_value' | 'default'>
-        | undefined,
-      defaults: { min: number; max: number; def: number }
-    ) => {
-      const toNum = (value: unknown): number | undefined => {
-        if (typeof value === 'number') return value;
-        if (typeof value === 'string') {
-          const parsed = Number.parseInt(value, 10);
-          return Number.isFinite(parsed) ? parsed : undefined;
-        }
-        return undefined;
-      };
-
-      const min = toNum(inputDef?.min_value) ?? defaults.min;
-      const max = toNum(inputDef?.max_value) ?? defaults.max;
-      let def = toNum(inputDef?.default) ?? defaults.def;
-      if (def < min) def = min;
-      if (def > max) def = max;
-      return { min, max, def };
-    },
-    []
-  );
-
-  const chunkSizeBounds = useMemo(() => {
-    return parseBounds(chunkSizeInputDef, {
-      min: 1,
-      max: 1_000_000,
-      def: 1000,
-    });
-  }, [chunkSizeInputDef, parseBounds]);
-
-  const minBatchRowsBounds = useMemo(() => {
-    return parseBounds(minBatchRowsInputDef, {
-      min: 1,
-      max: 100_000,
-      def: 5000,
-    });
-  }, [minBatchRowsInputDef, parseBounds]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    setLocalInputData(prev => {
-      if (prev?.chunksize !== undefined) {
-        return prev;
+  // Пустое значение — бэкенд подбирает размер пакета сам, поэтому без default.
+  const rowsPerBatchBounds = useMemo(() => {
+    const inputDef = getInputDefinition('rows_per_batch');
+    const toNum = (value: unknown): number | undefined => {
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string') {
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) ? parsed : undefined;
       }
-      return {
-        ...(prev ?? {}),
-        chunksize: chunkSizeBounds.def,
-      };
-    });
-  }, [chunkSizeBounds.def, isOpen, setLocalInputData]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    setLocalInputData(prev => {
-      if (prev?.min_batch_rows !== undefined) {
-        return prev;
-      }
-      return {
-        ...(prev ?? {}),
-        min_batch_rows: minBatchRowsBounds.def,
-      };
-    });
-  }, [isOpen, minBatchRowsBounds.def, setLocalInputData]);
+      return undefined;
+    };
+    return {
+      min: toNum(inputDef?.min_value) ?? 1,
+      max: toNum(inputDef?.max_value) ?? 1_000_000,
+    };
+  }, [getInputDefinition]);
 
   useEffect(() => {
     if (!isOpen || !isClickHouse) return;
@@ -282,88 +222,43 @@ export const WriteSettingsStep: React.FC<
     return resolveCreationMode(sharedState, localInputData);
   }, [localInputData, sharedState]);
 
-  const handleChunkSizeChange = useCallback(
+  const handleRowsPerBatchChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const parsed = toOptionalInt(event.target.value);
-      if (parsed === null) {
-        setLocalInputData(prev => ({
-          ...(prev ?? {}),
-          chunksize: null,
-        }));
-        return;
-      }
-
-      const clamped = Math.min(
-        Math.max(parsed, chunkSizeBounds.min),
-        chunkSizeBounds.max
-      );
+      const rowsPerBatch =
+        parsed === null
+          ? null
+          : Math.min(
+              Math.max(parsed, rowsPerBatchBounds.min),
+              rowsPerBatchBounds.max
+            );
       setLocalInputData(prev => ({
         ...(prev ?? {}),
-        chunksize: clamped,
+        rows_per_batch: rowsPerBatch,
       }));
     },
-    [chunkSizeBounds.max, chunkSizeBounds.min, setLocalInputData]
+    [rowsPerBatchBounds.max, rowsPerBatchBounds.min, setLocalInputData]
   );
-
-  const handleMinBatchRowsChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const parsed = toOptionalInt(event.target.value);
-      if (parsed === null) {
-        setLocalInputData(prev => ({
-          ...(prev ?? {}),
-          min_batch_rows: null,
-        }));
-        return;
-      }
-
-      const clamped = Math.min(
-        Math.max(parsed, minBatchRowsBounds.min),
-        minBatchRowsBounds.max
-      );
-      setLocalInputData(prev => ({
-        ...(prev ?? {}),
-        min_batch_rows: clamped,
-      }));
-    },
-    [minBatchRowsBounds.max, minBatchRowsBounds.min, setLocalInputData]
-  );
-
-  useEffect(() => {
-    setLocalInputData(prev => {
-      if (prev?.chunksize == null || !Number.isFinite(prev.chunksize)) {
-        return prev;
-      }
-      const clamped = Math.min(
-        Math.max(prev.chunksize, chunkSizeBounds.min),
-        chunkSizeBounds.max
-      );
-      if (clamped === prev.chunksize) return prev;
-      return {
-        ...(prev ?? {}),
-        chunksize: clamped,
-      };
-    });
-  }, [chunkSizeBounds.max, chunkSizeBounds.min, setLocalInputData]);
 
   useEffect(() => {
     setLocalInputData(prev => {
       if (
-        prev?.min_batch_rows == null ||
-        !Number.isFinite(prev.min_batch_rows)
+        prev?.rows_per_batch == null ||
+        !Number.isFinite(prev.rows_per_batch)
       ) {
         return prev;
       }
       const clamped = Math.min(
-        Math.max(prev.min_batch_rows, minBatchRowsBounds.min),
-        minBatchRowsBounds.max
+        Math.max(prev.rows_per_batch, rowsPerBatchBounds.min),
+        rowsPerBatchBounds.max
       );
-      if (clamped === prev.min_batch_rows) return prev;
+      if (clamped === prev.rows_per_batch) return prev;
       return {
         ...(prev ?? {}),
-        min_batch_rows: clamped,
+        rows_per_batch: clamped,
       };
     });
-  }, [minBatchRowsBounds.max, minBatchRowsBounds.min, setLocalInputData]);
+  }, [rowsPerBatchBounds.max, rowsPerBatchBounds.min, setLocalInputData]);
 
   const requestedMapping = useMemo(() => {
     return buildRequestedColumnMappingDraft({
@@ -615,6 +510,32 @@ export const WriteSettingsStep: React.FC<
     specDraftErrors.length === 0 &&
     !sharedState?.isResolvingColumns
   );
+  // Ключ DDL для текущих параметров: совпадает с lastCreateSqlKey, когда
+  // показанный SQL получен именно для них.
+  const typedCreateSqlKey = useMemo(
+    () =>
+      buildCreateSqlCacheKey({
+        connectionMetadata: inputConnectionMetadata,
+        dataframeMetadata: inputDataframeMetadata,
+        inputValues: {
+          ...(localInputData ?? {}),
+          column_mapping: typedMapping,
+          table_create_spec: normalizedTypedSpecForDialect,
+        },
+        mode: 'typed',
+        commentOverrides: sharedState?.typedCommentOverrides,
+        commentsSupported: sharedState?.columnCommentsSupported,
+      }),
+    [
+      inputConnectionMetadata,
+      inputDataframeMetadata,
+      localInputData,
+      normalizedTypedSpecForDialect,
+      sharedState?.columnCommentsSupported,
+      sharedState?.typedCommentOverrides,
+      typedMapping,
+    ]
+  );
 
   useEffect(() => {
     if (!isOpen || !isTableNew || selectedCreationMode !== 'typed') {
@@ -716,19 +637,21 @@ export const WriteSettingsStep: React.FC<
         return;
       }
 
-      const requestKey = buildCreateSqlCacheKey({
-        connectionMetadata: inputConnectionMetadata,
-        dataframeMetadata: inputDataframeMetadata,
-        inputValues: {
-          ...(localInputData ?? {}),
-          column_mapping: mode === 'typed' ? typedMapping : null,
-          table_create_spec:
-            mode === 'typed' ? normalizedTypedSpecForDialect : null,
-        },
-        mode,
-        commentOverrides: sharedState?.typedCommentOverrides,
-        commentsSupported: sharedState?.columnCommentsSupported,
-      });
+      const requestKey =
+        mode === 'typed'
+          ? typedCreateSqlKey
+          : buildCreateSqlCacheKey({
+              connectionMetadata: inputConnectionMetadata,
+              dataframeMetadata: inputDataframeMetadata,
+              inputValues: {
+                ...(localInputData ?? {}),
+                column_mapping: null,
+                table_create_spec: null,
+              },
+              mode,
+              commentOverrides: sharedState?.typedCommentOverrides,
+              commentsSupported: sharedState?.columnCommentsSupported,
+            });
 
       if (
         !forceRefresh &&
@@ -821,11 +744,35 @@ export const WriteSettingsStep: React.FC<
       sharedState?.lastCreateSqlKey,
       sharedState?.typedCommentOverrides,
       sharedState?.columnCommentsSupported,
+      typedCreateSqlKey,
       typedMapping,
       typedPreviewSql,
       isTableNew,
     ]
   );
+  const fetchCreateTableSqlRef = useRef(fetchCreateTableSql);
+  fetchCreateTableSqlRef.current = fetchCreateTableSql;
+
+  // Параметры изменились — DDL пересобирается сам после короткой паузы.
+  // Пока запрос в работе, ждём его: если параметры поменялись за это время,
+  // ключ ответа не совпадёт с текущим, и DDL запросится снова. Ошибка
+  // запоминает свой ключ, поэтому повторов без новых правок нет.
+  const isDdlAutoRefreshPending = Boolean(
+    isOpen &&
+    isTableNew &&
+    selectedCreationMode === 'typed' &&
+    canFetchTypedPreviewSql &&
+    !sharedState?.isCreateSqlLoading &&
+    sharedState?.lastCreateSqlKey !== typedCreateSqlKey
+  );
+
+  useEffect(() => {
+    if (!isDdlAutoRefreshPending) return;
+    const timer = window.setTimeout(() => {
+      void fetchCreateTableSqlRef.current('typed');
+    }, DDL_AUTO_REFRESH_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [isDdlAutoRefreshPending, typedCreateSqlKey]);
 
   const refreshPreview = useCallback(() => {
     if (!isTableNew) return;
@@ -884,30 +831,16 @@ export const WriteSettingsStep: React.FC<
       errors['upsert_config'] = ['Укажите key column для upsert.'];
     }
 
-    const chunkSize = localInputData?.chunksize;
-    if (chunkSize != null) {
-      if (!Number.isFinite(chunkSize)) {
-        errors['chunksize'] = ['Chunk size имеет неверный формат.'];
+    const rowsPerBatch = localInputData?.rows_per_batch;
+    if (rowsPerBatch != null) {
+      if (!Number.isFinite(rowsPerBatch)) {
+        errors['rows_per_batch'] = ['Размер чанка имеет неверный формат.'];
       } else if (
-        chunkSize < chunkSizeBounds.min ||
-        chunkSize > chunkSizeBounds.max
+        rowsPerBatch < rowsPerBatchBounds.min ||
+        rowsPerBatch > rowsPerBatchBounds.max
       ) {
-        errors['chunksize'] = [
-          `Chunk size должен быть в диапазоне [${chunkSizeBounds.min}..${chunkSizeBounds.max}], текущее: ${chunkSize}.`,
-        ];
-      }
-    }
-
-    const minBatchRows = localInputData?.min_batch_rows;
-    if (minBatchRows != null) {
-      if (!Number.isFinite(minBatchRows)) {
-        errors['min_batch_rows'] = ['min_batch_rows имеет неверный формат.'];
-      } else if (
-        minBatchRows < minBatchRowsBounds.min ||
-        minBatchRows > minBatchRowsBounds.max
-      ) {
-        errors['min_batch_rows'] = [
-          `min_batch_rows должен быть в диапазоне [${minBatchRowsBounds.min}..${minBatchRowsBounds.max}], текущее: ${minBatchRows}.`,
+        errors['rows_per_batch'] = [
+          `Размер чанка должен быть от ${rowsPerBatchBounds.min} до ${rowsPerBatchBounds.max} строк.`,
         ];
       }
     }
@@ -975,20 +908,17 @@ export const WriteSettingsStep: React.FC<
     setValidationErrors?.({});
     return Object.keys(errors).length === 0;
   }, [
-    chunkSizeBounds.max,
-    chunkSizeBounds.min,
     columnDiff,
     isSchemaRequired,
     isTableNew,
-    localInputData?.chunksize,
     localInputData?.create_table_sql,
-    localInputData?.min_batch_rows,
+    localInputData?.rows_per_batch,
     localInputData?.schema_name,
     localInputData?.table_name,
     localInputData?.upsert_config?.key_column,
     localInputData?.write_mode,
-    minBatchRowsBounds.max,
-    minBatchRowsBounds.min,
+    rowsPerBatchBounds.max,
+    rowsPerBatchBounds.min,
     selectedCreationMode,
     selectedTargetLabel,
     setValidationErrors,
@@ -1048,25 +978,21 @@ export const WriteSettingsStep: React.FC<
     ([key]) => !INLINE_ERROR_KEYS.has(key)
   );
   const isTypedNewTable = isTableNew && selectedCreationMode === 'typed';
-  // Параметры изменились после последнего «Обновить DDL».
+  // Параметры изменились, а DDL пересобрать нельзя (например, в настройках
+  // ошибка) — иначе он уже обновляется сам.
   const isDdlStale =
     isTypedNewTable &&
     Boolean(previewSql) &&
     !sharedState?.typedPreviewSql &&
-    !sharedState?.isCreateSqlLoading;
+    !sharedState?.isCreateSqlLoading &&
+    !isDdlAutoRefreshPending;
 
   return (
     <SettingsRoot {...dropdownBoundaryProps}>
       <SettingsForm>
         <SettingsFormInner>
           <SettingsGroup>
-            <BatchSettingsSection
-              chunkSize={localInputData?.chunksize}
-              chunkSizeBounds={chunkSizeBounds}
-              minBatchRows={localInputData?.min_batch_rows}
-              minBatchRowsBounds={minBatchRowsBounds}
-              onChunkSizeChange={handleChunkSizeChange}
-              onMinBatchRowsChange={handleMinBatchRowsChange}
+            <SyncDescriptionsSection
               syncDescriptions={
                 localInputData?.sync_column_descriptions ?? true
               }
@@ -1076,7 +1002,6 @@ export const WriteSettingsStep: React.FC<
                   sync_column_descriptions: checked,
                 }))
               }
-              errors={fieldErrors}
             />
             {sharedState?.catalogDescriptionsError ? (
               <MessageBox tone='info' role='status'>
@@ -1121,6 +1046,13 @@ export const WriteSettingsStep: React.FC<
             </SettingsGroup>
           )}
 
+          <AdvancedSettingsSection
+            rowsPerBatch={localInputData?.rows_per_batch}
+            rowsPerBatchBounds={rowsPerBatchBounds}
+            onRowsPerBatchChange={handleRowsPerBatchChange}
+            errors={fieldErrors}
+          />
+
           {generalErrors.length || sharedState?.createTableError ? (
             <MessageList>
               {generalErrors.map(([key, errors]) => (
@@ -1143,7 +1075,9 @@ export const WriteSettingsStep: React.FC<
         isTableNew={isTableNew}
         sql={previewSql}
         error={isTableNew ? previewError : null}
-        isLoading={Boolean(sharedState?.isCreateSqlLoading)}
+        isLoading={
+          Boolean(sharedState?.isCreateSqlLoading) || isDdlAutoRefreshPending
+        }
         isStale={isDdlStale}
         canRefresh={canRefreshPreview}
         onRefresh={refreshPreview}

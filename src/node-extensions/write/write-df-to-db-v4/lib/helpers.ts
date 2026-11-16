@@ -56,6 +56,9 @@ import {
 export const getEffectiveDbCommentOverrides = (
   state?: ExtensionState
 ): CommentOverrides => {
+  // У новой таблицы строки согласования (`typed_create`) описывают будущие
+  // колонки: комментарии DF уходят в CREATE TABLE, а не в DDL-действия.
+  if (state?.isTableNew) return { ...state.dbCommentOverrides };
   const metadataComments: Record<string, string | null | undefined> = {};
   for (const column of state?.inputDataframeMetadata?.columns ?? []) {
     metadataComments[column.name] = column.comment;
@@ -219,8 +222,8 @@ export type WriteDataFrameToDBValues = {
   table_name?: WriteDataFrameToDBSelectorValue;
   database_name?: WriteDataFrameToDBSelectorValue;
   schema_name?: WriteDataFrameToDBSelectorValue;
-  chunksize?: number | null;
-  min_batch_rows?: number | null;
+  /** Строк в пакете записи; пусто — бэкенд подбирает размер сам. */
+  rows_per_batch?: number | null;
   write_mode?: string | null;
   upsert_config?: UpsertConfig | null;
   use_clickhouse_connect_driver?: boolean | null;
@@ -2279,6 +2282,21 @@ const createTableFromTypedSpec = async (args: {
   context.sharedState?.invalidateCatalog?.();
 
   return 'Таблица успешно создана из Typed table spec.';
+};
+
+/**
+ * «Проверьте настройки» и «Назад» на экране ошибки создания таблицы. Таблицу
+ * создаёт «Сохранить» последнего шага, поэтому возвращаемся к его форме:
+ * экран ошибки держится, пока ошибка есть в состоянии, а параметры живут
+ * в данных модалки.
+ */
+export const dismissCreateTableError = (
+  context: Pick<
+    StepLoadingConditionContext<WriteDataFrameToDBValues, ExtensionState>,
+    'setSharedState'
+  >
+): void => {
+  context.setSharedState(prev => ({ ...(prev ?? {}), createTableError: null }));
 };
 
 export const createTableBeforeFinish = async (

@@ -72,6 +72,12 @@ describe('filling empty DB comments from the DataFrame', () => {
     ]);
   });
 
+  it('never fills comments for a new table: its columns do not exist yet', () => {
+    expect(
+      getPendingColumnActions({ resolvedColumnRows: rows, isTableNew: true })
+    ).toEqual([]);
+  });
+
   it('keeps a cleared field empty and leaves fills out of user changes', () => {
     expect(
       getPendingColumnActions({

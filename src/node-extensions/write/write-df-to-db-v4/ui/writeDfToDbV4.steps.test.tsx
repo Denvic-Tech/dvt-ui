@@ -233,8 +233,7 @@ const nodeDefinition = {
     write_mode: {
       options: ['append', 'truncate', 'upsert'],
     },
-    chunksize: {},
-    min_batch_rows: {},
+    rows_per_batch: { min_value: 1, max_value: 1_000_000 },
   },
 } as any;
 
@@ -243,8 +242,6 @@ const existingTableInputData: WriteDataFrameToDBValues = {
   schema_name: 'public',
   table_name: 'orders',
   write_mode: 'append',
-  chunksize: 1000,
-  min_batch_rows: 5000,
   column_mapping: [
     {
       source_name: 'clientId',
@@ -266,8 +263,6 @@ const newTableInputData: WriteDataFrameToDBValues = {
   schema_name: 'public',
   table_name: 'orders_new',
   write_mode: 'append',
-  chunksize: 1000,
-  min_batch_rows: 5000,
 };
 
 const buildResolvedRows = (
@@ -620,6 +615,76 @@ describe('write-df-to-db-v4 step placement', () => {
     );
   });
 
+  it('refreshes the DDL by itself after typed settings change', async () => {
+    const mapping: ColumnMappingItem[] = [
+      {
+        source_name: 'clientId',
+        target_name: 'client_id',
+        dtype: 'INT',
+        nullable: true,
+      },
+      {
+        source_name: 'eventTime',
+        target_name: 'event_time',
+        dtype: 'DATETIME',
+        nullable: true,
+      },
+    ];
+    const harness = renderStepHarness({
+      activeStep: 'write',
+      initialInputData: { ...newTableInputData, column_mapping: mapping },
+      initialSharedState: {
+        isTableNew: true,
+        selectedCreationMode: 'typed',
+        requestedColumnMappingDraft: mapping,
+        resolvedColumnRows: buildResolvedRows(mapping),
+        resolvedDiagnostics: [],
+      },
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(generateTableDdlPostMock).toHaveBeenCalledTimes(1);
+
+    act(() =>
+      harness.getState()?.setLocalInputData(prev => ({
+        ...prev,
+        column_mapping: mapping.map(item =>
+          item.target_name === 'client_id' ? { ...item, dtype: 'FLOAT' } : item
+        ),
+      }))
+    );
+    // Во время паузы перед запросом DDL не помечается устаревшим.
+    expect(
+      screen.getByRole('button', { name: 'Обновить DDL' })
+    ).toHaveAttribute('title', 'Обновить DDL');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(599);
+    });
+    expect(generateTableDdlPostMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(generateTableDdlPostMock).toHaveBeenCalledTimes(2);
+    expect(generateTableDdlPostMock.mock.lastCall?.[0].body.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'client_id', dtype: 'FLOAT' }),
+      ])
+    );
+
+    // DDL получен для текущих параметров — повторных запросов нет.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(generateTableDdlPostMock).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByRole('button', { name: 'Обновить DDL' })
+    ).toHaveAttribute('title', 'Обновить DDL');
+  });
+
   it('propagates a PostgreSQL upsert key into typed table settings', () => {
     const harness = renderStepHarness({
       activeStep: 'mode',
@@ -702,11 +767,40 @@ describe('write-df-to-db-v4 step placement', () => {
     });
 
     expect(
-      screen.getByRole('spinbutton', { name: 'Размер чанка' })
+      screen.getByRole('switch', {
+        name: 'Синхронизировать описания колонок с каталогом',
+      })
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('table', { name: 'Сопоставление колонок DF и БД' })
     ).not.toBeInTheDocument();
+  });
+
+  it('leaves the chunk size empty by default and stores rows_per_batch', () => {
+    const harness = renderStepHarness({
+      activeStep: 'write',
+      initialInputData: existingTableInputData,
+      initialSharedState: buildExistingTableSharedState(),
+    });
+
+    // Размер чанка спрятан в свёрнутом блоке «Дополнительно».
+    expect(
+      screen.queryByRole('spinbutton', { name: 'Размер чанка' })
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Дополнительно' }));
+
+    const input = screen.getByRole('spinbutton', { name: 'Размер чанка' });
+    expect(input).toHaveValue(null);
+    expect(input).toHaveAttribute('placeholder', 'Авто');
+    expect(harness.getState()?.localInputData).not.toHaveProperty(
+      'rows_per_batch'
+    );
+
+    fireEvent.change(input, { target: { value: '5000' } });
+    expect(harness.getState()?.localInputData.rows_per_batch).toBe(5000);
+
+    fireEvent.change(input, { target: { value: '' } });
+    expect(harness.getState()?.localInputData.rows_per_batch).toBeNull();
   });
 
   it('renders the catalog sync switch on by default and stores an explicit opt-out', () => {
@@ -716,6 +810,7 @@ describe('write-df-to-db-v4 step placement', () => {
       initialSharedState: buildExistingTableSharedState(),
     });
 
+    // Переключатель виден сразу, без раскрытия «Дополнительно».
     const toggle = screen.getByRole('switch', {
       name: 'Синхронизировать описания колонок с каталогом',
     });
@@ -1354,6 +1449,24 @@ describe('write-df-to-db-v4 step placement', () => {
         comment: '  draft\nsecond line  ',
       },
     ]);
+    // В описании диалога только фраза, изменения — строками списка «• …».
+    await act(async () => {
+      await harness
+        .getState()
+        ?.sharedState.requestColumnActionsConfirm?.(
+          getPendingColumnActions(harness.getState()?.sharedState)
+        );
+    });
+    const confirmLines = String(confirmMock.mock.lastCall?.[0]?.message).split(
+      '\n'
+    );
+    expect(confirmLines).toHaveLength(2);
+    expect(confirmLines[0]).toMatch(
+      /^Будут применены изменения комментариев таблицы ".+" в базе данных$/
+    );
+    expect(confirmLines[1]).toMatch(
+      /^• .+: client_id — "DB baseline" → " {2}draft\\nsecond line {2}"$/
+    );
     harness.rerenderHarness('write');
     harness.rerenderHarness('schema');
     resolveWriteColumnsPostMock.mockResolvedValueOnce({

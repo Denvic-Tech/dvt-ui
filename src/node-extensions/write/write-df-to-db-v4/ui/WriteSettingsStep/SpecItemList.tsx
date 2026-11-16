@@ -11,6 +11,7 @@ import {
   ListItem,
   ListItemButton,
   SettingsBox,
+  SettingsErrorRow,
 } from './settings.styles';
 
 export type SpecListItem = {
@@ -29,7 +30,11 @@ type SpecItemListProps = {
   onAdd: () => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  /** Ошибки этого списка: последними строками бокса. */
+  errors?: readonly string[];
 };
+
+const NO_ERRORS: readonly string[] = [];
 
 /** Список индексов или внешних ключей (макет: `.qsub` + `.qli`). */
 export const SpecItemList = ({
@@ -39,6 +44,7 @@ export const SpecItemList = ({
   onAdd,
   onEdit,
   onDelete,
+  errors = NO_ERRORS,
 }: SpecItemListProps) => {
   const [menu, setMenu] = useState<{ id: string; anchor: HTMLElement } | null>(
     null
@@ -79,6 +85,11 @@ export const SpecItemList = ({
             <MoreIcon />
           </IconButtonBase>
         </ListItem>
+      ))}
+      {errors.map(error => (
+        <SettingsErrorRow key={error} role='alert'>
+          {error}
+        </SettingsErrorRow>
       ))}
       <ActionMenu
         anchorEl={menu?.anchor ?? null}

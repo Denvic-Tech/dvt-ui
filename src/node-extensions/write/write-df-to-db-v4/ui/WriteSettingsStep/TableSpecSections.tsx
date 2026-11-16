@@ -25,7 +25,7 @@ import {
   ListHeader,
   SettingInput,
   SettingsBox,
-  SettingsError,
+  SettingsErrorRow,
   SettingsGroup,
 } from './settings.styles';
 import { SpecItemDialog, type SpecItemDialogState } from './SpecItemDialog';
@@ -94,6 +94,17 @@ const hasError = (errors: readonly string[], fragment: string) =>
 
 const singleValue = (value: string) => (value ? [value] : []);
 
+/** Ошибки группы — последними строками её бокса. */
+const ErrorRows = ({ errors }: { errors: readonly string[] }) => (
+  <>
+    {errors.map(error => (
+      <SettingsErrorRow key={error} role='alert'>
+        {error}
+      </SettingsErrorRow>
+    ))}
+  </>
+);
+
 /** Параметры создаваемой таблицы на шаге 4 (макет: секции `.qs`). */
 export const TableSpecSections = ({
   isClickHouse,
@@ -105,7 +116,7 @@ export const TableSpecSections = ({
   onValidationChange,
 }: TableSpecSectionsProps) => {
   const [dialog, setDialog] = useState<SpecItemDialogState | null>(null);
-  const [clickHouseOpen, setClickHouseOpen] = useState(true);
+  const [clickHouseOpen, setClickHouseOpen] = useState(false);
 
   const coreDraft = useMemo(() => hydrateTableCreateSpecDraft(value), [value]);
   const { draft, errors, updateDraft } = useTableCreateSpecDraft({
@@ -162,6 +173,19 @@ export const TableSpecSections = ({
   const keyInvalid =
     hasError(typedSpecErrors, 'Order by') ||
     hasError(typedSpecErrors, 'Primary key');
+
+  // Ошибка черновика — последней строкой бокса, к которому она относится.
+  const indexErrors = errors.filter(error => error.startsWith('Индекс '));
+  const foreignKeyErrors = errors.filter(error =>
+    error.startsWith('Foreign key ')
+  );
+  const otherErrors = errors.filter(
+    error => !indexErrors.includes(error) && !foreignKeyErrors.includes(error)
+  );
+  // Без ClickHouse своего бокса у прочих ошибок нет: они идут в основной.
+  const coreErrors = isClickHouse
+    ? typedSpecErrors
+    : [...typedSpecErrors, ...otherErrors];
 
   return (
     <>
@@ -233,10 +257,8 @@ export const TableSpecSections = ({
               />
             </SettingLine>
           )}
+          <ErrorRows errors={coreErrors} />
         </SettingsBox>
-        {typedSpecErrors.map(error => (
-          <SettingsError key={error}>{error}</SettingsError>
-        ))}
       </SettingsGroup>
 
       <SettingsGroup>
@@ -244,6 +266,7 @@ export const TableSpecSections = ({
           title='Индексы'
           addLabel='Индекс'
           items={draft.indexes.map(toIndexListItem)}
+          errors={indexErrors}
           onAdd={() =>
             setDialog({
               kind: 'index',
@@ -269,6 +292,7 @@ export const TableSpecSections = ({
           title='Внешние ключи'
           addLabel='Внешний ключ'
           items={draft.foreignKeys.map(toForeignKeyListItem)}
+          errors={foreignKeyErrors}
           onAdd={() =>
             setDialog({
               kind: 'foreignKey',
@@ -471,16 +495,8 @@ export const TableSpecSections = ({
                 ))}
               </div>
             ) : null}
+            <ErrorRows errors={otherErrors} />
           </SettingsBox>
-          {errors.map(error => (
-            <SettingsError key={error}>{error}</SettingsError>
-          ))}
-        </SettingsGroup>
-      ) : errors.length ? (
-        <SettingsGroup>
-          {errors.map(error => (
-            <SettingsError key={error}>{error}</SettingsError>
-          ))}
         </SettingsGroup>
       ) : null}
 

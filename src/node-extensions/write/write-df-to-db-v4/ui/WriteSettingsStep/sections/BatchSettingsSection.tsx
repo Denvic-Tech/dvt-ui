@@ -1,91 +1,27 @@
-import type { ChangeEvent } from 'react';
+import { type ChangeEvent, useEffect, useState } from 'react';
+
+import { ChevronRightIcon } from '@/shared/ui/clean-minimal/icons';
 
 import { ToggleSwitch } from '../../schema-step/SchemaStep.styles';
 import { SettingLine } from '../SettingLine';
-import { SettingInput, SettingsBox } from '../settings.styles';
+import {
+  CollapseButton,
+  SettingInput,
+  SettingsBox,
+  SettingsGroup,
+} from '../settings.styles';
 
-type Bounds = { min: number; max: number };
-
-type BatchSettingsSectionProps = {
-  chunkSize: number | null | undefined;
-  chunkSizeBounds: Bounds;
-  minBatchRows: number | null | undefined;
-  minBatchRowsBounds: Bounds;
-  onChunkSizeChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  onMinBatchRowsChange: (event: ChangeEvent<HTMLInputElement>) => void;
+type SyncDescriptionsSectionProps = {
   syncDescriptions: boolean;
   onSyncDescriptionsChange: (checked: boolean) => void;
-  errors?: Record<string, string[]>;
 };
 
-const NumberSetting = ({
-  name,
-  label,
-  hint,
-  value,
-  bounds,
-  onChange,
-  error,
-}: {
-  name: string;
-  label: string;
-  hint: string;
-  value: number | null | undefined;
-  bounds: Bounds;
-  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  error: string | undefined;
-}) => (
-  <SettingLine label={label} hint={hint} error={error}>
-    <SettingInput numeric invalid={Boolean(error)}>
-      <input
-        id={name}
-        type='number'
-        inputMode='numeric'
-        value={value ?? ''}
-        onChange={onChange}
-        min={bounds.min}
-        max={bounds.max}
-        step={1}
-        aria-label={label}
-        aria-invalid={Boolean(error)}
-        spellCheck={false}
-      />
-      <span className='input-suffix'>строк</span>
-    </SettingInput>
-  </SettingLine>
-);
-
-/** Пакетная запись и синхронизация описаний (макет: первая `.qbox`). */
-export const BatchSettingsSection = ({
-  chunkSize,
-  chunkSizeBounds,
-  minBatchRows,
-  minBatchRowsBounds,
-  onChunkSizeChange,
-  onMinBatchRowsChange,
+/** Синхронизация описаний колонок (макет: первая `.qbox`). */
+export const SyncDescriptionsSection = ({
   syncDescriptions,
   onSyncDescriptionsChange,
-  errors = {},
-}: BatchSettingsSectionProps) => (
+}: SyncDescriptionsSectionProps) => (
   <SettingsBox>
-    <NumberSetting
-      name='chunksize'
-      label='Размер чанка'
-      hint='Строк в одном INSERT'
-      value={chunkSize}
-      bounds={chunkSizeBounds}
-      onChange={onChunkSizeChange}
-      error={errors['chunksize']?.join(' ')}
-    />
-    <NumberSetting
-      name='min_batch_rows'
-      label='Мин. размер пакета'
-      hint='Копить строки перед записью'
-      value={minBatchRows}
-      bounds={minBatchRowsBounds}
-      onChange={onMinBatchRowsChange}
-      error={errors['min_batch_rows']?.join(' ')}
-    />
     <SettingLine
       label='Синхронизировать описания колонок'
       hint='На каждом прогоне описания из Data Catalog записываются в комментарии колонок таблицы; пустое описание комментарий не стирает.'
@@ -102,3 +38,75 @@ export const BatchSettingsSection = ({
     </SettingLine>
   </SettingsBox>
 );
+
+type Bounds = { min: number; max: number };
+
+type AdvancedSettingsSectionProps = {
+  rowsPerBatch: number | null | undefined;
+  rowsPerBatchBounds: Bounds;
+  onRowsPerBatchChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  errors?: Record<string, string[]>;
+};
+
+/** Раскрываемый блок «Дополнительно» (стиль как у «Параметры ClickHouse»). */
+export const AdvancedSettingsSection = ({
+  rowsPerBatch,
+  rowsPerBatchBounds,
+  onRowsPerBatchChange,
+  errors = {},
+}: AdvancedSettingsSectionProps) => {
+  const [open, setOpen] = useState(false);
+  const error = errors['rows_per_batch']?.join(' ');
+
+  // Ошибка не должна прятаться в свёрнутом блоке.
+  useEffect(() => {
+    if (error) setOpen(true);
+  }, [error]);
+
+  return (
+    <SettingsGroup>
+      <SettingsBox>
+        <CollapseButton
+          type='button'
+          open={open}
+          aria-expanded={open}
+          onClick={() => setOpen(current => !current)}
+        >
+          <span className='collapse-chevron'>
+            <ChevronRightIcon size={12} strokeWidth={1.7} />
+          </span>
+          Дополнительно
+        </CollapseButton>
+        {open ? (
+          <div>
+            <SettingLine
+              label='Размер чанка'
+              hint='Строк в одном пакете записи. Пусто — размер подбирается автоматически по ширине строки.'
+              error={error}
+            >
+              <SettingInput numeric invalid={Boolean(error)}>
+                <input
+                  id='rows_per_batch'
+                  type='number'
+                  inputMode='numeric'
+                  value={rowsPerBatch ?? ''}
+                  onChange={onRowsPerBatchChange}
+                  min={rowsPerBatchBounds.min}
+                  max={rowsPerBatchBounds.max}
+                  step={1}
+                  placeholder='Авто'
+                  aria-label='Размер чанка'
+                  aria-invalid={Boolean(error)}
+                  spellCheck={false}
+                />
+                {rowsPerBatch != null ? (
+                  <span className='input-suffix'>строк</span>
+                ) : null}
+              </SettingInput>
+            </SettingLine>
+          </div>
+        ) : null}
+      </SettingsBox>
+    </SettingsGroup>
+  );
+};
