@@ -1649,6 +1649,8 @@ export const SchemaStrategyStep = ({
     const confirmColumnActions = async (
       actions: TableColumnActionInput[]
     ): Promise<boolean> => {
+      // Каждое действие — одна строка «• …»: диалог уносит такие строки в
+      // список «Показать список», а остальной текст оставляет в описании.
       const lines = actions
         .map(action => {
           const previous =
@@ -1666,7 +1668,7 @@ export const SchemaStrategyStep = ({
             `• ${getColumnActionLabel(action.type)}: ${action.column_name}` +
             (action.type !== 'drop_column' &&
             normalizeComment(next) !== normalizeComment(previous)
-              ? `\n  ${previous == null ? 'нет комментария' : JSON.stringify(previous)} → ${next == null ? 'удалить' : JSON.stringify(next)}`
+              ? ` — ${previous == null ? 'нет комментария' : JSON.stringify(previous)} → ${next == null ? 'удалить' : JSON.stringify(next)}`
               : '')
           );
         })
@@ -1677,11 +1679,11 @@ export const SchemaStrategyStep = ({
       );
       return confirm({
         maxWidth: 'sm',
-        width: 480,
+        width: 360,
         title: onlyComments
           ? 'Применить комментарии?'
           : 'Применить изменения схемы?',
-        message: `Будут применены изменения ${onlyComments ? 'комментариев' : 'структуры'} таблицы "${selectedTargetLabel}" в базе данных:\n${lines}\n\nЭто действие изменит таблицу. Продолжить?`,
+        message: `Будут применены изменения ${onlyComments ? 'комментариев' : 'структуры'} таблицы "${selectedTargetLabel}" в базе данных\n${lines}`,
         confirmLabel: 'Применить',
         cancelLabel: 'Отмена',
         confirmColor: actions.some(
