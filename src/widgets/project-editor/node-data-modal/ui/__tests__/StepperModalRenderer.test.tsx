@@ -281,6 +281,164 @@ describe('NodeModalStepperRenderer', () => {
     });
   });
 
+  it('uses a custom label for the final step action', async () => {
+    render(
+      <NodeModalStepperRenderer
+        {...baseProps}
+        extension={{
+          id: 'write-stepper',
+          name: 'Write Stepper',
+          type: 'modal_stepper',
+          condition: () => true,
+          steps: [
+            {
+              id: 'write-settings',
+              component: StepTwo,
+              condition: () => true,
+              getContinueLabel: () => 'Применить и сохранить',
+            },
+          ],
+        }}
+        onFinish={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByTestId('widgets/project-editor/node-data-modal/save-button')
+    ).toHaveTextContent('Применить и сохранить');
+  });
+
+  it('enables footer back on a finish overlay that allows it and runs its action', async () => {
+    const onBackFromOverlay = vi.fn();
+    const FinishOverlay = () => <div>create table failed</div>;
+
+    render(
+      <NodeModalStepperRenderer
+        {...baseProps}
+        extension={{
+          id: 'write-stepper',
+          name: 'Write Stepper',
+          type: 'modal_stepper',
+          condition: () => true,
+          steps: [
+            {
+              id: 'write-settings',
+              component: StepTwo,
+              condition: () => true,
+              finishOverlay: FinishOverlay,
+              shouldShowFinishOverlay: () => true,
+              canGoBackFromOverlay: () => true,
+              onBackFromOverlay,
+            },
+          ],
+        }}
+        onFinish={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('create table failed')).toBeInTheDocument();
+    const backButton = screen.getByTestId(
+      'widgets/project-editor/node-data-modal/back-button'
+    );
+    expect(backButton).not.toBeDisabled();
+
+    fireEvent.click(backButton);
+    expect(onBackFromOverlay).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps footer back disabled on an overlay that does not allow it', async () => {
+    const FinishOverlay = () => <div>creating table</div>;
+
+    render(
+      <NodeModalStepperRenderer
+        {...baseProps}
+        extension={{
+          id: 'write-stepper',
+          name: 'Write Stepper',
+          type: 'modal_stepper',
+          condition: () => true,
+          steps: [
+            {
+              id: 'step-1',
+              component: StepOne,
+              condition: () => true,
+            },
+            {
+              id: 'write-settings',
+              component: StepTwo,
+              condition: () => true,
+              finishOverlay: FinishOverlay,
+              shouldShowFinishOverlay: () => true,
+              canGoBackFromOverlay: () => false,
+            },
+          ],
+        }}
+        onFinish={vi.fn()}
+      />
+    );
+
+    const continueButton = screen.getByTestId(
+      'widgets/project-editor/node-data-modal/continue-button'
+    );
+    await waitFor(() => expect(continueButton).not.toBeDisabled());
+    fireEvent.click(continueButton);
+
+    // Второй шаг открыт, но виден его оверлей без разрешения «Назад».
+    expect(await screen.findByText('creating table')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('widgets/project-editor/node-data-modal/back-button')
+    ).toBeDisabled();
+  });
+
+  it('goes to the previous step from a loading overlay error by default', async () => {
+    const LoadingOverlay = () => <div>schema changes failed</div>;
+
+    render(
+      <NodeModalStepperRenderer
+        {...baseProps}
+        extension={{
+          id: 'write-stepper',
+          name: 'Write Stepper',
+          type: 'modal_stepper',
+          condition: () => true,
+          steps: [
+            {
+              id: 'step-1',
+              component: StepOne,
+              condition: () => true,
+            },
+            {
+              id: 'step-2',
+              component: StepTwo,
+              condition: () => true,
+              loadingCondition: async () => false,
+              loadingOverlay: LoadingOverlay,
+              canGoBackFromOverlay: () => true,
+            },
+          ],
+        }}
+        onFinish={vi.fn()}
+      />
+    );
+
+    const continueButton = screen.getByTestId(
+      'widgets/project-editor/node-data-modal/continue-button'
+    );
+    await waitFor(() => expect(continueButton).not.toBeDisabled());
+    fireEvent.click(continueButton);
+
+    expect(
+      await screen.findByText('schema changes failed')
+    ).toBeInTheDocument();
+    const backButton = screen.getByTestId(
+      'widgets/project-editor/node-data-modal/back-button'
+    );
+    await waitFor(() => expect(backButton).not.toBeDisabled());
+
+    fireEvent.click(backButton);
+    expect(await screen.findByText('step one')).toBeInTheDocument();
+  });
+
   it('skips a guarded loading overlay when no async operation is pending', async () => {
     const loadingCondition = vi.fn(async () => false);
     const LoadingOverlay = () => <div>schema changes loading</div>;

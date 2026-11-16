@@ -442,14 +442,15 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
 
   const isLastStep = activeStep === steps.length - 1;
   const activeStepConfig = steps[activeStep];
+  const customContinueLabel = activeStepConfig?.getContinueLabel?.(
+    props.localInputData,
+    sharedState
+  );
   const continueButtonLabel = isLastStep ? (
-    'Сохранить'
+    (customContinueLabel ?? 'Сохранить')
   ) : (
     <>
-      {activeStepConfig?.getContinueLabel?.(
-        props.localInputData,
-        sharedState
-      ) ?? 'Продолжить'}
+      {customContinueLabel ?? 'Продолжить'}
       <ArrowRightIcon />
     </>
   );
@@ -464,6 +465,27 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
     ) ??
       isFinishingStep)
   );
+  // Оверлей шага (загрузка/результат) может разрешить «Назад» в футере,
+  // например на экране ошибки; иначе кнопка заблокирована, пока он виден.
+  const isOverlayVisible = isFinishOverlayVisible || isStepLoading;
+  const canGoBackFromOverlay =
+    isOverlayVisible &&
+    !isFinishingStep &&
+    Boolean(activeStepConfig?.canGoBackFromOverlay?.(loadingConditionContext));
+  const handleBackClick = () => {
+    if (!canGoBackFromOverlay) {
+      handleBack();
+      return;
+    }
+    if (activeStepConfig?.onBackFromOverlay) {
+      activeStepConfig.onBackFromOverlay(
+        loadingConditionContext,
+        handleGoToPreviousStepFromLoading
+      );
+      return;
+    }
+    handleGoToPreviousStepFromLoading();
+  };
   const hasCreateTableError =
     Boolean(sharedState?.isTableNew) && Boolean(sharedState?.createTableError);
 
@@ -574,12 +596,10 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
             type='button'
             tone='secondary'
             data-testid='widgets/project-editor/node-data-modal/back-button'
-            onClick={handleBack}
+            onClick={handleBackClick}
             disabled={
-              activeStep === 0 ||
-              isStepLoading ||
-              isFinishingStep ||
-              isFinishOverlayVisible
+              !canGoBackFromOverlay &&
+              (activeStep === 0 || isOverlayVisible || isFinishingStep)
             }
           >
             <ArrowLeftIcon />

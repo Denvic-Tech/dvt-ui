@@ -308,6 +308,21 @@ export type NodeModalStepperStep<
     isFinishing: boolean
   ) => boolean;
   /**
+   * Enables the footer «Назад» while this step's loadingOverlay/finishOverlay
+   * is shown (e.g. on an error screen the user may leave). Disabled otherwise.
+   */
+  canGoBackFromOverlay?: (
+    context: StepLoadingConditionContext<T, S>
+  ) => boolean;
+  /**
+   * What the footer «Назад» does while the overlay is shown and
+   * `canGoBackFromOverlay` allows it. Defaults to `goToPreviousStep`.
+   */
+  onBackFromOverlay?: (
+    context: StepLoadingConditionContext<T, S>,
+    goToPreviousStep: () => void
+  ) => void;
+  /**
    * Callback called when entering this step.
    */
   onEnter?: (
@@ -319,7 +334,10 @@ export type NodeModalStepperStep<
   onContinue?: (
     context: StepOnContinueContext<T, S>
   ) => boolean | void | Promise<boolean | void>;
-  /** Optional dynamic label for the non-final step action button. */
+  /**
+   * Optional dynamic label for the step action button: replaces «Продолжить»
+   * on regular steps and «Сохранить» on the final step. `null` keeps the default.
+   */
   getContinueLabel?: (inputValues: T, sharedState: S) => string | null;
   /**
    * Callback called only on the final step before the modal commits validated data.
