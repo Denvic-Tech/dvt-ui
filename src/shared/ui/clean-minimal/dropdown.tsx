@@ -8,6 +8,7 @@ import {
   getDropdownMenuOrigin,
   MENU_OFFSET,
   useDropdownPlacement,
+  useDropdownWidth,
 } from './dropdownPlacement';
 import { CheckIcon, ChevronDownIcon } from './icons';
 import {
@@ -116,8 +117,7 @@ export function DropdownMenu<V extends string>({
     open,
     estimateDropdownHeight(options.length)
   );
-  const menuWidth =
-    width === 'anchor' ? (anchorEl?.getBoundingClientRect().width ?? 0) : width;
+  const menuWidth = useDropdownWidth(anchorEl, width);
 
   return (
     <DropdownMenuRoot
@@ -203,8 +203,7 @@ export function MultiDropdownMenu<V extends string>({
     open,
     estimateDropdownHeight(Math.max(options.length, 1))
   );
-  const menuWidth =
-    width === 'anchor' ? (anchorEl?.getBoundingClientRect().width ?? 0) : width;
+  const menuWidth = useDropdownWidth(anchorEl, width);
 
   return (
     <DropdownMenuRoot

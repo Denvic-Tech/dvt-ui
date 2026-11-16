@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 
 /**
  * Выпадающие списки Clean Minimal. Меню открывается вниз, а если до нижней
@@ -59,19 +59,41 @@ export const getDropdownPlacement = (
   };
 };
 
-/** Расположение меню, пересчитываемое при каждом открытии. */
+/**
+ * Расположение меню, пересчитываемое при каждом открытии. После закрытия
+ * меню ещё доигрывает анимацию — держим последнее расположение, иначе
+ * раскрытое вверх меню на исчезновении прыгает вниз.
+ */
 export const useDropdownPlacement = (
   anchorEl: HTMLElement | null,
   open: boolean,
   contentHeight: number
-): DropdownPlacement =>
-  useMemo(
+): DropdownPlacement => {
+  const lastPlacementRef = useRef<DropdownPlacement>(DEFAULT_PLACEMENT);
+  const placement = useMemo(
     () =>
-      open && anchorEl
-        ? getDropdownPlacement(anchorEl, contentHeight)
-        : DEFAULT_PLACEMENT,
+      open && anchorEl ? getDropdownPlacement(anchorEl, contentHeight) : null,
     [anchorEl, contentHeight, open]
   );
+  if (placement) lastPlacementRef.current = placement;
+  return placement ?? lastPlacementRef.current;
+};
+
+/**
+ * Ширина меню: фиксированная или как у якоря. Якорь обычно сбрасывают
+ * в `null` при закрытии, а меню ещё доигрывает анимацию — держим последнюю
+ * ширину якоря, иначе меню на исчезновении сужается по содержимому.
+ */
+export const useDropdownWidth = (
+  anchorEl: HTMLElement | null,
+  width: number | 'anchor'
+): number => {
+  const lastAnchorWidthRef = useRef(0);
+  if (width !== 'anchor') return width;
+  const anchorWidth = anchorEl?.getBoundingClientRect().width ?? 0;
+  if (anchorWidth) lastAnchorWidthRef.current = anchorWidth;
+  return lastAnchorWidthRef.current;
+};
 
 /** Пропсы MUI Menu/Popover, раскрывающие меню вверх или вниз от якоря. */
 export const getDropdownMenuOrigin = (
