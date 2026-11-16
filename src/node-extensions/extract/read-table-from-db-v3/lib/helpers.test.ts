@@ -1,114 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
-import { isDialectSupportsDatabases } from '@/shared/lib/db-metadata';
 import { makeExpressionValue } from '@/shared/lib/node-input-values';
 
 import {
-  buildInitialOpenSections,
-  buildSelectedTableLabel,
-  getDatabaseOptions,
-  getFilteredTables,
-  getFirstErrorSection,
-  getInitialActiveSection,
+  countChangedAdvancedSettings,
   getPartitionColumnType,
   getReadTableDataPreviewState,
-  getReadTablePreviewState,
-  getSchemaOptions,
-  getSelectorCollapsedValue,
+  getSectionErrors,
+  hasFilledSelectorValue,
+  hasSelectorExpression,
   sanitizeTTLCache,
   toggleColumnSelection,
+  toSelectorExpression,
 } from './helpers';
 import { validateReadTableFromDBV3 } from './validation';
 
 describe('readTableFromDBV3 helpers', () => {
-  it('opens the first unresolved selector by default', () => {
-    expect(buildInitialOpenSections()).toEqual(['table']);
-    expect(
-      buildInitialOpenSections(
-        {
-          database_name: 'analytics',
-        },
-        {
-          dialect: 'postgresql',
-          databases: [],
-        } as any
-      )
-    ).toEqual(['schema']);
-    expect(
-      buildInitialOpenSections(
-        {
-          database_name: 'analytics',
-        },
-        {
-          dialect: 'mysql',
-          schemas: [],
-        } as any
-      )
-    ).toEqual(['schema']);
-    expect(
-      buildInitialOpenSections(
-        {
-          database_name: 'analytics',
-          schema_name: 'public',
-        },
-        {
-          dialect: 'postgresql',
-          databases: [],
-        } as any
-      )
-    ).toEqual(['table']);
-    expect(
-      getInitialActiveSection({
-        database_name: 'analytics',
-        schema_name: 'public',
-        table_name: 'orders',
-      })
-    ).toBe('table');
-  });
-
-  it('derives metadata preview states without requesting table data', () => {
-    expect(
-      getReadTablePreviewState({
-        hasExpression: false,
-        hasTableName: false,
-        loading: false,
-        hasSelectedTable: false,
-      })
-    ).toBe('empty');
-    expect(
-      getReadTablePreviewState({
-        hasExpression: true,
-        hasTableName: true,
-        loading: false,
-        hasSelectedTable: false,
-      })
-    ).toBe('empty');
-    expect(
-      getReadTablePreviewState({
-        hasExpression: false,
-        hasTableName: true,
-        loading: true,
-        hasSelectedTable: false,
-      })
-    ).toBe('loading');
-    expect(
-      getReadTablePreviewState({
-        hasExpression: false,
-        hasTableName: true,
-        loading: false,
-        hasSelectedTable: true,
-      })
-    ).toBe('ready');
-    expect(
-      getReadTablePreviewState({
-        hasExpression: false,
-        hasTableName: true,
-        loading: false,
-        hasSelectedTable: false,
-      })
-    ).toBe('error');
-  });
-
   it('derives live data preview states', () => {
     expect(
       getReadTableDataPreviewState({
@@ -147,95 +54,79 @@ describe('readTableFromDBV3 helpers', () => {
     ).toBe('error');
   });
 
-  it('selects the first section containing a save error', () => {
+  it('detects filled selector values and expressions', () => {
+    expect(hasFilledSelectorValue('orders')).toBe(true);
+    expect(hasFilledSelectorValue('  ')).toBe(false);
+    expect(hasFilledSelectorValue(null)).toBe(false);
     expect(
-      getFirstErrorSection({
-        table_name: 'Выберите таблицу',
-        partition_col: 'Выберите колонку',
+      hasFilledSelectorValue(makeExpressionValue('{{ table }}', 'single'))
+    ).toBe(true);
+    expect(hasFilledSelectorValue(makeExpressionValue('', 'single'))).toBe(
+      false
+    );
+
+    expect(hasSelectorExpression({ table_name: 'orders' })).toBe(false);
+    expect(
+      hasSelectorExpression({
+        schema_name: makeExpressionValue('schema', 'single'),
       })
-    ).toBe('table');
-    expect(
-      getFirstErrorSection({ partition_grouping: 'Настройте группировку' })
-    ).toBe('options');
-    expect(getFirstErrorSection({})).toBeNull();
+    ).toBe(true);
   });
 
-  it('builds full table label from database, schema and table', () => {
+  it('turns a literal selector into a string expression', () => {
+    expect(toSelectorExpression('orders')).toEqual(
+      makeExpressionValue('"orders"', 'single')
+    );
+    expect(toSelectorExpression(undefined)).toEqual(
+      makeExpressionValue('', 'single')
+    );
+
+    const expression = makeExpressionValue('{{ table }}', 'template');
+    expect(toSelectorExpression(expression)).toBe(expression);
+  });
+
+  it('counts advanced settings that differ from defaults', () => {
+    expect(countChangedAdvancedSettings(undefined)).toBe(0);
+    expect(countChangedAdvancedSettings({ TTL_CACHE: 0 })).toBe(0);
     expect(
-      buildSelectedTableLabel({
-        database_name: 'analytics',
-        schema_name: 'public',
-        table_name: 'orders',
+      countChangedAdvancedSettings({
+        npartitions: 4,
+        max_rows_per_partition: null,
+        limit: 100,
+        TTL_CACHE: 60,
       })
-    ).toBe('analytics.public.orders');
+    ).toBe(3);
   });
 
-  it('builds selector helpers from metadata and expression values', () => {
-    const metadata = {
-      dialect: 'postgresql',
-      databases: [
-        {
-          name: 'analytics',
-          schemas: [
-            {
-              name: 'public',
-              tables: [
-                {
-                  name: 'orders',
-                  columns: [],
-                  type: 'BASE TABLE',
-                },
-                {
-                  name: 'customers',
-                  columns: [],
-                  type: 'BASE TABLE',
-                },
-              ],
-            },
-          ],
-        },
-        {
-          name: 'warehouse',
-          schemas: [
-            {
-              name: 'staging',
-              tables: [
-                {
-                  name: 'events',
-                  columns: [],
-                  type: 'BASE TABLE',
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    } as any;
+  it('toggles selected columns in table order and clears selection to null', () => {
+    const tableColumns = ['id', 'amount', 'created_at'];
 
-    expect(getDatabaseOptions(metadata)).toEqual([
-      { label: 'analytics', tableCount: 2, value: 'analytics' },
-      { label: 'warehouse', tableCount: 1, value: 'warehouse' },
+    expect(toggleColumnSelection(tableColumns, ['created_at'], 'id')).toEqual([
+      'id',
+      'created_at',
     ]);
-    expect(getSchemaOptions(metadata, 'analytics')).toEqual([
-      { label: 'public', tableCount: 2, value: 'public' },
+    expect(toggleColumnSelection(tableColumns, null, 'amount')).toEqual([
+      'amount',
     ]);
-    expect(
-      getFilteredTables(metadata, 'analytics', 'public').map(
-        table => table.name
-      )
-    ).toEqual(['orders', 'customers']);
-    expect(metadata && isDialectSupportsDatabases(metadata.dialect)).toBe(true);
-    expect(
-      getSelectorCollapsedValue(
-        makeExpressionValue('source_database', 'single'),
-        'База не выбрана'
-      )
-    ).toBe('Expression');
+    expect(toggleColumnSelection(tableColumns, ['id'], 'id')).toBeNull();
   });
 
-  it('toggles selected columns and clears selection to null', () => {
-    expect(toggleColumnSelection(['id'], 'amount')).toEqual(['id', 'amount']);
-    expect(toggleColumnSelection(['id'], 'id')).toBeNull();
+  it('maps validation errors to the parameters tab and advanced block', () => {
+    expect(getSectionErrors({ table_name: 'Выберите таблицу' })).toEqual({
+      table: true,
+      options: false,
+      advanced: false,
+    });
+    expect(getSectionErrors({ partition_col: 'Выберите колонку' })).toEqual({
+      table: false,
+      options: true,
+      advanced: false,
+    });
+    expect(getSectionErrors({ limit: 'Неверный лимит' })).toEqual({
+      table: false,
+      options: true,
+      advanced: true,
+    });
   });
 
   it('normalizes ttl cache and detects partition column type', () => {

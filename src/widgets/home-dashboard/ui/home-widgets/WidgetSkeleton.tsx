@@ -1,9 +1,8 @@
 import { Box } from '@mui/material';
 
+import { homeFadeInSx } from '@/shared/ui/home-theme/motion';
+import { hc } from '@/shared/ui/home-theme/tokens';
 import { Skeleton } from '@/shared/ui/primitives';
-
-import { homeFadeInSx } from '../styles/motion';
-import { hc } from '../styles/tokens';
 
 export type WidgetSkeletonVariant = 'chart' | 'list' | 'compact-list';
 

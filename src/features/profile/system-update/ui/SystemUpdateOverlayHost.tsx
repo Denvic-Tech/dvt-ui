@@ -30,7 +30,14 @@ const RECONNECT_POLL_DELAY_MS = 3000;
 const isRecoverablePollingError = (error: ApiErrorPayload) =>
   error.status == null || error.status >= 500;
 
-export const SystemUpdateOverlayHost = () => {
+interface SystemUpdateOverlayHostProps {
+  // The installed version, shown in the dialog before the target one.
+  currentVersion?: string | null | undefined;
+}
+
+export const SystemUpdateOverlayHost = ({
+  currentVersion,
+}: SystemUpdateOverlayHostProps) => {
   const dispatch = useAppDispatch();
   const state = useAppSelector(selectSystemUpdateState);
   const { isAuthenticated } = useAuth();
@@ -271,6 +278,7 @@ export const SystemUpdateOverlayHost = () => {
   return (
     <SystemUpdateProgressDialog
       state={state}
+      currentVersion={currentVersion}
       onClear={() => {
         dispatch(systemUpdateActions.clearSystemUpdateMonitoring());
       }}

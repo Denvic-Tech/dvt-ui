@@ -20,6 +20,8 @@ import {
 } from '@/shared/lib/node-input-values';
 import { getClearedValueByType, parseConstValue } from '@/shared/lib/node-io';
 import { type VariableOutput, type VariableType } from '@/shared/lib/variables';
+import { CloseIcon, CodeIcon, InfoIcon } from '@/shared/ui/clean-minimal/icons';
+import { tokens } from '@/shared/ui/clean-minimal/tokens';
 import { IconButton } from '@/shared/ui/primitives';
 
 import { DVTDateTimePicker } from './DVTDateTimePicker';
@@ -28,7 +30,10 @@ import {
   buildExpressionAutocompleteCatalog,
   getInlineExpressionDiagnostics,
 } from './HighlightedSingleLineField.shared';
-import { HighlightedSingleLineFieldV2 } from './HighlightedSingleLineFieldV2';
+import {
+  type HighlightedSingleLineFieldAppearance,
+  HighlightedSingleLineFieldV2,
+} from './HighlightedSingleLineFieldV2';
 import { buildSingleExpressionValue } from './primitiveExpression';
 import { TimeDeltaInput } from './TimeDeltaInput';
 import { useExpressionsConfigContext } from './useExpressionsConfigContext';
@@ -57,6 +62,18 @@ export interface PrimitiveNodeInputProps {
   renderMode?: PrimitiveNodeInputRenderMode | undefined;
   masked?: boolean | undefined;
   inlineActions?: PrimitiveNodeInputInlineAction[] | undefined;
+  /**
+   * `clean-minimal` — однострочное поле и его кнопки в стиле Clean Minimal
+   * (только `renderMode='editor'`; числа, даты и флаги не затрагивает).
+   */
+  appearance?: HighlightedSingleLineFieldAppearance | undefined;
+  /** Placeholder текстового поля вместо `inputDefinition.default`. */
+  placeholder?: string | undefined;
+  /**
+   * Placeholder пустого выражения с примером формата, например
+   * `="orders" или =table_name` (только `renderMode='editor'`).
+   */
+  expressionPlaceholder?: string | undefined;
 }
 
 const EXPRESSION_HELP_TEXT =
@@ -79,6 +96,22 @@ const EXPRESSION_CLEAR_ACTION_SX = {
   },
 } as const;
 
+/** Кнопки внутри поля в стиле Clean Minimal: 22px, без фона до наведения. */
+const CLEAN_MINIMAL_ACTION_SX = {
+  width: 22,
+  height: 22,
+  minWidth: 22,
+  p: 0,
+  borderRadius: '6px',
+  color: tokens.textSubtle,
+  opacity: 1,
+  '&:hover': {
+    backgroundColor: tokens.hover,
+    color: tokens.textSecondary,
+    opacity: 1,
+  },
+} as const;
+
 const EXPRESSION_AUTOCOMPLETE_VARIABLE_TYPES: VariableType[] = [
   'STRING',
   'BOOLEAN',
@@ -97,7 +130,12 @@ const PrimitiveNodeInput: React.FC<PrimitiveNodeInputProps> = ({
   renderMode = 'editor',
   masked = false,
   inlineActions = [],
+  appearance = 'default',
+  placeholder,
+  expressionPlaceholder,
 }) => {
+  const isCleanMinimal =
+    appearance === 'clean-minimal' && renderMode === 'editor';
   const { expressionsConfig: expressionsConfigFromContext } =
     useExpressionsConfigContext();
   const expressionsConfig =
@@ -302,8 +340,13 @@ const PrimitiveNodeInput: React.FC<PrimitiveNodeInputProps> = ({
       variant='ghost'
       onMouseDown={event => event.preventDefault()}
       onClick={handleClearValue}
+      {...(isCleanMinimal ? { sx: CLEAN_MINIMAL_ACTION_SX } : {})}
     >
-      <CloseRoundedIcon fontSize='small' />
+      {isCleanMinimal ? (
+        <CloseIcon size={12} />
+      ) : (
+        <CloseRoundedIcon fontSize='small' />
+      )}
     </IconButton>
   );
   const clearAction = (
@@ -319,9 +362,15 @@ const PrimitiveNodeInput: React.FC<PrimitiveNodeInputProps> = ({
           size='sm'
           variant='ghost'
           onMouseDown={event => event.preventDefault()}
-          sx={EXPRESSION_HELP_ACTION_SX}
+          sx={
+            isCleanMinimal ? CLEAN_MINIMAL_ACTION_SX : EXPRESSION_HELP_ACTION_SX
+          }
         >
-          <HelpOutlineRoundedIcon sx={{ fontSize: 16 }} />
+          {isCleanMinimal ? (
+            <InfoIcon size={14} />
+          ) : (
+            <HelpOutlineRoundedIcon sx={{ fontSize: 16 }} />
+          )}
         </IconButton>
       </span>
     </Tooltip>
@@ -333,9 +382,13 @@ const PrimitiveNodeInput: React.FC<PrimitiveNodeInputProps> = ({
       variant='ghost'
       onMouseDown={event => event.preventDefault()}
       onClick={handleClearValue}
-      sx={EXPRESSION_CLEAR_ACTION_SX}
+      sx={isCleanMinimal ? CLEAN_MINIMAL_ACTION_SX : EXPRESSION_CLEAR_ACTION_SX}
     >
-      <CloseRoundedIcon sx={{ fontSize: 18 }} />
+      {isCleanMinimal ? (
+        <CloseIcon size={12} />
+      ) : (
+        <CloseRoundedIcon sx={{ fontSize: 18 }} />
+      )}
     </IconButton>
   );
 
@@ -348,8 +401,13 @@ const PrimitiveNodeInput: React.FC<PrimitiveNodeInputProps> = ({
           variant='ghost'
           onMouseDown={event => event.preventDefault()}
           onClick={handleEnterExpressionMode}
+          {...(isCleanMinimal ? { sx: CLEAN_MINIMAL_ACTION_SX } : {})}
         >
-          <AbcRoundedIcon fontSize='small' />
+          {isCleanMinimal ? (
+            <CodeIcon size={14} />
+          ) : (
+            <AbcRoundedIcon fontSize='small' />
+          )}
         </IconButton>
       </span>
     </Tooltip>
@@ -391,6 +449,10 @@ const PrimitiveNodeInput: React.FC<PrimitiveNodeInputProps> = ({
         errorText={expressionErrorText}
         warningText={expressionWarningText}
         {...(renderMode === 'editor' ? { borderRadius: '10px' } : {})}
+        {...(renderMode === 'editor' && expressionPlaceholder
+          ? { expressionPlaceholder }
+          : {})}
+        {...(isCleanMinimal ? { appearance: 'clean-minimal' as const } : {})}
       />
     );
   }
@@ -556,9 +618,10 @@ const PrimitiveNodeInput: React.FC<PrimitiveNodeInputProps> = ({
       value={constValue == null ? '' : String(constValue)}
       onChange={handleFreeTextChange}
       placeholder={
-        inputDefinition?.default == null
+        placeholder ??
+        (inputDefinition?.default == null
           ? undefined
-          : String(inputDefinition.default)
+          : String(inputDefinition.default))
       }
       startActions={
         startInlineActions.length > 0 ? startInlineActions : undefined
@@ -566,6 +629,7 @@ const PrimitiveNodeInput: React.FC<PrimitiveNodeInputProps> = ({
       endActions={literalEndActions}
       highlightingEnabled={false}
       autoFormatOnBlur={false}
+      {...(isCleanMinimal ? { appearance: 'clean-minimal' as const } : {})}
     />
   );
 };

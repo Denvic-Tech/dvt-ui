@@ -5,12 +5,13 @@ import {
   type AgentConnectLink,
 } from '@/features/profile/agent-connect';
 
+import { resolveTokenExpiresAt } from '@/shared/lib/token/tokenExpiryForm';
+
 import {
   buildTokenAccessScope,
   createDefaultTokenAccessForm,
   defaultTokenName,
   isTokenAccessFormValid,
-  resolveTokenExpiresAt,
   type TokenAccessForm,
 } from '../lib/tokenForm';
 

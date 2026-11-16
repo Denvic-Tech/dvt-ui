@@ -11,9 +11,9 @@ describe('NodeDataModalDialog', () => {
       </NodeDataModalDialog>
     );
 
-    expect(
-      screen.getByRole('dialog', { name: 'Настройки ноды' })
-    ).toHaveTextContent('Node settings');
+    const dialog = screen.getByRole('dialog', { name: 'Настройки ноды' });
+    expect(dialog).toHaveTextContent('Node settings');
+    expect(dialog).toHaveStyle({ borderRadius: '10px' });
     expect(document.querySelector('.MuiBackdrop-root')).toBeInTheDocument();
   });
 

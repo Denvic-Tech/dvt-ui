@@ -132,6 +132,12 @@ export interface NodeModalExtension extends NodeExtensionBase<'modal'> {
   allowOpenWithoutConnectedMetadata?: boolean;
   presentation?: NodeModalPresentationConfig;
   dialogSize?: NodeModalDialogSize;
+  /**
+   * Делает «Сохранить» в футере модалки недоступной, пока черновик
+   * не готов к сохранению (например, не выбран обязательный объект).
+   * Валидация при сохранении от этого не меняется.
+   */
+  isSaveDisabled?: (localInputData: Partial<Record<string, any>>) => boolean;
   condition: (nodeDefinition: NodeDefinition) => boolean;
   component: React.FC<NodeModalExtensionProps>;
 }
@@ -156,6 +162,11 @@ export type NodeModalStepperExtensionProps<
    * Setter for the shared local state
    */
   setSharedState: React.Dispatch<React.SetStateAction<S>>;
+  /**
+   * Navigate back to an already passed step (index from 0). Forward
+   * navigation is ignored: it always goes through step validation.
+   */
+  goToStep?: (stepIndex: number) => void;
 };
 
 /**
@@ -297,6 +308,21 @@ export type NodeModalStepperStep<
     isFinishing: boolean
   ) => boolean;
   /**
+   * Enables the footer «Назад» while this step's loadingOverlay/finishOverlay
+   * is shown (e.g. on an error screen the user may leave). Disabled otherwise.
+   */
+  canGoBackFromOverlay?: (
+    context: StepLoadingConditionContext<T, S>
+  ) => boolean;
+  /**
+   * What the footer «Назад» does while the overlay is shown and
+   * `canGoBackFromOverlay` allows it. Defaults to `goToPreviousStep`.
+   */
+  onBackFromOverlay?: (
+    context: StepLoadingConditionContext<T, S>,
+    goToPreviousStep: () => void
+  ) => void;
+  /**
    * Callback called when entering this step.
    */
   onEnter?: (
@@ -308,7 +334,10 @@ export type NodeModalStepperStep<
   onContinue?: (
     context: StepOnContinueContext<T, S>
   ) => boolean | void | Promise<boolean | void>;
-  /** Optional dynamic label for the non-final step action button. */
+  /**
+   * Optional dynamic label for the step action button: replaces «Продолжить»
+   * on regular steps and «Сохранить» on the final step. `null` keeps the default.
+   */
   getContinueLabel?: (inputValues: T, sharedState: S) => string | null;
   /**
    * Callback called only on the final step before the modal commits validated data.
@@ -327,6 +356,13 @@ export interface NodeModalStepperExtension<
   S = undefined,
 > extends NodeExtensionBase<'modal_stepper'> {
   allowOpenWithoutConnectedMetadata?: boolean;
+  /** Фиксированный размер окна степпера (по умолчанию — почти весь экран). */
+  dialogSize?: NodeModalDialogSize;
+  /**
+   * Шаги занимают тело окна целиком, без внешних отступов: между шапкой,
+   * футером и краями окна (шаги сами задают внутренние отступы).
+   */
+  fullBleed?: boolean;
   condition: (nodeDefinition: NodeDefinition) => boolean;
   steps: NodeModalStepperStep<any, S>[];
 }

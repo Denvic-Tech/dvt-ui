@@ -1,3 +1,5 @@
+import { formatClock, startOfDay } from '@/shared/ui/run-ticks/date';
+
 const capitalizeFirstLetter = (value: string): string =>
   value ? value[0].toUpperCase() + value.slice(1) : value;
 
@@ -55,12 +57,6 @@ export const formatLongDate = (date: Date): string =>
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const startOfDay = (time: number): number => {
-  const date = new Date(time);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-};
-
 export const pluralRu = (
   value: number,
   one: string,
@@ -80,12 +76,6 @@ export const pluralRu = (
 
   return many;
 };
-
-export const formatClock = (time: number): string =>
-  new Intl.DateTimeFormat('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(time);
 
 /** Compact "opened" label for project rows: «12 мин назад», «вчера, 18:40». */
 export const formatOpenedAt = (
@@ -132,24 +122,6 @@ export const formatOpenedAt = (
   })
     .format(time)
     .replace('.', '');
-};
-
-/** Day label for run lists: «сегодня», «вчера», «3 дн. назад». */
-export const formatRunDay = (
-  time: number,
-  now: number = Date.now()
-): string => {
-  const days = Math.round((startOfDay(now) - startOfDay(time)) / DAY_MS);
-
-  if (days <= 0) {
-    return 'сегодня';
-  }
-
-  if (days === 1) {
-    return 'вчера';
-  }
-
-  return `${days} дн. назад`;
 };
 
 /** Compact label for a future moment: «через 6 мин», «завтра, 03:00». */

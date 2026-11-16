@@ -33,6 +33,17 @@ vi.mock('@/features/profile/system-update', () => ({
   }),
 }));
 
+const renderPanel = () =>
+  render(
+    <SystemUpdatePanel
+      currentUser={{
+        email: 'superadmin@example.com',
+        organization_id: 'org-1',
+        role: 'superadmin',
+      }}
+    />
+  );
+
 describe('SystemUpdatePanel', () => {
   beforeEach(() => {
     confirmMock.mockReset();
@@ -41,38 +52,18 @@ describe('SystemUpdatePanel', () => {
     startMock.mockResolvedValue(undefined);
   });
 
-  it('starts with the manual tag state from the reference', () => {
-    render(
-      <SystemUpdatePanel
-        currentUser={{
-          email: 'superadmin@example.com',
-          organization_id: 'org-1',
-          role: 'superadmin',
-        }}
-      />
-    );
+  it('starts with the latest tag and the current version', () => {
+    renderPanel();
 
-    expect(
-      screen.getByRole('radio', { name: 'Указать версию вручную' })
-    ).toBeChecked();
-    expect(screen.getByLabelText('Целевая версия DVT')).toHaveValue('');
-    expect(screen.getByRole('button', { name: 'Обновить DVT' })).toBeDisabled();
+    expect(screen.getByLabelText('Tag образов')).toHaveValue('latest');
+    expect(screen.getByText('1.19.0')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Обновить' })).toBeEnabled();
   });
 
-  it('selects latest and confirms before starting the update', async () => {
-    render(
-      <SystemUpdatePanel
-        currentUser={{
-          email: 'superadmin@example.com',
-          organization_id: 'org-1',
-          role: 'superadmin',
-        }}
-      />
-    );
+  it('confirms before starting the update to latest', async () => {
+    renderPanel();
 
-    fireEvent.click(screen.getByRole('radio', { name: 'Последняя версия' }));
-
-    fireEvent.click(screen.getByRole('button', { name: 'Обновить DVT' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Обновить' }));
 
     await waitFor(() => expect(confirmMock).toHaveBeenCalledOnce());
     await waitFor(() =>
@@ -81,5 +72,31 @@ describe('SystemUpdatePanel', () => {
         version: 'latest',
       })
     );
+  });
+
+  it('starts the update to a typed tag', async () => {
+    renderPanel();
+
+    fireEvent.change(screen.getByLabelText('Tag образов'), {
+      target: { value: ' 1.20.0 ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Обновить' }));
+
+    await waitFor(() =>
+      expect(startMock).toHaveBeenCalledWith({
+        ownerKey: 'superadmin@example.com',
+        version: '1.20.0',
+      })
+    );
+  });
+
+  it('disables the button while the tag is empty', () => {
+    renderPanel();
+
+    fireEvent.change(screen.getByLabelText('Tag образов'), {
+      target: { value: '   ' },
+    });
+
+    expect(screen.getByRole('button', { name: 'Обновить' })).toBeDisabled();
   });
 });

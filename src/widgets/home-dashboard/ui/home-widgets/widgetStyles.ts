@@ -1,4 +1,4 @@
-import { hc } from '../styles/tokens';
+import { hc } from '@/shared/ui/home-theme/tokens';
 
 /** How far list rows extend into the card padding (16px − 6px inset). */
 const WIDGET_ROW_BLEED = '10px';

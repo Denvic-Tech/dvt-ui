@@ -4,10 +4,10 @@ import { Link as RouterLink } from 'react-router-dom';
 import { useGetFailingProjectsQuery } from '@/entities/home-widget';
 
 import type { FailingProjectsWidgetSchema } from '@/shared/gatewayClient';
+import { hc, homeEllipsisSx } from '@/shared/ui/home-theme/tokens';
+import { StatusDot } from '@/shared/ui/run-ticks/StatusDot';
 
-import { StatusDot } from '../components/StatusDot';
 import { formatOpenedAt, pluralRu } from '../lib/date';
-import { hc, homeEllipsisSx } from '../styles/tokens';
 
 import { WidgetQueryView } from './WidgetQueryView';
 import { widgetBadgeSx, widgetEmptySx, widgetRowSx } from './widgetStyles';

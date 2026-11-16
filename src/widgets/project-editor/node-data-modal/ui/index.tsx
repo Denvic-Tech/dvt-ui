@@ -147,6 +147,8 @@ const NodeDataModalContent = memo<NodeDataModalContentProps>(
 
     const isStepperEditor =
       !extensionName && nodeModalStepperExtensions.length > 0;
+    const isFullBleedStepper =
+      isStepperEditor && Boolean(nodeModalStepperExtensions[0]?.fullBleed);
 
     const presentation: NodeModalPresentationConfig =
       nodeModalStepperExtensions.length > 0 || extensionName
@@ -160,6 +162,7 @@ const NodeDataModalContent = memo<NodeDataModalContentProps>(
         <Header
           title={editorTitle}
           subtitle={editorSubtitle}
+          iconKey={nodeDefinition.icon_key}
           commentTrigger={
             <CommentTrigger
               value={nodeData.comment ?? ''}
@@ -210,7 +213,13 @@ const NodeDataModalContent = memo<NodeDataModalContentProps>(
 
         <Body
           presentationType={presentation.type}
-          sx={isStepperEditor ? { overflow: 'hidden', pb: '18px' } : {}}
+          sx={
+            isFullBleedStepper
+              ? { overflow: 'hidden', p: 0 }
+              : isStepperEditor
+                ? { overflow: 'hidden', pb: '18px' }
+                : {}
+          }
         >
           <BodyContent
             presentationType={presentation.type}
@@ -317,6 +326,10 @@ const NodeDataModalContent = memo<NodeDataModalContentProps>(
             hasUnsavedChanges={isDirty}
             onCancel={onClose}
             onSave={handleSave}
+            saveDisabled={
+              !extensionName &&
+              nodeModalExtensions[0]?.isSaveDisabled?.(localInputData) === true
+            }
           />
         )}
 
@@ -364,9 +377,11 @@ const NodeDataModalInner = ({
     useNodeMetadata(selectedNodeID);
 
   const nodeModalExtensions = useNodeModalExtensions(nodeDefinition);
-  const dialogSize = nodeModalExtensions[0]?.dialogSize;
   const nodeModalStepperExtensions =
     useNodeModalStepperExtensions(nodeDefinition);
+  const dialogSize =
+    nodeModalExtensions[0]?.dialogSize ??
+    nodeModalStepperExtensions[0]?.dialogSize;
   const { inputVariables, projectVariables, variables } = useNodeVariableGroups(
     selectedNodeID,
     { enabled: uiIsOpen }

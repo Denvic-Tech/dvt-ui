@@ -1,5 +1,6 @@
-import React from 'react';
-import { Alert, Box, CircularProgress } from '@mui/material';
+import { Spinner } from '@/shared/ui/clean-minimal/controls';
+
+import { MessageBox } from '../../schema-step/SchemaStep.styles';
 
 type StatusAlertsSectionProps = {
   createTableError: string | null | undefined;
@@ -7,33 +8,35 @@ type StatusAlertsSectionProps = {
   isTableNew: boolean;
 };
 
-export const StatusAlertsSection: React.FC<StatusAlertsSectionProps> = ({
+export const StatusAlertsSection = ({
   createTableError,
   isCreateTableLoading,
   isTableNew,
-}) => {
+}: StatusAlertsSectionProps) => {
   if (!isTableNew || (!isCreateTableLoading && !createTableError)) {
     return null;
   }
 
   return (
     <>
-      {isCreateTableLoading && (
-        <Alert severity='info' variant='outlined'>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CircularProgress size={16} />
+      {isCreateTableLoading ? (
+        <MessageBox tone='info' role='status'>
+          <Spinner size={13} style={{ marginTop: 2 }} />
+          <span className='message-text'>
             Создание таблицы выполняется. Дождитесь завершения, перед
             продолжением записи.
-          </Box>
-        </Alert>
-      )}
+          </span>
+        </MessageBox>
+      ) : null}
 
-      {createTableError && (
-        <Alert severity='error' variant='outlined'>
-          {createTableError} Вернитесь на предыдущий шаг, исправьте
-          SQL/параметры таблицы и попробуйте снова.
-        </Alert>
-      )}
+      {createTableError ? (
+        <MessageBox tone='error' role='alert'>
+          <span className='message-text'>
+            {createTableError} Вернитесь на предыдущий шаг, исправьте
+            SQL/параметры таблицы и попробуйте снова.
+          </span>
+        </MessageBox>
+      ) : null}
     </>
   );
 };

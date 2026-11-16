@@ -1,40 +1,7 @@
 import * as React from 'react';
-import AddIcon from '@mui/icons-material/Add';
-import ApartmentIcon from '@mui/icons-material/Apartment';
-import BlockIcon from '@mui/icons-material/Block';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ClearIcon from '@mui/icons-material/Clear';
-import EditIcon from '@mui/icons-material/Edit';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import SearchIcon from '@mui/icons-material/Search';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControlLabel,
-  IconButton,
-  InputAdornment,
-  Paper,
-  Stack,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TableSortLabel,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import { IconUsers } from '@tabler/icons-react';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import { Alert } from '@mui/material';
+import { IconSearch, IconUsers } from '@tabler/icons-react';
 import { z } from 'zod';
 
 import {
@@ -44,47 +11,53 @@ import {
   type OrganizationUpdateSchema,
 } from '@/shared/gatewayClient';
 import { isApiError } from '@/shared/lib/errors';
+import { useDelayedLoading } from '@/shared/lib/hooks/useDelayedLoading';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { PageLayout } from '@/shared/ui/page-layout';
+import {
+  getTokenListBoxHeight,
+  TokenListBox,
+  TokenListCreateButton,
+  TokenListMessage,
+  TokenListScroll,
+  TokenListSearch,
+} from '@/shared/ui/token-list';
+
+import {
+  OrganizationDialog,
+  type OrganizationFormErrors,
+  type OrganizationFormState,
+} from './OrganizationDialog';
+import { OrganizationRow, OrganizationRowSkeleton } from './OrganizationRow';
+import { AlertSection } from './styles';
+
+const SKELETON_ROWS = [
+  { nameWidth: 168 },
+  { nameWidth: 132 },
+  { nameWidth: 196 },
+  { nameWidth: 148 },
+  { nameWidth: 120 },
+];
 
 const zName = z
   .string()
   .trim()
-  .min(1, { message: 'Organization name is required' })
-  .max(255, { message: 'Organization name is too long' });
+  .min(1, { message: 'Укажите название организации' })
+  .max(255, { message: 'Название не длиннее 255 символов' });
 
 const zInn = z
   .string()
   .trim()
-  .max(32, { message: 'INN must be 32 characters or less' });
+  .max(32, { message: 'ИНН не длиннее 32 символов' });
 
-const emptyForm = {
+const emptyForm: OrganizationFormState = {
   name: '',
   description: '',
   inn: '',
-  is_active: true,
 };
 
-type OrganizationFormState = typeof emptyForm;
-
-type OrganizationFormErrors = {
-  name?: string;
-  inn?: string;
-};
-
-type SortKey = 'name' | 'inn' | 'active' | 'created_at' | 'updated_at';
-type SortDirection = 'asc' | 'desc';
-
-const formatDate = (value?: string | null) => {
-  if (!value) return '—';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
-};
+const getCreatedTime = (organization: OrganizationReadSchema) =>
+  organization.created_at ? new Date(organization.created_at).getTime() : 0;
 
 const resolveErrorMessage = (error: unknown, fallback: string): string => {
   if (isApiError(error)) {
@@ -104,20 +77,21 @@ const validateForm = (form: OrganizationFormState): OrganizationFormErrors => {
   const nameResult = zName.safeParse(form.name);
   if (!nameResult.success) {
     errors.name =
-      nameResult.error.issues[0]?.message ?? 'Organization name is required';
+      nameResult.error.issues[0]?.message ?? 'Укажите название организации';
   }
 
   const innResult = zInn.safeParse(form.inn);
   if (!innResult.success) {
-    errors.inn = innResult.error.issues[0]?.message ?? 'Invalid INN';
+    errors.inn = innResult.error.issues[0]?.message ?? 'Некорректный ИНН';
   }
 
   return errors;
 };
 
+// The status is changed from the row menu, not in the form.
 const buildOrganizationPayload = (
   form: OrganizationFormState
-): OrganizationCreateSchema => {
+): Omit<OrganizationCreateSchema, 'is_active'> => {
   const description = form.description.trim();
   const inn = form.inn.trim();
 
@@ -125,7 +99,6 @@ const buildOrganizationPayload = (
     name: form.name.trim(),
     description: description || null,
     inn: inn || null,
-    is_active: form.is_active,
   };
 };
 
@@ -135,14 +108,13 @@ export const AdminOrganizationsPanel: React.FC = () => {
   const [organizations, setOrganizations] = React.useState<
     OrganizationReadSchema[]
   >([]);
-  const [loading, setLoading] = React.useState(false);
+  // Reloads after actions keep the rows; only the first load shows the
+  // skeleton.
+  const [hasLoaded, setHasLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
 
   const [searchInput, setSearchInput] = React.useState('');
-  const [sortBy, setSortBy] = React.useState<SortKey>('created_at');
-  const [sortDirection, setSortDirection] =
-    React.useState<SortDirection>('desc');
 
   const [createOpen, setCreateOpen] = React.useState(false);
   const [createForm, setCreateForm] =
@@ -151,6 +123,7 @@ export const AdminOrganizationsPanel: React.FC = () => {
     React.useState<OrganizationFormErrors>({});
   const [isCreating, setIsCreating] = React.useState(false);
 
+  const [editOpen, setEditOpen] = React.useState(false);
   const [editOrganization, setEditOrganization] =
     React.useState<OrganizationReadSchema | null>(null);
   const [editForm, setEditForm] = React.useState<OrganizationFormState | null>(
@@ -164,7 +137,6 @@ export const AdminOrganizationsPanel: React.FC = () => {
   >(null);
 
   const loadOrganizations = React.useCallback(async () => {
-    setLoading(true);
     setLoadError(null);
 
     try {
@@ -175,17 +147,13 @@ export const AdminOrganizationsPanel: React.FC = () => {
         resolveErrorMessage(error, 'Не удалось загрузить список организаций.')
       );
     } finally {
-      setLoading(false);
+      setHasLoaded(true);
     }
   }, []);
 
   React.useEffect(() => {
     void loadOrganizations();
   }, [loadOrganizations]);
-
-  const handleRefresh = () => {
-    void loadOrganizations();
-  };
 
   const handleOpenCreate = () => {
     setActionError(null);
@@ -196,6 +164,10 @@ export const AdminOrganizationsPanel: React.FC = () => {
 
   const handleCloseCreate = () => {
     setCreateOpen(false);
+  };
+
+  // Resets after the closing animation, so the fields do not flash empty.
+  const handleExitedCreate = () => {
     setCreateErrors({});
     setActionError(null);
     setCreateForm(emptyForm);
@@ -213,9 +185,11 @@ export const AdminOrganizationsPanel: React.FC = () => {
     setActionError(null);
 
     try {
-      await client.organizations.post({
-        body: buildOrganizationPayload(createForm),
-      });
+      const body: OrganizationCreateSchema = {
+        ...buildOrganizationPayload(createForm),
+        is_active: true,
+      };
+      await client.organizations.post({ body });
       await loadOrganizations();
       handleCloseCreate();
     } catch (error) {
@@ -235,11 +209,15 @@ export const AdminOrganizationsPanel: React.FC = () => {
       name: organization.name ?? '',
       description: organization.description ?? '',
       inn: organization.inn ?? '',
-      is_active: organization.is_active ?? true,
     });
+    setEditOpen(true);
   };
 
   const handleCloseEdit = () => {
+    setEditOpen(false);
+  };
+
+  const handleExitedEdit = () => {
     setEditOrganization(null);
     setEditForm(null);
     setEditErrors({});
@@ -320,18 +298,6 @@ export const AdminOrganizationsPanel: React.FC = () => {
     }
   };
 
-  const handleRequestSort = (key: SortKey) => {
-    if (sortBy === key) {
-      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
-      return;
-    }
-
-    setSortBy(key);
-    setSortDirection(
-      key === 'created_at' || key === 'updated_at' ? 'desc' : 'asc'
-    );
-  };
-
   const filteredOrganizations = React.useMemo(() => {
     const normalizedSearch = searchInput.trim().toLowerCase();
 
@@ -352,456 +318,119 @@ export const AdminOrganizationsPanel: React.FC = () => {
     });
   }, [organizations, searchInput]);
 
-  const sortedOrganizations = React.useMemo(() => {
-    const items = [...filteredOrganizations];
-
-    items.sort((left, right) => {
-      if (sortBy === 'name') {
-        const comparison = left.name.localeCompare(right.name, 'ru', {
-          sensitivity: 'base',
-        });
-        return sortDirection === 'asc' ? comparison : -comparison;
-      }
-
-      if (sortBy === 'inn') {
-        const comparison = (left.inn ?? '').localeCompare(
-          right.inn ?? '',
-          'ru',
-          {
-            sensitivity: 'base',
-          }
-        );
-        return sortDirection === 'asc' ? comparison : -comparison;
-      }
-
-      if (sortBy === 'active') {
-        const comparison =
-          Number(left.is_active ?? true) - Number(right.is_active ?? true);
-        return sortDirection === 'asc' ? comparison : -comparison;
-      }
-
-      const leftTime = left[sortBy]
-        ? new Date(left[sortBy] as string).getTime()
-        : 0;
-      const rightTime = right[sortBy]
-        ? new Date(right[sortBy] as string).getTime()
-        : 0;
-      const comparison = leftTime - rightTime;
-
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-
-    return items;
-  }, [filteredOrganizations, sortBy, sortDirection]);
+  // Newest first.
+  const sortedOrganizations = React.useMemo(
+    () =>
+      [...filteredOrganizations].sort(
+        (left, right) => getCreatedTime(right) - getCreatedTime(left)
+      ),
+    [filteredOrganizations]
+  );
 
   const isUpdating = (organizationId?: string | null) =>
     organizationId != null && updatingOrganizationId === organizationId;
 
+  const isLoadingList = !hasLoaded;
+  const showSkeleton = useDelayedLoading(isLoadingList);
+  const rowsCount = sortedOrganizations.length;
+  const hasSearch = searchInput.trim().length > 0;
+
   return (
     <>
-      <PageLayout width='wide' title='Organizations' icon={IconUsers}>
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={2}
-          alignItems={{ xs: 'stretch', sm: 'center' }}
-          justifyContent='space-between'
-          sx={{ mb: 2 }}
-        >
-          <TextField
-            size='small'
-            label='Search organizations'
-            value={searchInput}
-            onChange={event => setSearchInput(event.target.value)}
-            sx={{ maxWidth: 360 }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position='start'>
-                    <SearchIcon fontSize='small' />
-                  </InputAdornment>
-                ),
-                endAdornment: searchInput ? (
-                  <InputAdornment position='end'>
-                    <IconButton
-                      size='small'
-                      edge='end'
-                      onClick={() => setSearchInput('')}
-                    >
-                      <ClearIcon fontSize='small' />
-                    </IconButton>
-                  </InputAdornment>
-                ) : undefined,
-              },
-            }}
-          />
-
-          <Stack direction='row' spacing={1} justifyContent='flex-end'>
-            <Button
-              size='small'
-              variant='outlined'
-              startIcon={<RefreshIcon />}
-              onClick={handleRefresh}
-            >
-              Refresh
-            </Button>
-            <Button
-              size='small'
-              variant='contained'
-              startIcon={<AddIcon />}
-              onClick={handleOpenCreate}
-            >
-              New organization
-            </Button>
-          </Stack>
-        </Stack>
-
+      <PageLayout
+        width='default'
+        title='Organizations'
+        icon={IconUsers}
+        headerActions={
+          <>
+            <TokenListSearch
+              value={searchInput}
+              onChange={event => setSearchInput(event.target.value)}
+              placeholder='Поиск по названию или ИНН'
+              inputProps={{ 'aria-label': 'Поиск организаций' }}
+              startAdornment={<IconSearch size={14} stroke={1.6} />}
+              sx={{ width: 240 }}
+            />
+            <TokenListCreateButton disableRipple onClick={handleOpenCreate}>
+              <AddRoundedIcon sx={{ fontSize: 16 }} />
+              Новая организация
+            </TokenListCreateButton>
+          </>
+        }
+        fitContent
+      >
         {loadError ? (
-          <Alert severity='error' sx={{ mb: 2 }}>
-            {loadError}
-          </Alert>
+          <AlertSection>
+            <Alert severity='error'>{loadError}</Alert>
+          </AlertSection>
         ) : null}
 
-        {actionError ? (
-          <Alert severity='error' sx={{ mb: 2 }}>
-            {actionError}
-          </Alert>
+        {/* A dialog shows its own request error. */}
+        {actionError && !createOpen && !editOpen ? (
+          <AlertSection>
+            <Alert severity='error'>{actionError}</Alert>
+          </AlertSection>
         ) : null}
 
-        <Paper variant='outlined'>
-          <TableContainer sx={{ overflow: 'visible' }}>
-            <Table size='small' stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    sortDirection={sortBy === 'name' ? sortDirection : false}
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'name'}
-                      direction={sortBy === 'name' ? sortDirection : 'asc'}
-                      onClick={() => handleRequestSort('name')}
-                    >
-                      Name
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell
-                    sortDirection={sortBy === 'inn' ? sortDirection : false}
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'inn'}
-                      direction={sortBy === 'inn' ? sortDirection : 'asc'}
-                      onClick={() => handleRequestSort('inn')}
-                    >
-                      INN
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell
-                    sortDirection={sortBy === 'active' ? sortDirection : false}
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'active'}
-                      direction={sortBy === 'active' ? sortDirection : 'asc'}
-                      onClick={() => handleRequestSort('active')}
-                    >
-                      Active
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell
-                    sortDirection={
-                      sortBy === 'created_at' ? sortDirection : false
-                    }
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'created_at'}
-                      direction={
-                        sortBy === 'created_at' ? sortDirection : 'desc'
-                      }
-                      onClick={() => handleRequestSort('created_at')}
-                    >
-                      Created
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell
-                    sortDirection={
-                      sortBy === 'updated_at' ? sortDirection : false
-                    }
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'updated_at'}
-                      direction={
-                        sortBy === 'updated_at' ? sortDirection : 'desc'
-                      }
-                      onClick={() => handleRequestSort('updated_at')}
-                    >
-                      Updated
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell align='right'>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7}>
-                      <Stack
-                        direction='row'
-                        spacing={1}
-                        alignItems='center'
-                        justifyContent='center'
-                        sx={{ py: 3 }}
-                      >
-                        <CircularProgress size={18} />
-                        <Typography variant='body2' color='text.secondary'>
-                          Загрузка организаций...
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ) : sortedOrganizations.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7}>
-                      <Stack
-                        direction='row'
-                        spacing={1}
-                        alignItems='center'
-                        justifyContent='center'
-                        sx={{ py: 4 }}
-                      >
-                        <ApartmentIcon color='disabled' />
-                        <Typography variant='body2' color='text.secondary'>
-                          Организации не найдены.
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  sortedOrganizations.map(organization => {
-                    const active = organization.is_active ?? true;
-                    const updating = isUpdating(organization.id);
-
-                    return (
-                      <TableRow
-                        hover
-                        key={organization.id ?? organization.name}
-                      >
-                        <TableCell>{organization.name}</TableCell>
-                        <TableCell>{organization.inn || '—'}</TableCell>
-                        <TableCell>{organization.description || '—'}</TableCell>
-                        <TableCell>
-                          <Chip
-                            size='small'
-                            label={active ? 'Active' : 'Inactive'}
-                            color={active ? 'success' : 'default'}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(organization.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(organization.updated_at)}
-                        </TableCell>
-                        <TableCell align='right'>
-                          <Stack
-                            direction='row'
-                            spacing={0.5}
-                            justifyContent='flex-end'
-                          >
-                            <IconButton
-                              size='small'
-                              onClick={() => handleOpenEdit(organization)}
-                              disabled={updating}
-                            >
-                              <EditIcon fontSize='small' />
-                            </IconButton>
-                            <Tooltip
-                              title={
-                                active
-                                  ? 'Deactivate organization'
-                                  : 'Activate organization'
-                              }
-                            >
-                              <span>
-                                <IconButton
-                                  size='small'
-                                  color={active ? 'error' : 'success'}
-                                  onClick={() =>
-                                    void handleToggleActive(organization)
-                                  }
-                                  disabled={updating}
-                                >
-                                  {updating ? (
-                                    <CircularProgress size={16} />
-                                  ) : active ? (
-                                    <BlockIcon fontSize='small' />
-                                  ) : (
-                                    <CheckCircleIcon fontSize='small' />
-                                  )}
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+        <TokenListBox
+          aria-label='Организации'
+          sx={{ flex: `0 1 ${getTokenListBoxHeight(rowsCount)}px` }}
+        >
+          <TokenListScroll sx={{ flex: 1 }}>
+            {showSkeleton ? (
+              SKELETON_ROWS.map(row => (
+                <OrganizationRowSkeleton
+                  key={row.nameWidth}
+                  nameWidth={row.nameWidth}
+                />
+              ))
+            ) : isLoadingList ? null : rowsCount === 0 ? (
+              <TokenListMessage>
+                {hasSearch ? 'Ничего не найдено' : 'Организации не найдены.'}
+              </TokenListMessage>
+            ) : (
+              sortedOrganizations.map(organization => (
+                <OrganizationRow
+                  key={organization.id ?? organization.name}
+                  organization={organization}
+                  isUpdating={isUpdating(organization.id)}
+                  onEdit={handleOpenEdit}
+                  onToggleActive={item => void handleToggleActive(item)}
+                />
+              ))
+            )}
+          </TokenListScroll>
+        </TokenListBox>
       </PageLayout>
 
-      <Dialog
+      <OrganizationDialog
         open={createOpen}
-        onClose={isCreating ? undefined : handleCloseCreate}
-        fullWidth
-        maxWidth='sm'
-      >
-        <DialogTitle>New organization</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ pt: 1 }}>
-            <TextField
-              label='Organization name'
-              value={createForm.name}
-              onChange={event =>
-                setCreateForm(prev => ({ ...prev, name: event.target.value }))
-              }
-              error={Boolean(createErrors.name)}
-              helperText={createErrors.name}
-              autoFocus
-              fullWidth
-            />
-            <TextField
-              label='INN'
-              value={createForm.inn}
-              onChange={event =>
-                setCreateForm(prev => ({ ...prev, inn: event.target.value }))
-              }
-              error={Boolean(createErrors.inn)}
-              helperText={createErrors.inn}
-              fullWidth
-            />
-            <TextField
-              label='Description'
-              value={createForm.description}
-              onChange={event =>
-                setCreateForm(prev => ({
-                  ...prev,
-                  description: event.target.value,
-                }))
-              }
-              multiline
-              minRows={3}
-              fullWidth
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={createForm.is_active}
-                  onChange={(_, checked) =>
-                    setCreateForm(prev => ({ ...prev, is_active: checked }))
-                  }
-                />
-              }
-              label='Organization is active'
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseCreate} disabled={isCreating}>
-            Cancel
-          </Button>
-          <Button
-            variant='contained'
-            onClick={() => void handleSubmitCreate()}
-            disabled={isCreating}
-          >
-            {isCreating ? 'Creating...' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        mode='create'
+        form={createForm}
+        errors={createErrors}
+        error={createOpen ? actionError : null}
+        isSaving={isCreating}
+        onChange={setCreateForm}
+        onSubmit={() => void handleSubmitCreate()}
+        onClose={handleCloseCreate}
+        onExited={handleExitedCreate}
+      />
 
-      <Dialog
-        open={editOrganization != null && editForm != null}
-        onClose={updatingOrganizationId ? undefined : handleCloseEdit}
-        fullWidth
-        maxWidth='sm'
-      >
-        <DialogTitle>Edit organization</DialogTitle>
-        <DialogContent>
-          {editForm ? (
-            <Stack spacing={2} sx={{ pt: 1 }}>
-              <TextField
-                label='Organization name'
-                value={editForm.name}
-                onChange={event =>
-                  setEditForm(prev =>
-                    prev == null ? prev : { ...prev, name: event.target.value }
-                  )
-                }
-                error={Boolean(editErrors.name)}
-                helperText={editErrors.name}
-                autoFocus
-                fullWidth
-              />
-              <TextField
-                label='INN'
-                value={editForm.inn}
-                onChange={event =>
-                  setEditForm(prev =>
-                    prev == null ? prev : { ...prev, inn: event.target.value }
-                  )
-                }
-                error={Boolean(editErrors.inn)}
-                helperText={editErrors.inn}
-                fullWidth
-              />
-              <TextField
-                label='Description'
-                value={editForm.description}
-                onChange={event =>
-                  setEditForm(prev =>
-                    prev == null
-                      ? prev
-                      : { ...prev, description: event.target.value }
-                  )
-                }
-                multiline
-                minRows={3}
-                fullWidth
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={editForm.is_active}
-                    onChange={(_, checked) =>
-                      setEditForm(prev =>
-                        prev == null ? prev : { ...prev, is_active: checked }
-                      )
-                    }
-                  />
-                }
-                label='Organization is active'
-              />
-            </Stack>
-          ) : null}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleCloseEdit}
-            disabled={updatingOrganizationId != null}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant='contained'
-            onClick={() => void handleSubmitEdit()}
-            disabled={updatingOrganizationId != null}
-          >
-            {updatingOrganizationId != null ? 'Saving...' : 'Save'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {editForm ? (
+        <OrganizationDialog
+          open={editOpen}
+          mode='edit'
+          organizationName={editOrganization?.name}
+          form={editForm}
+          errors={editErrors}
+          error={editOpen ? actionError : null}
+          isSaving={updatingOrganizationId != null}
+          onChange={setEditForm}
+          onSubmit={() => void handleSubmitEdit()}
+          onClose={handleCloseEdit}
+          onExited={handleExitedEdit}
+        />
+      ) : null}
     </>
   );
 };

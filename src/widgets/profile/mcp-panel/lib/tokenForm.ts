@@ -1,6 +1,10 @@
 import dayjs, { type Dayjs } from 'dayjs';
 
 import type { McpAccessScopeSchema } from '@/shared/gatewayClient';
+import {
+  isTokenExpiryValid,
+  type TokenExpiryValue,
+} from '@/shared/lib/token/tokenExpiryForm';
 
 import {
   buildResourceScope,
@@ -10,40 +14,16 @@ import {
 
 import 'dayjs/locale/ru';
 
-export type TokenExpiryMode = '30d' | '90d' | '1y' | 'never' | 'date';
-
-export type TokenAccessForm = {
-  expiryMode: TokenExpiryMode;
-  expiryDate: Dayjs | null;
+export type TokenAccessForm = TokenExpiryValue & {
   projectsMode: ResourceScopeMode;
   projectIds: string[];
   connectionsMode: ResourceScopeMode;
   connectionIds: string[];
 };
 
-export const EXPIRY_PRESETS: Array<{
-  value: Exclude<TokenExpiryMode, 'date'>;
-  label: string;
-}> = [
-  { value: '30d', label: '30 дней' },
-  { value: '90d', label: '90 дней' },
-  { value: '1y', label: '1 год' },
-  { value: 'never', label: 'Бессрочно' },
-];
-
 export type ResourceSelection = {
   mode: ResourceScopeMode;
   ids: string[];
-};
-
-export const formatTokenExpiry = (form: TokenAccessForm): string => {
-  if (form.expiryMode === 'date') {
-    return `До ${form.expiryDate?.format('DD.MM.YYYY') ?? ''}`;
-  }
-
-  return (
-    EXPIRY_PRESETS.find(preset => preset.value === form.expiryMode)?.label ?? ''
-  );
 };
 
 export const toggleResourceItem = (
@@ -96,38 +76,13 @@ export const createDefaultTokenAccessForm = (): TokenAccessForm => ({
 export const defaultTokenName = (now: Dayjs = dayjs()): string =>
   `MCP-токен · ${now.locale('ru').format('D MMM').replace('.', '')}`;
 
-export const resolveTokenExpiresAt = (
-  form: TokenAccessForm,
-  now: Dayjs = dayjs()
-): number | null => {
-  switch (form.expiryMode) {
-    case '30d':
-      return now.add(30, 'day').unix();
-    case '90d':
-      return now.add(90, 'day').unix();
-    case '1y':
-      return now.add(1, 'year').unix();
-    case 'date':
-      return form.expiryDate?.unix() ?? null;
-    case 'never':
-      return null;
-  }
-};
-
 export const isTokenAccessFormValid = (
   form: TokenAccessForm,
   now: Dayjs = dayjs()
-): boolean => {
-  const isExpiryValid =
-    form.expiryMode !== 'date' ||
-    (form.expiryDate?.isValid() === true && form.expiryDate.isAfter(now));
-
-  return (
-    isExpiryValid &&
-    isResourceScopeValid(form.projectsMode, form.projectIds) &&
-    isResourceScopeValid(form.connectionsMode, form.connectionIds)
-  );
-};
+): boolean =>
+  isTokenExpiryValid(form, now) &&
+  isResourceScopeValid(form.projectsMode, form.projectIds) &&
+  isResourceScopeValid(form.connectionsMode, form.connectionIds);
 
 export const buildTokenAccessScope = (
   form: TokenAccessForm

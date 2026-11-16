@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { Box, Button, Portal } from '@mui/material';
+import { Box, Portal } from '@mui/material';
 
 import {
   NodeModalStepperExtension,
@@ -21,11 +21,43 @@ import { useNodeMetadata } from '@/features/node/get-node-metadata';
 
 import type { NodeInputValue } from '@/shared/gatewayClient';
 import type { NodeInputValuesMap } from '@/shared/lib/node-input-values';
-import { getControlRadius } from '@/shared/ui/primitives/components/theme-style-helpers';
 
 import { Footer } from './Footer';
 import { FooterStepProgress, type StepVisualState } from './FooterStepProgress';
+import { FooterButton } from './styles';
 import { AnyDict, StepperBeforeFinishHandler } from './types';
+
+const ArrowRightIcon = () => (
+  <svg
+    aria-hidden='true'
+    width='13'
+    height='13'
+    viewBox='0 0 16 16'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth='1.7'
+    strokeLinecap='round'
+    strokeLinejoin='round'
+  >
+    <path d='M3 8h9.5M8.5 4l4 4-4 4' />
+  </svg>
+);
+
+const ArrowLeftIcon = () => (
+  <svg
+    aria-hidden='true'
+    width='13'
+    height='13'
+    viewBox='0 0 16 16'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth='1.7'
+    strokeLinecap='round'
+    strokeLinejoin='round'
+  >
+    <path d='M13 8H3.5M7.5 4L3.5 8l4 4' />
+  </svg>
+);
 
 type ModalStepperRendererProps = Omit<
   NodeModalStepperExtensionProps<AnyDict, any>,
@@ -51,7 +83,19 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
   const { steps } = extension;
   const [activeStep, setActiveStep] = useState(0);
   const [isStepLoading, setIsStepLoading] = useState(false);
-  const [canProceedState, setCanProceedState] = useState(false);
+  const [canProceedState, setCanProceedStateValue] = useState(false);
+  // Skip redundant writes: while the stepper has pending updates React does
+  // not bail out of a same-value setState. The step condition resolves after
+  // `await`, i.e. in a microtask that inherits the discrete priority of the
+  // input event, so a redundant write forces a sync re-render that re-applies
+  // rebased sharedState updaters, re-triggers the condition effect and loops
+  // forever without yielding (Maximum update depth exceeded).
+  const requestedCanProceedRef = React.useRef(false);
+  const setCanProceedState = useCallback((value: boolean) => {
+    if (requestedCanProceedRef.current === value) return;
+    requestedCanProceedRef.current = value;
+    setCanProceedStateValue(value);
+  }, []);
   // Track when we just transitioned to force fresh loading check
   const [justTransitioned, setJustTransitioned] = useState(false);
   const [isFinishingStep, setIsFinishingStep] = useState(false);
@@ -317,7 +361,13 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
     };
 
     void checkCondition();
-  }, [activeStep, props.localInputData, steps, sharedState]);
+  }, [
+    activeStep,
+    props.localInputData,
+    steps,
+    sharedState,
+    setCanProceedState,
+  ]);
 
   const handleNext = useCallback(async () => {
     if (!canProceedState || isFinishingStep) {
@@ -392,12 +442,18 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
 
   const isLastStep = activeStep === steps.length - 1;
   const activeStepConfig = steps[activeStep];
-  const continueButtonLabel = isLastStep
-    ? 'Сохранить'
-    : (activeStepConfig?.getContinueLabel?.(
-        props.localInputData,
-        sharedState
-      ) ?? 'Продолжить →');
+  const customContinueLabel = activeStepConfig?.getContinueLabel?.(
+    props.localInputData,
+    sharedState
+  );
+  const continueButtonLabel = isLastStep ? (
+    (customContinueLabel ?? 'Сохранить')
+  ) : (
+    <>
+      {customContinueLabel ?? 'Продолжить'}
+      <ArrowRightIcon />
+    </>
+  );
   const ActiveStepComponent = activeStepConfig?.component;
   const ActiveLoadingOverlay = activeStepConfig?.loadingOverlay;
   const ActiveFinishOverlay = activeStepConfig?.finishOverlay;
@@ -409,6 +465,27 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
     ) ??
       isFinishingStep)
   );
+  // Оверлей шага (загрузка/результат) может разрешить «Назад» в футере,
+  // например на экране ошибки; иначе кнопка заблокирована, пока он виден.
+  const isOverlayVisible = isFinishOverlayVisible || isStepLoading;
+  const canGoBackFromOverlay =
+    isOverlayVisible &&
+    !isFinishingStep &&
+    Boolean(activeStepConfig?.canGoBackFromOverlay?.(loadingConditionContext));
+  const handleBackClick = () => {
+    if (!canGoBackFromOverlay) {
+      handleBack();
+      return;
+    }
+    if (activeStepConfig?.onBackFromOverlay) {
+      activeStepConfig.onBackFromOverlay(
+        loadingConditionContext,
+        handleGoToPreviousStepFromLoading
+      );
+      return;
+    }
+    handleGoToPreviousStepFromLoading();
+  };
   const hasCreateTableError =
     Boolean(sharedState?.isTableNew) && Boolean(sharedState?.createTableError);
 
@@ -478,6 +555,7 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
               {...props}
               sharedState={sharedState}
               setSharedState={setSharedState}
+              goToStep={handleStepClick}
             />
           )
         )}
@@ -514,24 +592,19 @@ export const NodeModalStepperRenderer: React.FC<ModalStepperRendererProps> = ({
             />
           }
         >
-          <Button
+          <FooterButton
+            type='button'
+            tone='secondary'
             data-testid='widgets/project-editor/node-data-modal/back-button'
-            variant='outlined'
-            color='inherit'
-            onClick={handleBack}
+            onClick={handleBackClick}
             disabled={
-              activeStep === 0 ||
-              isStepLoading ||
-              isFinishingStep ||
-              isFinishOverlayVisible
+              !canGoBackFromOverlay &&
+              (activeStep === 0 || isOverlayVisible || isFinishingStep)
             }
-            sx={{
-              borderRadius: theme => getControlRadius(theme, 'sm'),
-              color: 'text.secondary',
-            }}
           >
-            ← Назад
-          </Button>
+            <ArrowLeftIcon />
+            Назад
+          </FooterButton>
         </Footer>
       </Portal>
     </Box>

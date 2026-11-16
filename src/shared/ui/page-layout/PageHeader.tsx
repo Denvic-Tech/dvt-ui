@@ -44,7 +44,7 @@ export const PageHeader = ({ title, icon: Icon, actions }: PageHeaderProps) => (
         sx={{
           color: '#2A2D3A',
           fontFamily: 'Inter, sans-serif',
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: 500,
           letterSpacing: '-0.01em',
           lineHeight: '20px',

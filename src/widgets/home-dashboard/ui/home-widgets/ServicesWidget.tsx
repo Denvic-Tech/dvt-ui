@@ -6,9 +6,8 @@ import type {
   ServiceStatusItemSchema,
   ServicesWidgetSchema,
 } from '@/shared/gatewayClient';
-
-import { StatusDot, type StatusDotTone } from '../components/StatusDot';
-import { hc, homeMonoFont } from '../styles/tokens';
+import { hc, homeMonoFont } from '@/shared/ui/home-theme/tokens';
+import { StatusDot, type StatusDotTone } from '@/shared/ui/run-ticks/StatusDot';
 
 import { WidgetQueryView } from './WidgetQueryView';
 

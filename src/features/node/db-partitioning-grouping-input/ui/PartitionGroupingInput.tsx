@@ -8,7 +8,11 @@ import {
   Typography,
 } from '@mui/material';
 
-import { MODE_OPTIONS } from '../model/constants';
+import {
+  applyPartitionGroupingParameter,
+  getAvailablePartitionGroupingModes,
+  getInitialPartitionGrouping,
+} from '../model/fields';
 import {
   ColumnBaseType,
   PartitionGrouping,
@@ -70,11 +74,7 @@ export const PartitionGroupingInput: React.FC<PartitionGroupingInputProps> = ({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Filter modes based on column type
-  const availableModes =
-    columnType === 'UNKNOWN'
-      ? MODE_OPTIONS
-      : MODE_OPTIONS.filter(opt => opt.compatibleTypes.includes(columnType));
+  const availableModes = getAvailablePartitionGroupingModes(columnType);
 
   const selectedMode = value?.mode;
   const selectedModeInfo = availableModes.find(
@@ -156,48 +156,7 @@ export const PartitionGroupingInput: React.FC<PartitionGroupingInputProps> = ({
   };
 
   const handleModeSelect = (mode: PartitionGroupingMode) => {
-    // Initialize with only required parameters based on mode
-    const newValue: PartitionGrouping = { mode };
-
-    switch (mode) {
-      case 'range':
-        // No required parameters
-        break;
-      case 'prefix':
-        newValue['length'] = 2;
-        break;
-      case 'explicit_values':
-        // values is required, initialize as empty array
-        newValue['values'] = [];
-        break;
-      case 'quantiles':
-        // k is required
-        newValue['k'] = 4;
-        break;
-      case 'percentiles':
-        // percentiles is required
-        newValue['percentiles'] = [0.1, 0.5, 0.9];
-        break;
-      case 'hash':
-        // buckets is optional
-        break;
-      case 'ranges':
-        // ranges is required
-        newValue['ranges'] = [];
-        break;
-      case 'step':
-        // All parameters are optional for step mode
-        break;
-      case 'granularity':
-        // granularity is required, default to 'day'
-        newValue['granularity'] = 'day';
-        break;
-      case 'as_is':
-        // No parameters
-        break;
-    }
-
-    onChange(newValue);
+    onChange(getInitialPartitionGrouping(mode));
     setIsOpen(false);
   };
 
@@ -208,74 +167,7 @@ export const PartitionGroupingInput: React.FC<PartitionGroupingInputProps> = ({
 
   const handleParameterChange = (key: string, newValue: string) => {
     if (!value) return;
-
-    // If value is empty, remove the parameter (for optional fields)
-    if (newValue === '' || newValue === undefined) {
-      const updated = { ...value };
-      delete updated[key];
-      onChange(updated);
-      return;
-    }
-
-    let parsedValue: string | number | boolean | string[] | number[][] =
-      newValue;
-
-    // Parse based on key and mode
-    if (
-      key === 'length' ||
-      key === 'max_groups' ||
-      key === 'buckets' ||
-      key === 'mod' ||
-      key === 'k' ||
-      key === 'bins'
-    ) {
-      const num = parseInt(newValue, 10);
-      if (isNaN(num)) {
-        // If not a valid number, remove the parameter
-        const updated = { ...value };
-        delete updated[key];
-        onChange(updated);
-        return;
-      }
-      parsedValue = num;
-    } else if (key === 'lower' || key === 'other') {
-      parsedValue = newValue === 'true';
-    } else if (key === 'start' || key === 'step') {
-      // For start, allow string (date) or number
-      if (key === 'start' && isNaN(parseFloat(newValue))) {
-        parsedValue = newValue; // Keep as string (date)
-      } else {
-        const num = parseFloat(newValue);
-        if (isNaN(num)) {
-          const updated = { ...value };
-          delete updated[key];
-          onChange(updated);
-          return;
-        }
-        parsedValue = num;
-      }
-    } else if (
-      key === 'quantiles' ||
-      key === 'percentiles' ||
-      key === 'values'
-    ) {
-      try {
-        parsedValue = JSON.parse(newValue);
-      } catch {
-        parsedValue = newValue;
-      }
-    } else if (key === 'ranges') {
-      try {
-        parsedValue = JSON.parse(newValue);
-      } catch {
-        parsedValue = newValue;
-      }
-    }
-
-    onChange({
-      ...value,
-      [key]: parsedValue,
-    });
+    onChange(applyPartitionGroupingParameter(value, key, newValue));
   };
 
   const renderParameters = () => {

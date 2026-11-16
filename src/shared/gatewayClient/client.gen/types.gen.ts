@@ -1314,6 +1314,18 @@ export type CatalogTablePreviewResponseSchema = {
    * Truncated
    */
   truncated?: boolean;
+  /**
+   * Row Count
+   *
+   * Total number of rows in the table. Null when the source cannot report it without scanning the table (views, missing statistics, unsupported dialect).
+   */
+  row_count?: number | null;
+  /**
+   * Row Count Exact
+   *
+   * False when row_count is a DBMS statistics estimate, not an exact number.
+   */
+  row_count_exact?: boolean;
 };
 
 /**
@@ -4026,6 +4038,20 @@ export type ExceptionCategory =
   | 'CRUD_SUBGRAPH';
 
 /**
+ * ExcludedColumnSchema
+ */
+export type ExcludedColumnSchema = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Reasons
+   */
+  reasons: Array<string>;
+};
+
+/**
  * ExistingConnectionSchema
  */
 export type ExistingConnectionSchema = {
@@ -5289,6 +5315,30 @@ export type GenerateTableDdlResponse = {
 };
 
 /**
+ * GranularityOptionSchema
+ */
+export type GranularityOptionSchema = {
+  /**
+   * Partition Grouping
+   */
+  partition_grouping: {
+    [key: string]: unknown;
+  };
+  /**
+   * Periods Est
+   */
+  periods_est: number;
+  /**
+   * Rows Per Period Est
+   */
+  rows_per_period_est: number;
+  /**
+   * Note
+   */
+  note: string;
+};
+
+/**
  * GraphEdgeUISchema
  */
 export type GraphEdgeUiSchema = {
@@ -6211,6 +6261,68 @@ export type KafkaSecrets = {
    * Sasl Plain Password
    */
   sasl_plain_password?: string | null;
+};
+
+/**
+ * KeyColumnStatsSchema
+ */
+export type KeyColumnStatsSchema = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Type Repr
+   */
+  type_repr: string;
+  /**
+   * Value Kind
+   */
+  value_kind: string;
+  /**
+   * Available
+   */
+  available: boolean;
+  /**
+   * Source
+   */
+  source: 'exact' | 'approximate' | 'catalog' | 'sample' | null;
+  /**
+   * Estimated
+   */
+  estimated: boolean;
+  /**
+   * Distinct Count
+   */
+  distinct_count: number | null;
+  /**
+   * Max Repeat
+   */
+  max_repeat: number | null;
+  /**
+   * Max Repeat Value
+   */
+  max_repeat_value: string | number | number | boolean | null;
+  /**
+   * Null Count
+   */
+  null_count: number | null;
+  /**
+   * Min Value
+   */
+  min_value: string | number | number | boolean | null;
+  /**
+   * Max Value
+   */
+  max_value: string | number | number | boolean | null;
+  /**
+   * Indexed
+   */
+  indexed: boolean;
+  /**
+   * Note
+   */
+  note: string | null;
 };
 
 /**
@@ -8606,6 +8718,187 @@ export type OutputDefinitionModel = {
 };
 
 /**
+ * PartitionRecommendationSchema
+ */
+export type PartitionRecommendationSchema = {
+  /**
+   * Rank
+   */
+  rank: number;
+  /**
+   * Partition Col
+   */
+  partition_col: string;
+  /**
+   * Strategy
+   */
+  strategy: 'range' | 'hash';
+  /**
+   * Partition Grouping
+   */
+  partition_grouping: {
+    [key: string]: unknown;
+  };
+  /**
+   * Npartitions
+   */
+  npartitions: number;
+  /**
+   * Max Rows Per Partition
+   */
+  max_rows_per_partition: number;
+  /**
+   * Value Kind
+   */
+  value_kind: string;
+  /**
+   * Skew
+   */
+  skew: number | null;
+  /**
+   * Estimated
+   */
+  estimated: boolean;
+  /**
+   * Reasons
+   */
+  reasons: Array<string>;
+  /**
+   * Warnings
+   */
+  warnings: Array<string>;
+  granularity_option: GranularityOptionSchema | null;
+};
+
+/**
+ * PartitionSizingSchema
+ */
+export type PartitionSizingSchema = {
+  /**
+   * Total Rows
+   */
+  total_rows: number;
+  /**
+   * Total Rows Estimated
+   */
+  total_rows_estimated: boolean;
+  /**
+   * Bytes Per Row Est
+   */
+  bytes_per_row_est: number;
+  /**
+   * Target Npartitions
+   */
+  target_npartitions: number;
+  /**
+   * Npartitions Source
+   */
+  npartitions_source: 'planner_estimate' | 'request';
+  /**
+   * Target Rows Per Partition
+   */
+  target_rows_per_partition: number;
+  /**
+   * Max Rows Per Partition
+   */
+  max_rows_per_partition: number;
+  /**
+   * Max Rows Per Partition Source
+   */
+  max_rows_per_partition_source: 'planner_default' | 'request';
+  /**
+   * Max Partitions
+   */
+  max_partitions: number;
+};
+
+/**
+ * PartitioningAdviceRequest
+ */
+export type PartitioningAdviceRequest = {
+  /**
+   * Database Name
+   *
+   * Source database; omit for the connection default.
+   */
+  database_name?: string | null;
+  /**
+   * Schema Name
+   *
+   * Source schema (table mode).
+   */
+  schema_name?: string | null;
+  /**
+   * Table Name
+   *
+   * Table to profile; exclusive with sql_code.
+   */
+  table_name?: string | null;
+  /**
+   * Sql Code
+   *
+   * Read-only SELECT/WITH query to profile as ReadQueryFromDBV3 embeds it; exclusive with table_name. Available for PostgreSQL, MySQL, Oracle and ClickHouse.
+   */
+  sql_code?: string | null;
+  /**
+   * Columns
+   *
+   * Candidate partition columns; omit to profile up to candidate_limit scalar columns, sort-key and index-leading columns first.
+   */
+  columns?: Array<string> | null;
+  /**
+   * Read Columns
+   *
+   * Columns the reader selects (its `columns` input), for the row width estimate; omit for all columns.
+   */
+  read_columns?: Array<string> | null;
+  /**
+   * Candidate Limit
+   */
+  candidate_limit?: number;
+  /**
+   * Npartitions
+   *
+   * Planned npartitions; omit for automatic sizing.
+   */
+  npartitions?: number | null;
+  /**
+   * Max Rows Per Partition
+   *
+   * Planned ceiling; omit for the planner default.
+   */
+  max_rows_per_partition?: number | null;
+};
+
+/**
+ * PartitioningAdviceResponse
+ */
+export type PartitioningAdviceResponse = {
+  relation: RelationKeyStatsSchema;
+  /**
+   * Statistics
+   */
+  statistics: Array<KeyColumnStatsSchema>;
+  sizing: PartitionSizingSchema;
+  /**
+   * Recommendations
+   */
+  recommendations: Array<PartitionRecommendationSchema>;
+  /**
+   * Excluded
+   */
+  excluded: Array<ExcludedColumnSchema>;
+  /**
+   * Warnings
+   */
+  warnings: Array<string>;
+  /**
+   * Elapsed Ms
+   */
+  elapsed_ms: number;
+};
+
+/**
  * PipelineExecutionMode
  *
  * Execution mode of a pipeline, independent from task transport/lifecycle.
@@ -10821,6 +11114,60 @@ export type RefreshOutcomeSchema = {
    * Error Kind
    */
   error_kind?: 'not_found' | 'unreachable' | null;
+};
+
+/**
+ * RelationKeyStatsSchema
+ */
+export type RelationKeyStatsSchema = {
+  /**
+   * Mode
+   */
+  mode: 'table' | 'query';
+  /**
+   * Dialect
+   */
+  dialect: string;
+  /**
+   * Relation
+   */
+  relation: string;
+  /**
+   * Total Rows
+   */
+  total_rows: number;
+  /**
+   * Total Rows Estimated
+   */
+  total_rows_estimated: boolean;
+  /**
+   * Bytes Per Row Est
+   */
+  bytes_per_row_est: number;
+  /**
+   * Read Columns
+   */
+  read_columns: Array<string>;
+  /**
+   * Sort Key
+   */
+  sort_key: string | null;
+  /**
+   * Sample Method
+   */
+  sample_method: string | null;
+  /**
+   * Sample Rows
+   */
+  sample_rows: number | null;
+  /**
+   * Sample Threshold Rows
+   */
+  sample_threshold_rows: number;
+  /**
+   * Warnings
+   */
+  warnings: Array<string>;
 };
 
 /**
@@ -15686,7 +16033,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectTransferDomainError
+ * GraphEdgeNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel100 =
   {
@@ -15713,7 +16060,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * EmptyExportSelectionError
+ * SubgraphNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel101 =
   {
@@ -15740,7 +16087,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SecretsPassphraseRequiredError
+ * GraphNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel102 =
   {
@@ -15767,7 +16114,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * WeakPassphraseError
+ * AIMCPHTTPError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel103 =
   {
@@ -15794,7 +16141,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidPassphraseError
+ * ExceptionRegistryNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel104 =
   {
@@ -15821,7 +16168,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * UnsupportedBundleFormatError
+ * ExceptionRegistryValidationError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel105 =
   {
@@ -15848,7 +16195,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidBundleError
+ * ProjectTransferDomainError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel106 =
   {
@@ -15875,7 +16222,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * BundleTooLargeError
+ * EmptyExportSelectionError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel107 =
   {
@@ -15902,7 +16249,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidImportTargetError
+ * SecretsPassphraseRequiredError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel108 =
   {
@@ -15929,7 +16276,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * FolderDepthExceededError
+ * WeakPassphraseError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel109 =
   {
@@ -15983,7 +16330,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidConnectionDecisionError
+ * InvalidPassphraseError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel110 =
   {
@@ -16010,7 +16357,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ConnectionNotFound
+ * UnsupportedBundleFormatError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel111 =
   {
@@ -16037,7 +16384,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * GraphNodeNotFoundException
+ * InvalidBundleError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel112 =
   {
@@ -16064,7 +16411,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * GraphEdgeNotFoundException
+ * BundleTooLargeError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel113 =
   {
@@ -16091,7 +16438,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * SubgraphNotFoundException
+ * InvalidImportTargetError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel114 =
   {
@@ -16118,7 +16465,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * GraphNotFoundException
+ * FolderDepthExceededError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel115 =
   {
@@ -16145,7 +16492,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ProjectTransferFlowError
+ * InvalidConnectionDecisionError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel116 =
   {
@@ -16172,7 +16519,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ExportSelectionNotFoundError
+ * ProjectTransferFlowError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel117 =
   {
@@ -16199,7 +16546,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ImportTargetNotFoundError
+ * ExportSelectionNotFoundError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel118 =
   {
@@ -16226,7 +16573,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * TaskExecutionFlowError
+ * ImportTargetNotFoundError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel119 =
   {
@@ -16280,7 +16627,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidReconciliationTerminationReason
+ * TaskExecutionFlowError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120 =
   {
@@ -16307,7 +16654,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidPendingExecutionFailureReason
+ * InvalidReconciliationTerminationReason
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121 =
   {
@@ -16334,7 +16681,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * QueueTopicNotFoundException
+ * InvalidPendingExecutionFailureReason
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122 =
   {
@@ -16361,7 +16708,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * QueueTopicAlreadyExistsException
+ * QueueTopicNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123 =
   {
@@ -16388,7 +16735,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * AIMCPHTTPError
+ * QueueTopicAlreadyExistsException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124 =
   {
@@ -18899,7 +19246,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ExceptionRegistryNotFound
+ * ConnectionNotFound
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel98 =
   {
@@ -18926,7 +19273,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * ExceptionRegistryValidationError
+ * GraphNodeNotFoundException
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel99 =
   {
@@ -22510,6 +22857,41 @@ export type RefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostResponses =
 
 export type RefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostResponse =
   RefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostResponses[keyof RefreshCatalogDbConnectionsConnectionIdCatalogRefreshPostResponses];
+
+export type GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostData =
+  {
+    body: PartitioningAdviceRequest;
+    path: {
+      /**
+       * Connection Id
+       */
+      connection_id: string;
+    };
+    query?: never;
+    url: '/db-connections/{connection_id}/partitioning-advice';
+  };
+
+export type GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostErrors =
+  {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+  };
+
+export type GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostError =
+  GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostErrors[keyof GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostErrors];
+
+export type GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses =
+  {
+    /**
+     * Successful Response
+     */
+    200: PartitioningAdviceResponse;
+  };
+
+export type GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponse =
+  GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses[keyof GetPartitioningAdviceDbConnectionsConnectionIdPartitioningAdvicePostResponses];
 
 export type SearchDatasetsDataCatalogDatasetsGetData = {
   body?: never;

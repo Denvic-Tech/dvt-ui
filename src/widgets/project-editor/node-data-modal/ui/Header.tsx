@@ -1,34 +1,61 @@
 import React, { useRef, useState } from 'react';
-import CloseIcon from '@mui/icons-material/Close';
-import NorthEastRoundedIcon from '@mui/icons-material/NorthEastRounded';
-import StorageIcon from '@mui/icons-material/Storage';
-import { useTheme } from '@mui/material/styles';
+
+import { NodeIcon } from '@/shared/ui/node-icon/NodeIcon';
 
 import {
-  CloseButton,
-  HeaderActions,
-  HeaderLeft,
+  HeaderDivider,
+  HeaderIconButton,
+  HeaderNodeIcon,
   HeaderRoot,
-  IconWrapper,
-  Subtitle,
-  SubtitleLinkButton,
-  SubtitleRow,
+  HeaderSecondary,
+  HeaderSpacer,
   TitleInput,
   TitleInputWrapper,
   TitleRow,
-  TitleSection,
   TitleText,
-} from './styles.ts';
+} from './styles';
 
 type Props = {
   documentationLinkLabel?: string;
   onOpenDocumentation?: (() => void) | null;
   title: string;
+  /** Тип ноды или статус; показывается серым, только если отличается от названия. */
   subtitle: string;
+  iconKey?: string | null | undefined;
   commentTrigger?: React.ReactNode;
   onClose: () => void;
   onChangeTitle: (v: string) => void;
 };
+
+const DocumentationIcon = () => (
+  <svg
+    aria-hidden='true'
+    width={16}
+    height={16}
+    viewBox='0 0 16 16'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth={1.5}
+    strokeLinejoin='round'
+  >
+    <path d='M8 4.2C6.8 3.3 5 3 2.5 3v9.5c2.5 0 4.3.3 5.5 1.2 1.2-.9 3-1.2 5.5-1.2V3C11 3 9.2 3.3 8 4.2zM8 4.2v9.5' />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg
+    aria-hidden='true'
+    width={14}
+    height={14}
+    viewBox='0 0 16 16'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth={1.7}
+    strokeLinecap='round'
+  >
+    <path d='M4 4l8 8M12 4l-8 8' />
+  </svg>
+);
 
 const getCursorPositionFromClick = (
   element: HTMLElement,
@@ -59,15 +86,17 @@ export const Header: React.FC<Props> = ({
   onOpenDocumentation,
   title,
   subtitle,
+  iconKey,
   commentTrigger,
   onClose,
   onChangeTitle,
 }) => {
-  const theme = useTheme();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const titleInputRef = useRef<HTMLInputElement>(null);
   const cursorPositionRef = useRef(0);
+  const displayTitle = title || 'Node Editor';
+  const secondary = subtitle && subtitle !== displayTitle ? subtitle : null;
 
   const startEdit = (event: React.MouseEvent<HTMLButtonElement>) => {
     const nextTitle = title || '';
@@ -108,63 +137,61 @@ export const Header: React.FC<Props> = ({
 
   return (
     <HeaderRoot>
-      <HeaderLeft>
-        <IconWrapper>
-          <StorageIcon
-            sx={{
-              color: theme.palette.primary.main,
-              fontSize: 22,
-            }}
-          />
-        </IconWrapper>
+      <HeaderNodeIcon>
+        <NodeIcon iconKey={iconKey} size={16} />
+      </HeaderNodeIcon>
 
-        <TitleSection>
-          <TitleRow>
-            <TitleText
-              type='button'
-              onClick={startEdit}
-              aria-label='Переименовать ноду'
-              aria-hidden={isEditingTitle}
-              tabIndex={isEditingTitle ? -1 : 0}
-              sx={{ visibility: isEditingTitle ? 'hidden' : 'visible' }}
-            >
-              {title || 'Node Editor'}
-            </TitleText>
-            {isEditingTitle ? (
-              <TitleInputWrapper data-value={editedTitle || ' '}>
-                <TitleInput
-                  ref={titleInputRef}
-                  value={editedTitle}
-                  onChange={e => setEditedTitle(e.target.value)}
-                  onKeyDown={onKeyDown}
-                  onBlur={save}
-                />
-              </TitleInputWrapper>
-            ) : null}
-          </TitleRow>
+      <TitleRow>
+        <TitleText
+          type='button'
+          onClick={startEdit}
+          aria-label='Переименовать ноду'
+          aria-hidden={isEditingTitle}
+          tabIndex={isEditingTitle ? -1 : 0}
+          title={displayTitle}
+          style={{ visibility: isEditingTitle ? 'hidden' : 'visible' }}
+        >
+          {displayTitle}
+        </TitleText>
+        {isEditingTitle ? (
+          <TitleInputWrapper data-value={editedTitle || ' '}>
+            <TitleInput
+              ref={titleInputRef}
+              value={editedTitle}
+              onChange={e => setEditedTitle(e.target.value)}
+              onKeyDown={onKeyDown}
+              onBlur={save}
+              aria-label='Название ноды'
+            />
+          </TitleInputWrapper>
+        ) : null}
+      </TitleRow>
+      {secondary ? (
+        <HeaderSecondary title={secondary}>{secondary}</HeaderSecondary>
+      ) : null}
 
-          <SubtitleRow>
-            <Subtitle>{subtitle}</Subtitle>
-            {onOpenDocumentation ? (
-              <SubtitleLinkButton
-                type='button'
-                onClick={onOpenDocumentation}
-                aria-label={documentationLinkLabel}
-              >
-                {documentationLinkLabel}
-                <NorthEastRoundedIcon sx={{ fontSize: 14 }} />
-              </SubtitleLinkButton>
-            ) : null}
-          </SubtitleRow>
-        </TitleSection>
-      </HeaderLeft>
+      <HeaderSpacer />
 
-      <HeaderActions>
-        {commentTrigger ?? null}
-        <CloseButton onClick={onClose}>
-          <CloseIcon sx={{ fontSize: 20 }} />
-        </CloseButton>
-      </HeaderActions>
+      {onOpenDocumentation ? (
+        <HeaderIconButton
+          type='button'
+          onClick={onOpenDocumentation}
+          aria-label={documentationLinkLabel}
+          title={documentationLinkLabel}
+        >
+          <DocumentationIcon />
+        </HeaderIconButton>
+      ) : null}
+      {commentTrigger ?? null}
+      <HeaderDivider aria-hidden='true' />
+      <HeaderIconButton
+        type='button'
+        onClick={onClose}
+        aria-label='Закрыть'
+        title='Закрыть'
+      >
+        <CloseIcon />
+      </HeaderIconButton>
     </HeaderRoot>
   );
 };

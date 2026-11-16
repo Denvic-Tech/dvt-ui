@@ -1,5 +1,4 @@
-import { Dialog } from '@mui/material';
-import { keyframes, styled } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
 
 // Цветовая палитра из CleanMinimalDesignSystem.md
 export const colors = {
@@ -23,36 +22,6 @@ export const colors = {
   blue700: '#1d4ed8',
 };
 
-// Основной контейнер теперь всегда на всю ширину
-export const Header = styled('div')(() => ({
-  padding: '16px 20px',
-  borderBottom: `1px solid ${colors.gray100}`,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-}));
-
-export const HeaderTitle = styled('h2')(() => ({
-  margin: 0,
-  fontSize: 14,
-  fontWeight: 600,
-  color: colors.gray800,
-}));
-
-export const Content = styled('div')(() => ({
-  padding: 16,
-  flex: 1,
-}));
-
-export const Footer = styled('div')(() => ({
-  padding: '12px 16px',
-  borderTop: `1px solid ${colors.gray100}`,
-  backgroundColor: 'rgba(249, 250, 251, 0.5)',
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: 8,
-}));
-
 export const Section = styled('div')(() => ({
   padding: 16,
   backgroundColor: colors.gray50,
@@ -73,35 +42,6 @@ export const IconWrapper = styled('div')<{ variant?: 'default' | 'primary' }>(
     flexShrink: 0,
   })
 );
-
-export const PrimaryButton = styled('button')(() => ({
-  padding: '8px 16px',
-  fontSize: 13,
-  fontWeight: 500,
-  color: colors.white,
-  backgroundColor: colors.indigo500,
-  border: 'none',
-  borderRadius: 10,
-  cursor: 'pointer',
-  transition: 'background-color 150ms ease',
-  '&:hover': { backgroundColor: colors.indigo600 },
-  '&:disabled': { backgroundColor: colors.gray200, cursor: 'not-allowed' },
-}));
-
-export const IconButton = styled('button')(() => ({
-  width: 32,
-  height: 32,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: 'transparent',
-  border: 'none',
-  borderRadius: 8,
-  color: colors.gray400,
-  cursor: 'pointer',
-  transition: 'all 150ms ease',
-  '&:hover': { backgroundColor: colors.gray100, color: colors.gray700 },
-}));
 
 export const Label = styled('label')(() => ({
   display: 'block',
@@ -189,17 +129,6 @@ export const RetryHelpIcon = styled('span')(() => ({
     color: colors.gray700,
   },
 }));
-
-export const Badge = styled('span')<{ variant?: 'info' | 'warning' }>(
-  ({ variant = 'info' }) => ({
-    padding: '2px 8px',
-    fontSize: 10,
-    fontWeight: 600,
-    borderRadius: 6,
-    backgroundColor: variant === 'info' ? colors.blue100 : colors.amber100,
-    color: variant === 'info' ? colors.blue700 : colors.amber500,
-  })
-);
 
 export const Pill = styled('span')(() => ({
   borderRadius: 9999,
@@ -302,36 +231,6 @@ export const TimeInputGroup = styled('div')(() => ({
   gap: 8,
 }));
 
-export const CreateActionButton = styled('button')(() => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  padding: '10px 16px',
-  backgroundColor: '#6366f1',
-  border: 'none',
-  borderRadius: 12,
-  fontSize: 14,
-  fontWeight: 500,
-  lineHeight: 1.2,
-  color: '#ffffff',
-  cursor: 'pointer',
-  transition: 'all 150ms ease',
-  '&:hover': {
-    backgroundColor: '#4f46e5',
-  },
-  '&:disabled': {
-    backgroundColor: '#d1d5db',
-    color: '#f9fafb',
-    cursor: 'not-allowed',
-  },
-}));
-
-export const ScheduleList = styled('div')(() => ({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 8,
-}));
-
 export const SchedulerWarning = styled('div')(() => ({
   display: 'flex',
   flexDirection: 'column',
@@ -353,112 +252,6 @@ export const SchedulerWarningText = styled('div')(() => ({
   fontSize: 13,
   lineHeight: 1.5,
   color: '#7f1d1d',
-}));
-
-export const ScheduleCard = styled('div')<{ disabled?: boolean }>(() => ({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 0,
-  padding: '14px 16px',
-  borderRadius: 14,
-  backgroundColor: '#ffffff',
-  border: '1px solid #e5e7eb',
-  transition: 'all 150ms ease',
-}));
-
-export const ScheduleTopRow = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 14,
-  '@media (max-width: 720px)': {
-    alignItems: 'flex-start',
-    flexWrap: 'wrap',
-  },
-}));
-
-export const CalendarIconBox = styled('div')<{ active?: boolean }>(
-  ({ active }) => ({
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: active ? '#eef2ff' : '#f3f4f6',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  })
-);
-
-export const InfoBlock = styled('div')(() => ({
-  flex: 1,
-  minWidth: 0,
-}));
-
-export const NameRow = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  marginBottom: 4,
-  minWidth: 0,
-  flexWrap: 'wrap',
-}));
-
-export const ScheduleName = styled('span')(() => ({
-  fontSize: 14,
-  fontWeight: 600,
-  color: '#111827',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-}));
-
-export const ModePill = styled('span')(() => ({
-  padding: '2px 8px',
-  borderRadius: 6,
-  fontSize: 10,
-  fontWeight: 500,
-  color: '#6366f1',
-  backgroundColor: '#eef2ff',
-  textTransform: 'lowercase',
-}));
-
-export const MetaRow = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 10,
-  flexWrap: 'wrap',
-}));
-
-export const CronText = styled('span')(() => ({
-  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-  fontSize: 12,
-  color: '#6b7280',
-}));
-
-export const InlineDivider = styled('span')(() => ({
-  width: 1,
-  height: 12,
-  backgroundColor: '#e5e7eb',
-}));
-
-export const NextRunText = styled('span')<{ active?: boolean }>(
-  ({ active }) => ({
-    fontSize: 11,
-    fontWeight: 500,
-    color: active ? '#10b981' : '#9ca3af',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    minWidth: 0,
-    whiteSpace: 'nowrap',
-  })
-);
-
-export const NextRunValue = styled('span')(() => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-  whiteSpace: 'nowrap',
 }));
 
 export const ToggleTrack = styled('button')<{ enabled?: boolean }>(
@@ -489,313 +282,6 @@ export const ToggleThumb = styled('span')<{ enabled?: boolean }>(
     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)',
   })
 );
-
-export const ActionsDivider = styled('div')(() => ({
-  width: 1,
-  height: 28,
-  backgroundColor: '#e5e7eb',
-  flexShrink: 0,
-}));
-
-export const ActionsRow = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 2,
-}));
-
-export const ScheduleActionButton = styled('button')<{ danger?: boolean }>(
-  ({ danger }) => ({
-    padding: 6,
-    borderRadius: 8,
-    border: 'none',
-    backgroundColor: 'transparent',
-    cursor: 'pointer',
-    display: 'flex',
-    transition: 'all 150ms ease',
-    '&:hover': {
-      backgroundColor: danger ? '#fef2f2' : '#f3f4f6',
-    },
-  })
-);
-
-export const ActionsGroup = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 12,
-  marginLeft: 'auto',
-  '@media (max-width: 720px)': {
-    width: '100%',
-    justifyContent: 'flex-end',
-  },
-}));
-
-export const ScheduleBottomRow = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 12,
-  paddingTop: 12,
-  marginTop: 12,
-  borderTop: '1px dashed #f3f4f6',
-  minWidth: 0,
-  '@media (max-width: 720px)': {
-    justifyContent: 'flex-end',
-  },
-}));
-
-export const HistorySection = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 12,
-  minWidth: 0,
-  flex: 1,
-  '@media (max-width: 720px)': {
-    display: 'none',
-  },
-}));
-
-export const HistoryLabel = styled('span')(() => ({
-  fontSize: 11,
-  fontWeight: 600,
-  color: '#9ca3af',
-  textTransform: 'uppercase',
-  letterSpacing: 0.4,
-  flexShrink: 0,
-}));
-
-export const RunCirclesViewport = styled('div')(() => ({
-  flex: 1,
-  minWidth: 0,
-  overflow: 'hidden',
-}));
-
-export const RunCirclesRow = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 6,
-  minWidth: 'max-content',
-}));
-
-const pulse = keyframes({
-  '0%, 100%': {
-    opacity: 1,
-  },
-  '50%': {
-    opacity: 0.6,
-  },
-});
-
-export const RunCircleButton = styled('button', {
-  shouldForwardProp: prop =>
-    !['statusColor', 'statusColorHover', 'isRunning'].includes(prop as string),
-})<{
-  statusColor: string;
-  statusColorHover: string;
-  isRunning?: boolean;
-}>(({ statusColor, statusColorHover, isRunning }) => ({
-  width: 22,
-  height: 22,
-  borderRadius: '50%',
-  backgroundColor: statusColor,
-  border: 'none',
-  color: '#ffffff',
-  fontSize: 10,
-  fontWeight: 700,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-  transition: 'all 150ms ease',
-  position: 'relative',
-  fontFamily: 'inherit',
-  padding: 0,
-  animation: isRunning ? `${pulse} 1.5s ease-in-out infinite` : 'none',
-  '&:hover': {
-    backgroundColor: statusColorHover,
-  },
-}));
-
-export const LastRunInfoBlock = styled('div')(() => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  fontSize: 12,
-  color: '#6b7280',
-  marginLeft: 'auto',
-  minWidth: 0,
-  whiteSpace: 'nowrap',
-  '@media (max-width: 720px)': {
-    marginLeft: 0,
-    width: '100%',
-    justifyContent: 'flex-end',
-  },
-}));
-
-export const StatusDot = styled('span', {
-  shouldForwardProp: prop => prop !== 'statusColor',
-})<{
-  statusColor: string;
-}>(({ statusColor }) => ({
-  width: 6,
-  height: 6,
-  borderRadius: '50%',
-  backgroundColor: statusColor,
-  flexShrink: 0,
-}));
-
-export const LastRunDuration = styled('span')(() => ({
-  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-}));
-
-export const LastRunSeparator = styled('span')(() => ({
-  color: '#d1d5db',
-}));
-
-export const NoRunsHint = styled('span')(() => ({
-  fontSize: 12,
-  color: '#9ca3af',
-  marginLeft: 'auto',
-}));
-
-export const RunDetailsDialog = styled(Dialog)(() => ({
-  '& .MuiDialog-paper': {
-    width: '100%',
-    maxWidth: 480,
-    borderRadius: 16,
-    backgroundColor: '#ffffff',
-    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.15)',
-    overflow: 'hidden',
-    margin: 20,
-  },
-  '& .MuiBackdrop-root': {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    backdropFilter: 'blur(4px)',
-  },
-}));
-
-export const RunDetailsHeader = styled('div')(() => ({
-  padding: '16px 20px',
-  borderBottom: '1px solid #f3f4f6',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 12,
-}));
-
-export const RunDetailsHeaderMeta = styled('div')(() => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 10,
-  minWidth: 0,
-}));
-
-export const RunDetailsStatusBadge = styled('span', {
-  shouldForwardProp: prop => prop !== 'statusColor',
-})<{
-  statusColor: string;
-}>(({ statusColor }) => ({
-  padding: '4px 10px',
-  backgroundColor: statusColor,
-  color: '#ffffff',
-  borderRadius: 8,
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: 0.4,
-  textTransform: 'uppercase',
-  border: 'none',
-  flexShrink: 0,
-}));
-
-export const RunDetailsCount = styled('span')(() => ({
-  fontSize: 13,
-  color: '#6b7280',
-  fontWeight: 500,
-}));
-
-export const RunDetailsBody = styled('div')(() => ({
-  maxHeight: 400,
-  overflowY: 'auto',
-  padding: 12,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 8,
-}));
-
-export const RunCard = styled('div')(() => ({
-  padding: 12,
-  backgroundColor: '#f9fafb',
-  border: '1px solid #f3f4f6',
-  borderRadius: 12,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 6,
-}));
-
-export const RunCardTopRow = styled('div')(() => ({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: 8,
-}));
-
-export const RunTaskId = styled('span')(() => ({
-  fontSize: 11,
-  fontWeight: 600,
-  color: '#6b7280',
-  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-}));
-
-export const RunDuration = styled('span')(() => ({
-  fontSize: 11,
-  color: '#059669',
-  fontWeight: 600,
-  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-  flexShrink: 0,
-}));
-
-export const RunTimeGrid = styled('div')(() => ({
-  display: 'flex',
-  gap: 12,
-  fontSize: 11,
-  color: '#6b7280',
-  flexWrap: 'wrap',
-}));
-
-export const RunTimeBlock = styled('div')(() => ({
-  '& > .label': {
-    color: '#9ca3af',
-    marginBottom: 2,
-  },
-  '& > .value': {
-    color: '#111827',
-    fontWeight: 500,
-  },
-}));
-
-export const RunErrorBlock = styled('div')(() => ({
-  marginTop: 4,
-  padding: 8,
-  backgroundColor: '#fef2f2',
-  border: '1px solid #fecaca',
-  borderRadius: 8,
-  fontSize: 11,
-  color: '#dc2626',
-  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-  lineHeight: 1.5,
-  wordBreak: 'break-word',
-}));
-
-export const RunReasonText = styled('div')(() => ({
-  fontSize: 11,
-  color: '#9ca3af',
-  '& > .value': {
-    color: '#6b7280',
-    fontWeight: 500,
-  },
-}));
 
 export const ProjectSelectButton = styled('button')<{ disabled?: boolean }>(
   ({ disabled }) => ({
@@ -931,3 +417,110 @@ export const ProjectAuthorBadge = styled('span')(() => ({
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
 }));
+
+const ROW_DIVIDER = '1px solid #EEF0F4';
+
+// A schedule row in the token-list box: 48px, no hover background.
+export const ScheduleRowRoot = styled('div')({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 16,
+  boxSizing: 'border-box',
+  height: 48,
+  flexShrink: 0,
+  padding: '0 8px 0 14px',
+  borderBottom: ROW_DIVIDER,
+  backgroundColor: '#fff',
+  '&:last-of-type': { borderBottom: 'none' },
+});
+
+export const ScheduleSwitch = styled('button', {
+  shouldForwardProp: prop => prop !== 'checked',
+})<{ checked: boolean }>(({ checked }) => ({
+  position: 'relative',
+  width: 26,
+  height: 16,
+  flex: 'none',
+  padding: 0,
+  border: 'none',
+  borderRadius: 8,
+  backgroundColor: checked ? '#5B5BEF' : '#DCE1EA',
+  cursor: 'pointer',
+  transition: 'background-color 180ms ease, opacity 180ms ease',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    width: 12,
+    height: 12,
+    borderRadius: '50%',
+    backgroundColor: '#fff',
+    boxShadow: '0 1px 2px rgba(20, 24, 40, 0.18)',
+    transform: checked ? 'translateX(10px)' : 'none',
+    transition: 'transform 180ms cubic-bezier(.3, .7, .2, 1)',
+  },
+  '&:focus-visible': { outline: 'none', boxShadow: '0 0 0 3px #EEF0FF' },
+  '&:disabled': { opacity: 0.5, cursor: 'default' },
+}));
+
+export const ScheduleNameCell = styled('div')({
+  flex: 1,
+  minWidth: 0,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  whiteSpace: 'nowrap',
+});
+
+export const ScheduleName = styled('span', {
+  shouldForwardProp: prop => prop !== 'enabled',
+})<{ enabled: boolean }>(({ enabled }) => ({
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  color: enabled ? '#1B1F2A' : '#4A5161',
+  fontFamily:
+    'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontSize: 13,
+  fontWeight: 400,
+}));
+
+export const ScheduleCron = styled('span')({
+  width: 120,
+  flex: 'none',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  color: '#4A5161',
+  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+  fontSize: 12.5,
+  fontWeight: 500,
+});
+
+export const ScheduleNextRun = styled('span', {
+  shouldForwardProp: prop => prop !== 'muted',
+})<{ muted: boolean }>(({ muted }) => ({
+  width: 150,
+  flex: 'none',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  color: muted ? '#9AA0AD' : '#1B1F2A',
+  fontSize: 13,
+}));
+
+export const ScheduleHistory = styled('div')({
+  width: 96,
+  height: 16,
+  flex: 'none',
+  display: 'flex',
+  alignItems: 'center',
+});
+
+export const ScheduleNoRuns = styled('span')({
+  color: '#9AA0AD',
+  fontSize: 12.5,
+  whiteSpace: 'nowrap',
+});

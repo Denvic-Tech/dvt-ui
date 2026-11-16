@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { useAppDispatch, useAppSelector } from '@/app/providers/store';
+import { useAppDispatch, useAppSelector } from '@/app/providers/store/hooks';
 
 import {
   selectOrganizations,

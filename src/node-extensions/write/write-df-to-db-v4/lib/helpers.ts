@@ -5,6 +5,7 @@
 } from '@/app/providers/node-extensions';
 
 import {
+  getDbCatalogCapabilities,
   getDbCatalogConnectionId,
   requireDbConnectionId,
 } from '@/entities/data/db-connection/model/catalogNormalizers';
@@ -32,14 +33,13 @@ import {
 import {
   buildDbMetadataTableLabel,
   findDbMetadataTable,
-  isDialectSupportsDatabases,
-  isDialectSupportsSchemas,
 } from '@/shared/lib/db-metadata';
 import { ApiError } from '@/shared/lib/errors';
 import { isExpressionValue } from '@/shared/lib/node-input-values';
 
 import {
   buildCatalogDescriptionPatch,
+  buildEmptyDbCommentFills,
   type CatalogDescriptions,
 } from './catalogDescriptions';
 import type { ColumnDescriptionPatch } from './catalogDescriptions.types';
@@ -49,13 +49,43 @@ import {
   mergeCommentActions,
 } from './columnComments';
 
-export const getPendingColumnActions = (
+/**
+ * Комментарии существующих колонок к записи в БД: правки пользователя поверх
+ * комментариев DF, подставленных в колонки с пустым комментарием в БД.
+ */
+export const getEffectiveDbCommentOverrides = (
   state?: ExtensionState
+): CommentOverrides => {
+  // У новой таблицы строки согласования (`typed_create`) описывают будущие
+  // колонки: комментарии DF уходят в CREATE TABLE, а не в DDL-действия.
+  if (state?.isTableNew) return { ...state.dbCommentOverrides };
+  const metadataComments: Record<string, string | null | undefined> = {};
+  for (const column of state?.inputDataframeMetadata?.columns ?? []) {
+    metadataComments[column.name] = column.comment;
+  }
+  return {
+    ...buildEmptyDbCommentFills({
+      rows: state?.resolvedColumnRows,
+      catalog: state?.catalogDescriptions,
+      metadataComments,
+    }),
+    ...state?.dbCommentOverrides,
+  };
+};
+
+export const getPendingColumnActions = (
+  state?: ExtensionState,
+  {
+    // false — только правки пользователя, без подставленных комментариев DF.
+    includeCommentFills = true,
+  }: { includeCommentFills?: boolean } = {}
 ): TableColumnActionInput[] => {
   const actions = mergeCommentActions(
     state?.selectedColumnActions ?? [],
     state?.resolvedColumnRows ?? [],
-    state?.dbCommentOverrides,
+    includeCommentFills
+      ? getEffectiveDbCommentOverrides(state)
+      : state?.dbCommentOverrides,
     state?.typedCommentOverrides,
     state?.columnCommentsSupported !== false
   );
@@ -192,8 +222,8 @@ export type WriteDataFrameToDBValues = {
   table_name?: WriteDataFrameToDBSelectorValue;
   database_name?: WriteDataFrameToDBSelectorValue;
   schema_name?: WriteDataFrameToDBSelectorValue;
-  chunksize?: number | null;
-  min_batch_rows?: number | null;
+  /** Строк в пакете записи; пусто — бэкенд подбирает размер сам. */
+  rows_per_batch?: number | null;
   write_mode?: string | null;
   upsert_config?: UpsertConfig | null;
   use_clickhouse_connect_driver?: boolean | null;
@@ -552,11 +582,13 @@ export const getSelectorCollapsedValue = (
   return isExpressionValue(value) ? 'Expression' : fallback;
 };
 
+// Уровни берутся из каталога, как в дереве шага 1: у lazy-каталога MySQL —
+// база без схем, а не схема по старой таблице диалектов.
 export const supportsSchemas = (inputMetadata: DBMetadata | null) =>
-  Boolean(inputMetadata && isDialectSupportsSchemas(inputMetadata.dialect));
+  getDbCatalogCapabilities(inputMetadata).supportsSchemas;
 
 export const supportsDatabaseSelection = (inputMetadata: DBMetadata | null) =>
-  Boolean(inputMetadata && isDialectSupportsDatabases(inputMetadata.dialect));
+  getDbCatalogCapabilities(inputMetadata).supportsDatabases;
 
 export const buildSelectedWriteTargetLabel = (
   inputData?: WriteDataFrameToDBValues | null
@@ -2250,6 +2282,21 @@ const createTableFromTypedSpec = async (args: {
   context.sharedState?.invalidateCatalog?.();
 
   return 'Таблица успешно создана из Typed table spec.';
+};
+
+/**
+ * «Проверьте настройки» и «Назад» на экране ошибки создания таблицы. Таблицу
+ * создаёт «Сохранить» последнего шага, поэтому возвращаемся к его форме:
+ * экран ошибки держится, пока ошибка есть в состоянии, а параметры живут
+ * в данных модалки.
+ */
+export const dismissCreateTableError = (
+  context: Pick<
+    StepLoadingConditionContext<WriteDataFrameToDBValues, ExtensionState>,
+    'setSharedState'
+  >
+): void => {
+  context.setSharedState(prev => ({ ...(prev ?? {}), createTableError: null }));
 };
 
 export const createTableBeforeFinish = async (

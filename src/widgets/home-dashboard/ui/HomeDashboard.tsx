@@ -10,6 +10,11 @@ import { normalizeRole, useCurrentUser } from '@/entities/user';
 
 import type { ProjectCreateSchema } from '@/shared/gatewayClient';
 import { isApiError } from '@/shared/lib/errors';
+import {
+  getHomeCssVars,
+  hc,
+  homeSectionTitleSx,
+} from '@/shared/ui/home-theme/tokens';
 
 import type { HomeProject } from '../model/types';
 import { useFavoriteProjects } from '../model/useFavoriteProjects';
@@ -25,7 +30,6 @@ import {
   rankHomeSections,
 } from './config/sections';
 import { HomeWidgetsSection } from './home-widgets/HomeWidgetsSection';
-import { getHomeCssVars, hc, homeSectionTitleSx } from './styles/tokens';
 
 export const HomeDashboard = () => {
   const theme = useTheme();

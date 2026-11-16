@@ -144,10 +144,6 @@ export const buildEditUserPayload = (
     payload.organization_id = form.organization_id;
   }
 
-  if (form.is_verified !== (user.is_verified ?? false)) {
-    payload.is_verified = form.is_verified;
-  }
-
   return payload;
 };
 
@@ -159,7 +155,6 @@ export const getInitialEditForm = (
   password: '',
   role: normalizeRole(user.role) ?? '',
   organization_id: user.organization_id,
-  is_verified: user.is_verified ?? false,
 });
 
 export const getNextSortState = (

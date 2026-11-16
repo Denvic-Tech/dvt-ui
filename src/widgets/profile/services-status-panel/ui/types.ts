@@ -1,24 +1,11 @@
-import type {
-  SystemInfo,
-  WorkerStatus,
-  WorkerSystemInfo,
-} from '@/shared/gatewayClient';
+import type { SystemInfo, WorkerSystemInfo } from '@/shared/gatewayClient';
 
-export type ServiceStatusRowStatus = 'online' | 'offline';
-
-export interface ServiceStatusRowItem {
+export interface ServiceRowItem {
   key: string;
-  title: string;
+  name: string;
+  // Last known metrics; null when the service never answered.
   data: SystemInfo | WorkerSystemInfo | null;
-  hasRunningTask: boolean;
-  isWorker: boolean;
-  offlineSince?: number | null | undefined;
-  status: ServiceStatusRowStatus;
-  workerStatus?: WorkerStatus | undefined;
+  isAvailable: boolean;
+  // Time of the last answer of an unavailable service, ms.
+  lastResponseAt: number | null;
 }
-
-export const isWorkerSystemInfo = (
-  value: SystemInfo | WorkerSystemInfo | null
-): value is WorkerSystemInfo => {
-  return Boolean(value && 'has_running_task' in value);
-};

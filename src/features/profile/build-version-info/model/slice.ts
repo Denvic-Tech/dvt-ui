@@ -1,10 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit';
-import {
-  ensureApiErrorPayload,
-  type ApiErrorPayload,
-} from '@/shared/lib/errors';
-import type { VersionInfo } from '@/shared/gatewayClient';
+
 import { createAppAsyncThunk } from '@/app/providers/store/helpers.ts';
+
+import type { VersionInfo } from '@/shared/gatewayClient';
+import {
+  type ApiErrorPayload,
+  ensureApiErrorPayload,
+} from '@/shared/lib/errors';
+
 import { buildVersionApi } from '../api.ts';
 
 export interface BuildVersionState {
@@ -32,10 +35,10 @@ const buildVersionSlice = createSlice({
   reducers: {},
   extraReducers: builder => {
     builder
-      .addCase(fetchBuildVersion.pending, (state, action) => {
+      // A refetch keeps the known version, so its consumers do not blink.
+      .addCase(fetchBuildVersion.pending, state => {
         state.isLoading = true;
         state.error = null;
-        state.versionInfo = null;
       })
       .addCase(fetchBuildVersion.fulfilled, (state, action) => {
         state.isLoading = false;

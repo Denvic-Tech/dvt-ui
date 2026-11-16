@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
 
-import { useAppDispatch, useAppSelector } from '@/app/providers/store';
+import { useAppDispatch, useAppSelector } from '@/app/providers/store/hooks';
+
 import {
   selectTaskExecutionError,
   selectTaskExecutionStatus,
   selectTaskExecutionTaskId,
-  taskExecutionStatusActions,
-} from '@/entities/project/task-execution-status';
+} from './selectors';
+import { taskExecutionStatusActions } from './slice';
 
 export const useTaskExecutionStatus = () => {
   const dispatch = useAppDispatch();

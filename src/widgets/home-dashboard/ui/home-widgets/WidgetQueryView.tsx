@@ -1,8 +1,9 @@
 import { Box } from '@mui/material';
 import type * as React from 'react';
 
+import { homeFadeInSx } from '@/shared/ui/home-theme/motion';
+
 import { HomeLoadError } from '../components/HomeLoadError';
-import { homeFadeInSx } from '../styles/motion';
 
 import { WidgetSkeleton, type WidgetSkeletonVariant } from './WidgetSkeleton';
 

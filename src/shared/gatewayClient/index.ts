@@ -149,9 +149,12 @@ client.setConfig({
   baseURL: config.apiBaseUrl,
   throwOnError: true,
   withCredentials: true,
-  headers: {
-    'X-Language': resolveLanguageHeader(),
-  },
+});
+
+// Resolved per request, so a language switch applies without a page reload.
+client.instance.interceptors.request.use(request => {
+  request.headers.set('X-Language', resolveLanguageHeader());
+  return request;
 });
 
 // Статусы, для которых уведомления не нужны (auth-редирект и т.п.)

@@ -7,7 +7,10 @@ import {
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ConfirmDialogProvider } from '@/app/providers/confirm-dialog';
+
 import type {
+  ExtensionCatalogVersionSchema,
   ExtensionPackagePreviewSchema,
   ExtensionReadSchema,
 } from '@/shared/gatewayClient';
@@ -22,6 +25,7 @@ const {
   installPackageMock,
   installMock,
   reloadMock,
+  showAlertMock,
 } = vi.hoisted(() => ({
   listMock: vi.fn(),
   syncMock: vi.fn(),
@@ -30,6 +34,11 @@ const {
   installPackageMock: vi.fn(),
   installMock: vi.fn(),
   reloadMock: vi.fn(),
+  showAlertMock: vi.fn(),
+}));
+
+vi.mock('@/app/notifications', () => ({
+  useAlert: () => ({ showAlert: showAlertMock, showNotification: vi.fn() }),
 }));
 
 vi.mock('@/features/profile/extensions', () => ({
@@ -80,6 +89,34 @@ const extension: ExtensionReadSchema = {
   },
 };
 
+const renderPanel = () =>
+  render(
+    <ConfirmDialogProvider>
+      <ExtensionsPanel />
+    </ConfirmDialogProvider>
+  );
+
+// The «⋮» menu of the extension card.
+const openMenu = async () => {
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Действия с расширением' })
+  );
+};
+
+// A submenu of the open «⋮» menu; «Выбрать версию» opens once the catalog
+// is refreshed.
+const openSubmenu = async (label: 'Выбрать версию' | 'Скачать .dvtx') => {
+  const item = await screen.findByRole('menuitem', { name: label });
+  await waitFor(() => expect(item).not.toHaveClass('Mui-disabled'));
+  fireEvent.click(item);
+  return screen.findByRole('menu', { name: label });
+};
+
+const openDeleteDialog = async () => {
+  await openMenu();
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Удалить' }));
+};
+
 describe('ExtensionsPanel uninstall confirmation', () => {
   beforeEach(() => {
     listMock.mockReset();
@@ -87,16 +124,16 @@ describe('ExtensionsPanel uninstall confirmation', () => {
     removeMock.mockReset();
     previewPackageMock.mockReset();
     installPackageMock.mockReset();
+    showAlertMock.mockReset();
     syncMock.mockResolvedValue([extension]);
     listMock.mockResolvedValue([extension]);
     removeMock.mockResolvedValue({ ...extension, is_installed: false });
   });
 
   it('preserves extension data by default', async () => {
-    render(<ExtensionsPanel />);
+    renderPanel();
 
-    await screen.findByText('Sample Extension');
-    fireEvent.click(screen.getByRole('button', { name: 'Удалить' }));
+    await openDeleteDialog();
 
     const dialog = await screen.findByRole('dialog');
     const dropData = within(dialog).getByRole('checkbox', {
@@ -115,9 +152,9 @@ describe('ExtensionsPanel uninstall confirmation', () => {
     previewPackageMock.mockResolvedValue(packagePreview);
     installPackageMock.mockRejectedValue(new Error('runtime load failed'));
 
-    const { container } = render(<ExtensionsPanel />);
+    const { container } = renderPanel();
 
-    await screen.findByText('Sample Extension');
+    await screen.findByRole('button', { name: 'Действия с расширением' });
     const input = container.querySelector('input[type="file"]');
     expect(input).not.toBeNull();
 
@@ -139,15 +176,19 @@ describe('ExtensionsPanel uninstall confirmation', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     );
 
-    expect(screen.getByText('runtime load failed')).toBeInTheDocument();
+    expect(showAlertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'error',
+        description: 'runtime load failed',
+      })
+    );
     expect(installPackageMock).toHaveBeenCalledTimes(1);
   });
 
   it('drops extension data only after explicit opt-in', async () => {
-    render(<ExtensionsPanel />);
+    renderPanel();
 
-    await screen.findByText('Sample Extension');
-    fireEvent.click(screen.getByRole('button', { name: 'Удалить' }));
+    await openDeleteDialog();
 
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(
@@ -156,7 +197,7 @@ describe('ExtensionsPanel uninstall confirmation', () => {
       })
     );
     expect(
-      within(dialog).getByText(/навсегда удалены из service PostgreSQL/i)
+      within(dialog).getByText(/без возможности восстановления/i)
     ).toBeInTheDocument();
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Удалить' }));
@@ -168,16 +209,11 @@ describe('ExtensionsPanel uninstall confirmation', () => {
 });
 
 describe('ExtensionsPanel catalog', () => {
-  const rc = {
+  const rc: ExtensionCatalogVersionSchema = {
     version: '2.0.0rc1',
-    channel: 'rc' as const,
+    channel: 'rc',
     download_url: 'https://example.test/package.dvtx',
-    operation: 'install' as const,
-  };
-
-  const selectVersion = async (name: RegExp) => {
-    fireEvent.mouseDown(screen.getByRole('combobox'));
-    fireEvent.click(await screen.findByRole('option', { name }));
+    operation: 'install',
   };
 
   beforeEach(() => {
@@ -197,16 +233,27 @@ describe('ExtensionsPanel catalog', () => {
         catalog_versions: [rc, { ...rc, version: '1.1.0', channel: 'stable' }],
       },
     ]);
-    render(<ExtensionsPanel />);
+    renderPanel();
 
-    await screen.findByText('По умолчанию: 1.1.0');
-    const button = screen.getByRole('button', { name: 'Установить' });
-    await waitFor(() => expect(button).toBeEnabled());
-    fireEvent.click(button);
-    expect(installMock).toHaveBeenCalledWith(extension.name, null, {
-      allowDowngrade: false,
-      allowReinstall: false,
-    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Установить' })).toBeEnabled()
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Установить' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        'Расширение «Sample Extension» v1.1.0 будет установлено.'
+      )
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Установить' }));
+
+    await waitFor(() =>
+      expect(installMock).toHaveBeenCalledWith(extension.name, null, {
+        allowDowngrade: false,
+        allowReinstall: false,
+      })
+    );
   });
 
   it('requires explicit selection for an RC-only catalog', async () => {
@@ -218,23 +265,32 @@ describe('ExtensionsPanel catalog', () => {
         catalog_versions: [rc],
       },
     ]);
-    render(<ExtensionsPanel />);
+    renderPanel();
 
-    await screen.findByText('Для установки выберите RC.');
-    const button = screen.getByRole('button', {
-      name: 'Установить',
-    });
-    expect(button).toBeDisabled();
-    await selectVersion(/2\.0\.0rc1 RC/);
-    await waitFor(() => expect(button).toBeEnabled());
-    fireEvent.click(button);
-    expect(installMock).toHaveBeenCalledWith(extension.name, rc.version, {
-      allowDowngrade: false,
-      allowReinstall: false,
-    });
+    await screen.findByText(
+      'Стабильной версии нет: выберите RC в меню «Выбрать версию».'
+    );
+    expect(screen.getByRole('button', { name: 'Установить' })).toBeDisabled();
+
+    await openMenu();
+    const versions = await openSubmenu('Выбрать версию');
+    fireEvent.click(
+      within(versions).getByRole('menuitem', { name: 'v2.0.0rc1 · RC' })
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Установить' }));
+
+    await waitFor(() =>
+      expect(installMock).toHaveBeenCalledWith(extension.name, rc.version, {
+        allowDowngrade: false,
+        allowReinstall: false,
+      })
+    );
   });
 
   it('explains platform and DVT mismatches without blocking the download', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
     listMock.mockResolvedValue([
       {
         ...extension,
@@ -262,52 +318,70 @@ describe('ExtensionsPanel catalog', () => {
         ],
       },
     ]);
-    render(<ExtensionsPanel />);
+    renderPanel();
 
-    await screen.findByText('Sample Extension');
-    fireEvent.mouseDown(screen.getByRole('combobox'));
-    const stable = await screen.findByRole('option', {
-      name: /1\.1\.0 Stable DVT 1\.22\.0, требуется >=1\.24\.0/,
-    });
-    const platformMismatch = screen.getByRole('option', {
-      name: /2\.0\.0rc1 RC ОС: windows, требуется linux · Python: 3\.12, требуется 3\.13/,
-    });
-    expect(stable).toBeEnabled();
-    fireEvent.click(platformMismatch);
-    expect(screen.getByRole('link', { name: 'Скачать .dvtx' })).toHaveAttribute(
-      'href',
-      rc.download_url
+    await openMenu();
+    const versions = await openSubmenu('Выбрать версию');
+    expect(
+      within(versions).getByRole('menuitem', {
+        name: /v1\.1\.0\s*DVT 1\.22\.0, требуется >=1\.24\.0/,
+      })
+    ).toHaveClass('Mui-disabled');
+    expect(
+      within(versions).getByRole('menuitem', {
+        name: /v2\.0\.0rc1 · RC\s*ОС: windows, требуется linux · Python: 3\.12, требуется 3\.13/,
+      })
+    ).toHaveClass('Mui-disabled');
+
+    const downloads = await openSubmenu('Скачать .dvtx');
+    fireEvent.click(
+      within(downloads).getByRole('menuitem', { name: 'v2.0.0rc1 · RC' })
     );
-    expect(screen.getByRole('button', { name: 'Установить' })).toBeDisabled();
+    expect(openSpy).toHaveBeenCalledWith(rc.download_url, '_blank', 'noopener');
+
+    expect(
+      await screen.findByRole('button', { name: 'Установить' })
+    ).toBeDisabled();
+    openSpy.mockRestore();
   });
 
   it.each([
-    ['downgrade', 'Понизить версию', '0.9.0'],
-    ['reinstall', 'Переустановить', '1.0.0'],
-  ] as const)('asks before a catalog %s', async (operation, label, version) => {
-    listMock.mockResolvedValue([
-      {
-        ...extension,
-        catalog_versions: [{ ...rc, version, channel: 'stable', operation }],
-      },
-    ]);
-    render(<ExtensionsPanel />);
+    ['downgrade', 'Понизить версию?', 'Понизить версию', '0.9.0'],
+    ['reinstall', 'Переустановить расширение?', 'Переустановить', '1.0.0'],
+  ] as const)(
+    'asks before a catalog %s',
+    async (operation, title, label, version) => {
+      listMock.mockResolvedValue([
+        {
+          ...extension,
+          catalog_versions: [
+            { ...rc, version, channel: 'stable', operation },
+          ],
+        },
+      ]);
+      renderPanel();
 
-    await screen.findByText('Sample Extension');
-    await selectVersion(new RegExp(version));
-    const button = screen.getByRole('button', { name: label });
-    await waitFor(() => expect(button).toBeEnabled());
-    fireEvent.click(button);
-    const dialog = screen.getByRole('dialog', { name: label + '?' });
-    expect(installMock).not.toHaveBeenCalled();
-    fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Подтвердить' })
-    );
-    expect(installMock).toHaveBeenCalledWith(extension.name, version, {
-      allowDowngrade: operation === 'downgrade',
-      allowReinstall: operation === 'reinstall',
-    });
-  });
+      await openMenu();
+      const versions = await openSubmenu('Выбрать версию');
+      fireEvent.click(
+        within(versions).getByRole('menuitem', {
+          name: new RegExp(`^v${version.replace(/\./g, '\\.')}`),
+        })
+      );
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(title)).toBeInTheDocument();
+      expect(installMock).not.toHaveBeenCalled();
+      fireEvent.click(within(dialog).getByRole('button', { name: label }));
+
+      await waitFor(() =>
+        expect(installMock).toHaveBeenCalledWith(extension.name, version, {
+          allowDowngrade: operation === 'downgrade',
+          allowReinstall: operation === 'reinstall',
+        })
+      );
+    }
+  );
 
   it('removes unavailable uninstalled entries after a successful refresh', async () => {
     const unavailable = {
@@ -324,11 +398,16 @@ describe('ExtensionsPanel catalog', () => {
         { ...unavailable, catalog_versions: [], available_versions: [] },
       ]);
 
-    render(<ExtensionsPanel />);
+    renderPanel();
 
-    await screen.findByText('Sample Extension');
-    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+    const availableTab = await screen.findByRole('tab', { name: /Доступно/ });
+    await waitFor(() => expect(availableTab).toBeEnabled());
+    fireEvent.click(availableTab);
+    expect(
+      await screen.findByText('Все расширения установлены')
+    ).toBeInTheDocument();
     expect(screen.queryByText('Old Extension')).not.toBeInTheDocument();
+    expect(listMock).toHaveBeenCalledTimes(2);
   });
 
   it('keeps local reload available when refresh fails and retries manually', async () => {
@@ -342,18 +421,28 @@ describe('ExtensionsPanel catalog', () => {
       },
     ]);
     syncMock.mockRejectedValueOnce(new Error('unavailable'));
-    render(<ExtensionsPanel />);
+    renderPanel();
 
     await screen.findByText(
       'Не удалось обновить каталог. Показаны сохранённые данные.'
     );
-    expect(screen.getByRole('button', { name: 'Обновить' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Перезагрузить' }));
+    expect(
+      screen.getByRole('button', { name: 'Обновить до v2.0.0' })
+    ).toBeDisabled();
+
+    await openMenu();
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Перезагрузить' })
+    );
     expect(reloadMock).toHaveBeenCalledWith(extension.name);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Обновить каталог' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Обновить каталог' })
+    );
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Обновить' })).toBeEnabled()
+      expect(
+        screen.getByRole('button', { name: 'Обновить до v2.0.0' })
+      ).toBeEnabled()
     );
     expect(syncMock).toHaveBeenCalledTimes(2);
   });

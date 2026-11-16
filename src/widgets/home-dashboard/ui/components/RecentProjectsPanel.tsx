@@ -8,14 +8,14 @@ import type {
   ProjectReadSchema,
   ProjectScheduleResponse,
 } from '@/shared/gatewayClient';
+import { homeAppearSx } from '@/shared/ui/home-theme/motion';
+import { hc, homeCardSx } from '@/shared/ui/home-theme/tokens';
 import { Skeleton } from '@/shared/ui/primitives';
 
 import type { HomeProject } from '../../model/types';
 import { useProjectSearch } from '../../model/useProjectSearch';
 import type { ScheduledProjectsState } from '../../model/useScheduledProjects';
 import { formatUntil } from '../lib/date';
-import { homeAppearSx } from '../styles/motion';
-import { hc, homeCardSx } from '../styles/tokens';
 
 import { HomeLoadError } from './HomeLoadError';
 import {

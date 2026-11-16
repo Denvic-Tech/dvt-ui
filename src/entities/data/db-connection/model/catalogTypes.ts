@@ -74,6 +74,10 @@ export type DbCatalogTablePreview = {
   columns: DbCatalogTablePreviewColumn[];
   rows: DbCatalogTablePreviewValue[][];
   truncated: boolean;
+  /** Всего строк в таблице; null — источник не сообщает без полного скана. */
+  rowCount: number | null;
+  /** false — rowCount взят из статистики СУБД и является оценкой. */
+  rowCountExact: boolean;
 };
 
 export type DbCatalogState =

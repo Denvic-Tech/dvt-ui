@@ -1,130 +1,179 @@
 import * as React from 'react';
-import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
-import ErrorRoundedIcon from '@mui/icons-material/ErrorRounded';
-import HourglassEmptyRoundedIcon from '@mui/icons-material/HourglassEmptyRounded';
-import RadioButtonUncheckedRoundedIcon from '@mui/icons-material/RadioButtonUncheckedRounded';
-import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
-import SystemUpdateAltRoundedIcon from '@mui/icons-material/SystemUpdateAltRounded';
-import Box from '@mui/material/Box';
-import { alpha, type Theme } from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
+import Dialog from '@mui/material/Dialog';
+import { IconArrowDown, IconCopy } from '@tabler/icons-react';
 
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Progress,
-  Spinner,
-} from '@/shared/ui';
+import type { UpdateStepSchema } from '@/shared/gatewayClient';
+import { Spinner } from '@/shared/ui/primitives';
 
 import type { SystemUpdateState } from '../model/types';
+
+import {
+  dialogBackdropSx,
+  dialogPaperSx,
+  HeaderAside,
+  HeaderButton,
+  HeaderCounter,
+  HeaderSubtitle,
+  HeaderText,
+  HeaderTile,
+  HeaderTitle,
+  type HeaderTone,
+  LOG_COPY_BUTTON_CLASS,
+  LogColumn,
+  LogCommand,
+  LogCopyButton,
+  LogJumpButton,
+  LogLine,
+  LogScroll,
+  LogWrap,
+  ModalBody,
+  ModalEndSpacer,
+  ModalHeader,
+  StatusNotice,
+  StepDetail,
+  StepIcon,
+  StepList,
+  StepName,
+  StepRow,
+  StepsColumn,
+  StepsNote,
+  StepsPending,
+  StepSpinner,
+  StepText,
+  type StepTone,
+} from './styles';
 
 export const SYSTEM_UPDATE_GATEWAY_TIMEOUT_MESSAGE =
   'Gateway не удалось восстановить. Обновление может продолжаться или завершиться ошибкой. Обратитесь к администратору и проверьте installation manager.';
 
-const stepPresentation = {
-  pending: {
-    color: 'text.disabled',
-    icon: <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 16 }} />,
-    label: 'Ожидает',
-  },
-  running: {
-    color: 'primary.main',
-    icon: (
-      <SyncRoundedIcon
-        sx={{
-          '@keyframes stepSpinner': {
-            from: { transform: 'rotate(0deg)' },
-            to: { transform: 'rotate(360deg)' },
-          },
-          animation: 'stepSpinner 850ms linear infinite',
-          fontSize: 16,
-          '@media (prefers-reduced-motion: reduce)': {
-            animation: 'none',
-          },
-        }}
-      />
-    ),
-    label: 'Выполняется',
-  },
-  ok: {
-    color: 'success.main',
-    icon: <CheckCircleRoundedIcon sx={{ fontSize: 16 }} />,
-    label: 'Готово',
-  },
-  failed: {
-    color: 'error.main',
-    icon: <ErrorRoundedIcon sx={{ fontSize: 16 }} />,
-    label: 'Ошибка',
-  },
-} as const;
+const TITLE_ID = 'system-update-progress-title';
 
-const getStepPresentation = (status: string) =>
-  stepPresentation[status as keyof typeof stepPresentation] ?? {
-    color: 'text.secondary',
-    icon: <HourglassEmptyRoundedIcon sx={{ fontSize: 16 }} />,
-    label: status,
-  };
+// Closer to the bottom than this counts as being at the bottom.
+const LOG_BOTTOM_THRESHOLD = 8;
 
-const getStepIconSurfaceSx = (theme: Theme, status: string) => {
-  if (status === 'ok') {
-    return {
-      backgroundColor: alpha(theme.palette.success.main, 0.09),
-      borderColor: alpha(theme.palette.success.main, 0.22),
-    };
-  }
-
-  if (status === 'failed') {
-    return {
-      backgroundColor: alpha(theme.palette.error.main, 0.09),
-      borderColor: alpha(theme.palette.error.main, 0.22),
-    };
-  }
-
-  if (status === 'running') {
-    return {
-      backgroundColor: alpha(theme.palette.primary.main, 0.09),
-      borderColor: alpha(theme.palette.primary.main, 0.22),
-    };
-  }
-
-  return {
-    backgroundColor: alpha(theme.palette.text.secondary, 0.05),
-    borderColor: alpha(theme.palette.text.secondary, 0.16),
-  };
+const HEADER_TITLES: Record<HeaderTone, string> = {
+  run: 'Обновление DVT',
+  error: 'Обновление не завершено',
+  done: 'DVT обновлён',
 };
 
-const getLogLineColor = (line: string) => {
+const HeaderIcon = ({ tone }: { tone: HeaderTone }) => {
+  if (tone === 'done') {
+    return (
+      <svg width='20' height='20' viewBox='0 0 16 16' fill='none' aria-hidden>
+        <path
+          d='M3.5 8.5l3 3 6-7'
+          stroke='currentColor'
+          strokeWidth='1.6'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+        />
+      </svg>
+    );
+  }
+
+  if (tone === 'error') {
+    return (
+      <svg width='20' height='20' viewBox='0 0 16 16' fill='none' aria-hidden>
+        <g stroke='currentColor' strokeWidth='1.5' strokeLinecap='round'>
+          <circle cx='8' cy='8' r='6' />
+          <path d='M8 5v3.4M8 10.9v.1' />
+        </g>
+      </svg>
+    );
+  }
+
+  return (
+    <svg width='20' height='20' viewBox='0 0 16 16' fill='none' aria-hidden>
+      <g
+        stroke='currentColor'
+        strokeWidth='1.5'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      >
+        <path d='M13.5 8a5.5 5.5 0 0 1-9.7 3.5M2.5 8a5.5 5.5 0 0 1 9.7-3.5' />
+        <path d='M12.6 1.9v2.8H9.8M3.4 14.1v-2.8h2.8' />
+      </g>
+    </svg>
+  );
+};
+
+const getStepTone = (status: UpdateStepSchema['status']): StepTone => {
+  if (status === 'ok') {
+    return 'done';
+  }
+
+  if (status === 'failed' || status === 'running') {
+    return status;
+  }
+
+  return 'pending';
+};
+
+const StepStatusIcon = ({ tone }: { tone: StepTone }) => {
+  if (tone === 'running') {
+    return <StepSpinner aria-hidden />;
+  }
+
+  if (tone === 'done') {
+    return (
+      <svg width='16' height='16' viewBox='0 0 16 16' aria-hidden>
+        <circle cx='8' cy='8' r='8' fill='#E6F6EE' />
+        <path
+          d='M4.8 8.3l2.2 2.2 4.2-4.6'
+          fill='none'
+          stroke='#1E9E63'
+          strokeWidth='1.7'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+        />
+      </svg>
+    );
+  }
+
+  if (tone === 'failed') {
+    return (
+      <svg width='16' height='16' viewBox='0 0 16 16' aria-hidden>
+        <circle cx='8' cy='8' r='8' fill='#FDECEC' />
+        <path
+          d='M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8'
+          fill='none'
+          stroke='#E5484D'
+          strokeWidth='1.7'
+          strokeLinecap='round'
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg width='16' height='16' viewBox='0 0 16 16' aria-hidden>
+      <circle
+        cx='8'
+        cy='8'
+        r='6.5'
+        fill='#fff'
+        stroke='#D3D8E2'
+        strokeWidth='1.5'
+      />
+    </svg>
+  );
+};
+
+const isErrorLogLine = (line: string) => {
   const normalized = line.toLowerCase();
 
-  if (
+  return (
     normalized.includes('error') ||
     normalized.includes('failed') ||
     normalized.includes('ошиб')
-  ) {
-    return '#fb7185';
-  }
-
-  if (
-    normalized.includes('success') ||
-    normalized.includes('готов') ||
-    normalized.includes('завершен')
-  ) {
-    return '#4ade80';
-  }
-
-  return '#c7d2e5';
+  );
 };
 
 interface SystemUpdateProgressDialogProps {
   state: SystemUpdateState;
+  // The installed version, shown before the target one.
+  currentVersion?: string | null | undefined;
   onClear: () => void;
   onPause: () => void;
   onReload: () => void;
@@ -132,382 +181,211 @@ interface SystemUpdateProgressDialogProps {
 
 export const SystemUpdateProgressDialog = ({
   state,
+  currentVersion,
   onClear,
   onPause,
   onReload,
 }: SystemUpdateProgressDialogProps) => {
   const logRef = React.useRef<HTMLDivElement | null>(null);
+  // Follow new lines only while the log is scrolled to the bottom.
+  const [followLog, setFollowLog] = React.useState(true);
   const steps = state.snapshot?.steps ?? [];
   const finishedSteps = steps.filter(
     step => step.status === 'ok' || step.status === 'failed'
   ).length;
-  const progress =
-    state.phase === 'succeeded'
-      ? 100
-      : steps.length > 0
-        ? Math.round((finishedSteps / steps.length) * 100)
-        : 0;
-  const summaryPrefix =
-    state.phase === 'succeeded'
-      ? 'Готово'
-      : state.phase === 'failed' || state.phase === 'status_error'
-        ? 'Остановлено'
-        : 'Выполнено';
-  const inlineStatus =
+  const targetVersion =
+    state.snapshot?.version || state.marker?.targetVersion || '';
+  const isFailed = state.phase === 'failed' || state.phase === 'status_error';
+  const isSucceeded = state.phase === 'succeeded';
+  const tone: HeaderTone = isSucceeded ? 'done' : isFailed ? 'error' : 'run';
+  const commandLine = `$ dvt-installer update --tag ${targetVersion}`;
+  const subtitle = currentVersion
+    ? `${currentVersion} → ${targetVersion}`
+    : targetVersion;
+  const errorMessage =
+    state.phase === 'failed'
+      ? state.snapshot?.error ||
+        'Installation manager не сообщил подробности ошибки.'
+      : state.phase === 'status_error'
+        ? state.error?.message || 'Получен неожиданный статус обновления.'
+        : null;
+  const reconnectMessage =
     state.phase === 'reconnecting'
       ? state.reconnectTimedOut
         ? SYSTEM_UPDATE_GATEWAY_TIMEOUT_MESSAGE
         : 'Переподключение к gateway…'
-      : state.phase === 'failed'
-        ? state.snapshot?.error ||
-          'Installation manager не сообщил подробности ошибки.'
-        : state.phase === 'status_error'
-          ? state.error?.message || 'Получен неожиданный статус обновления.'
-          : null;
-  const inlineStatusColor =
-    state.phase === 'reconnecting' ? 'warning.main' : 'error.main';
+      : null;
 
-  React.useLayoutEffect(() => {
+  const scrollLogToBottom = React.useCallback(() => {
     const logElement = logRef.current;
 
     if (logElement) {
-      logElement.scrollTo({
-        behavior: 'auto',
-        top: logElement.scrollHeight,
-      });
+      logElement.scrollTop = logElement.scrollHeight;
     }
-  }, [state.logs.length]);
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (followLog) {
+      scrollLogToBottom();
+    }
+  }, [followLog, scrollLogToBottom, state.logs.length]);
+
+  const handleLogScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const { scrollHeight, scrollTop, clientHeight } = event.currentTarget;
+    setFollowLog(
+      scrollHeight - scrollTop - clientHeight <= LOG_BOTTOM_THRESHOLD
+    );
+  };
+
+  const handleCopyLog = () => {
+    const text = [commandLine, ...state.logs].join('\n');
+    void navigator.clipboard?.writeText(text).catch(() => {});
+  };
+
+  const renderHeaderAside = () => {
+    if (isSucceeded) {
+      return (
+        <HeaderButton disableRipple onClick={onReload}>
+          Закрыть
+        </HeaderButton>
+      );
+    }
+
+    if (isFailed) {
+      return (
+        <HeaderButton disableRipple onClick={onClear}>
+          Закрыть
+        </HeaderButton>
+      );
+    }
+
+    return (
+      <>
+        {steps.length > 0 ? (
+          <HeaderCounter>
+            {finishedSteps} из {steps.length}
+          </HeaderCounter>
+        ) : null}
+        {state.phase === 'reconnecting' && state.reconnectTimedOut ? (
+          <HeaderButton disableRipple onClick={onPause}>
+            Вернуться и продолжить позже
+          </HeaderButton>
+        ) : null}
+      </>
+    );
+  };
 
   return (
     <Dialog
-      aria-labelledby='system-update-progress-title'
+      aria-labelledby={TITLE_ID}
       disableEscapeKeyDown
       maxWidth={false}
       open
       slotProps={{
-        backdrop: {
-          sx: {
-            backdropFilter: 'blur(7px)',
-            backgroundColor: 'rgba(15, 23, 42, 0.38)',
-          },
-        },
-        paper: {
-          sx: {
-            bgcolor: 'background.default',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '18px',
-            boxShadow: '0 24px 64px rgba(15, 23, 42, 0.24)',
-            height: 'min(760px, calc(100vh - 32px))',
-            m: 2,
-            maxHeight: 'calc(100vh - 32px)',
-            maxWidth: 'none',
-            width: 'min(1180px, calc(100vw - 32px))',
-            '& > .MuiBox-root': {
-              gridTemplateRows: 'auto minmax(0, 1fr) auto',
-              height: '100%',
-              minHeight: 0,
-            },
-          },
-        },
+        backdrop: { sx: dialogBackdropSx },
+        paper: { sx: dialogPaperSx },
       }}
     >
-      <DialogHeader
-        sx={{
-          alignItems: 'center',
-          display: 'flex',
-          flexDirection: 'row',
-          gap: 1.5,
-        }}
-      >
-        <Box
-          sx={theme => ({
-            alignItems: 'center',
-            backgroundColor: alpha(theme.palette.primary.main, 0.09),
-            borderRadius: '10px',
-            color: 'primary.main',
-            display: 'flex',
-            height: 40,
-            justifyContent: 'center',
-            width: 40,
-          })}
-        >
-          <SystemUpdateAltRoundedIcon sx={{ fontSize: 20 }} />
-        </Box>
-        <Box>
-          <DialogTitle id='system-update-progress-title'>
-            Обновление DVT
-          </DialogTitle>
-          <Typography color='text.secondary' variant='body2'>
-            Версия: {state.snapshot?.version || state.marker?.targetVersion}
-          </Typography>
-        </Box>
-      </DialogHeader>
+      <ModalHeader>
+        <HeaderTile tone={tone}>
+          <HeaderIcon tone={tone} />
+        </HeaderTile>
+        <HeaderText>
+          <HeaderTitle id={TITLE_ID}>{HEADER_TITLES[tone]}</HeaderTitle>
+          {subtitle ? <HeaderSubtitle>{subtitle}</HeaderSubtitle> : null}
+        </HeaderText>
+        <HeaderAside>{renderHeaderAside()}</HeaderAside>
+      </ModalHeader>
 
-      <DialogContent
-        sx={{
-          height: 'auto',
-          minHeight: 0,
-          overflow: { xs: 'auto', lg: 'hidden' },
-        }}
-      >
-        <Box
-          sx={{
-            display: 'grid',
-            gap: 2.5,
-            gridTemplateColumns: {
-              xs: '1fr',
-              lg: 'minmax(360px, 0.96fr) minmax(0, 1.04fr)',
-            },
-            height: { lg: '100%' },
-            minHeight: 0,
-          }}
-        >
-          <Card
-            sx={theme => ({
-              background: theme.palette.background.paper,
-              borderRadius: '16px',
-              boxShadow: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              minHeight: { xs: 360, lg: 0 },
-            })}
-          >
-            <CardHeader sx={{ gap: 1.75, px: 3, py: 2.5 }}>
-              <Box
-                sx={{
-                  alignItems: 'center',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <CardTitle>Этапы обновления</CardTitle>
-                <Typography color='text.secondary' sx={{ fontSize: 12 }}>
-                  {summaryPrefix}{' '}
-                  <Box
-                    component='span'
-                    sx={{ color: 'text.primary', fontWeight: 700 }}
-                  >
-                    {finishedSteps} из {steps.length}
-                  </Box>
-                </Typography>
-              </Box>
-              <Progress
-                sx={{
-                  height: 6,
-                  '& .MuiLinearProgress-bar': {
-                    backgroundColor:
-                      state.phase === 'succeeded'
-                        ? 'success.main'
-                        : state.phase === 'failed' ||
-                            state.phase === 'status_error'
-                          ? 'error.main'
-                          : 'primary.main',
-                  },
-                }}
-                value={progress}
-              />
-              {inlineStatus ? (
-                <Typography
-                  color={inlineStatusColor}
-                  sx={{ fontSize: 12, lineHeight: 1.55 }}
-                >
-                  {inlineStatus}
-                </Typography>
-              ) : null}
-            </CardHeader>
+      {errorMessage ? (
+        <StatusNotice role='alert' tone='error'>
+          {errorMessage}
+        </StatusNotice>
+      ) : null}
+      {reconnectMessage ? (
+        <StatusNotice role='status' tone='warning'>
+          {reconnectMessage}
+        </StatusNotice>
+      ) : null}
 
-            <CardContent
-              sx={{
-                display: 'grid',
-                gap: 0.75,
-                overflow: 'auto',
-                px: 3,
-                py: 1.25,
-              }}
-            >
-              {steps.length === 0 ? (
-                <Box
-                  sx={{
-                    alignItems: 'center',
-                    color: 'text.secondary',
-                    display: 'flex',
-                    gap: 1.25,
-                    py: 3,
-                  }}
-                >
-                  <Spinner size={18} />
-                  Ожидаем первый статус от installation manager…
-                </Box>
-              ) : (
-                steps.map(step => {
-                  const stepUi = getStepPresentation(step.status);
+      <ModalBody>
+        <StepsColumn>
+          <StepList aria-label='Этапы обновления'>
+            {steps.length === 0 ? (
+              <StepsPending>
+                <Spinner size={14} />
+                Ожидаем первый статус от installation manager…
+              </StepsPending>
+            ) : (
+              steps.map(step => {
+                const stepTone = getStepTone(step.status);
 
-                  return (
-                    <Box
-                      key={step.id}
-                      sx={{
-                        alignItems: 'center',
-                        display: 'grid',
-                        gap: 1.5,
-                        gridTemplateColumns: '24px minmax(0, 1fr) auto',
-                        px: 1,
-                        py: 1.25,
-                      }}
-                    >
-                      <Box
-                        sx={theme => ({
-                          alignItems: 'center',
-                          border: '1px solid',
-                          borderRadius: '50%',
-                          color: stepUi.color,
-                          display: 'flex',
-                          height: 22,
-                          justifyContent: 'center',
-                          width: 22,
-                          ...getStepIconSurfaceSx(theme, step.status),
-                        })}
-                      >
-                        {stepUi.icon}
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography
-                          sx={{
-                            fontSize: 14,
-                            fontWeight: 600,
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {step.title}
-                        </Typography>
-                        {step.detail ? (
-                          <Typography
-                            color='text.secondary'
-                            sx={{ fontSize: 12, lineHeight: 1.45 }}
-                          >
-                            {step.detail}
-                          </Typography>
-                        ) : null}
-                      </Box>
-                      <Typography
-                        color={stepUi.color}
-                        sx={{ fontSize: 11.5, fontWeight: 600 }}
-                      >
-                        {stepUi.label}
-                      </Typography>
-                    </Box>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
+                return (
+                  <StepRow key={step.id}>
+                    <StepIcon>
+                      <StepStatusIcon tone={stepTone} />
+                    </StepIcon>
+                    <StepText>
+                      <StepName tone={stepTone}>{step.title}</StepName>
+                      {step.detail ? (
+                        <StepDetail>{step.detail}</StepDetail>
+                      ) : null}
+                    </StepText>
+                  </StepRow>
+                );
+              })
+            )}
+          </StepList>
+          {isSucceeded || isFailed ? null : (
+            <StepsNote>
+              Не закрывайте приложение до завершения обновления.
+            </StepsNote>
+          )}
+        </StepsColumn>
 
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              minHeight: { xs: 360, lg: 0 },
-            }}
-          >
-            <Box
+        <LogColumn>
+          <LogWrap>
+            <LogScroll
               ref={logRef}
               aria-live='polite'
               role='log'
-              sx={{
-                '@keyframes logIn': {
-                  from: { opacity: 0, transform: 'translateY(5px)' },
-                  to: { opacity: 1, transform: 'translateY(0)' },
-                },
-                '@keyframes cursorBlink': {
-                  '0%, 44%': { opacity: 1 },
-                  '45%, 100%': { opacity: 0 },
-                },
-                backgroundColor: '#191a20',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-                borderRadius: '14px',
-                color: '#c7d2e5',
-                flex: 1,
-                fontFamily:
-                  '"JetBrains Mono", "SFMono-Regular", Consolas, monospace',
-                fontSize: 12.5,
-                lineHeight: 1.7,
-                minHeight: 320,
-                overflow: 'auto',
-                overflowAnchor: 'none',
-                p: 2.5,
-                scrollbarWidth: 'none',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                '&::-webkit-scrollbar': {
-                  display: 'none',
-                },
-              }}
+              tabIndex={0}
+              onScroll={handleLogScroll}
             >
-              <Box
-                sx={{
-                  color: '#818cf8',
-                  fontWeight: 500,
-                  mb: 0.35,
+              <LogCommand>{commandLine}</LogCommand>
+              {state.logs.map((line, index) => (
+                <LogLine key={`${index}-${line}`} error={isErrorLogLine(line)}>
+                  {line}
+                </LogLine>
+              ))}
+            </LogScroll>
+
+            <LogCopyButton
+              disableRipple
+              className={LOG_COPY_BUTTON_CLASS}
+              aria-label='Скопировать лог'
+              title='Скопировать лог'
+              onClick={handleCopyLog}
+            >
+              <IconCopy size={13} stroke={1.5} />
+            </LogCopyButton>
+
+            {followLog ? null : (
+              <LogJumpButton
+                disableRipple
+                onClick={() => {
+                  setFollowLog(true);
+                  scrollLogToBottom();
                 }}
               >
-                $ dvt-installer update --tag{' '}
-                {state.snapshot?.version || state.marker?.targetVersion}
-              </Box>
+                <IconArrowDown size={12} stroke={2} />К последним строкам
+              </LogJumpButton>
+            )}
+          </LogWrap>
+        </LogColumn>
+      </ModalBody>
 
-              {state.logs.map((line, index) => (
-                <Box
-                  key={`${index}-${line}`}
-                  sx={{
-                    animation: 'logIn 220ms ease-out both',
-                    color: getLogLineColor(line),
-                    minHeight: '1.7em',
-                    '@media (prefers-reduced-motion: reduce)': {
-                      animation: 'none',
-                    },
-                  }}
-                >
-                  {line}
-                </Box>
-              ))}
-
-              <Box
-                aria-hidden
-                component='span'
-                sx={{
-                  animation: 'cursorBlink 900ms step-end infinite',
-                  backgroundColor: '#a5b4fc',
-                  display: 'inline-block',
-                  height: '1.05em',
-                  ml: 0.35,
-                  verticalAlign: '-0.15em',
-                  width: 7,
-                  '@media (prefers-reduced-motion: reduce)': {
-                    animation: 'none',
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-        </Box>
-      </DialogContent>
-
-      <DialogFooter>
-        {state.phase === 'succeeded' ? (
-          <Button onClick={onReload}>Перезагрузить приложение</Button>
-        ) : state.phase === 'failed' || state.phase === 'status_error' ? (
-          <Button onClick={onClear} variant='outline'>
-            Вернуться в раздел обновления
-          </Button>
-        ) : state.phase === 'reconnecting' && state.reconnectTimedOut ? (
-          <Button onClick={onPause} variant='outline'>
-            Вернуться и продолжить позже
-          </Button>
-        ) : (
-          <Typography color='text.secondary' variant='body2'>
-            Не закрывайте приложение до завершения обновления.
-          </Typography>
-        )}
-      </DialogFooter>
+      <ModalEndSpacer />
     </Dialog>
   );
 };

@@ -5,6 +5,7 @@ import { NodeModalStepperExtension } from '@/app/providers/node-extensions/lib/t
 import {
   confirmWriteModeOnContinue,
   createTableBeforeFinish,
+  dismissCreateTableError,
   type ExtensionState,
   getPendingColumnActions,
   isColumnActionsApplyReady,
@@ -30,6 +31,8 @@ const WriteDataFrameToDBV4Extension: NodeModalStepperExtension<ExtensionState> =
       return nodeDefinition.name === 'WriteDataFrameToDBV4';
     },
     type: 'modal_stepper',
+    dialogSize: { width: 1180, height: 720 },
+    fullBleed: true,
     steps: [
       {
         id: 'target-setup',
@@ -59,6 +62,9 @@ const WriteDataFrameToDBV4Extension: NodeModalStepperExtension<ExtensionState> =
         loadingCondition: isColumnActionsApplyReady,
         shouldShowLoadingOverlay: shouldShowColumnActionsLoadingOverlay,
         loadingOverlay: ColumnActionsLoadingOverlay,
+        // На экране ошибки «Назад» ведёт на «Настройка схемы», как и ссылка.
+        canGoBackFromOverlay: context =>
+          Boolean(context.sharedState?.applyColumnActionsError?.trim()),
         onContinue: confirmWriteModeOnContinue,
       },
       {
@@ -67,8 +73,15 @@ const WriteDataFrameToDBV4Extension: NodeModalStepperExtension<ExtensionState> =
         activeIcon: Tune,
         component: WriteSettingsStep,
         condition: isWriteSettingsStepValid,
+        // Для новой таблицы «Сохранить» сначала создаёт её в базе.
+        getContinueLabel: (_inputValues, sharedState) =>
+          sharedState?.isTableNew ? 'Применить и сохранить' : null,
         onBeforeFinish: createTableBeforeFinish,
         finishOverlay: WriteStepLoadingOverlay,
+        // На экране ошибки «Назад» возвращает к форме этого шага, как и ссылка.
+        canGoBackFromOverlay: context =>
+          Boolean(context.sharedState?.createTableError?.trim()),
+        onBackFromOverlay: dismissCreateTableError,
         shouldShowFinishOverlay: (context, isFinishing) =>
           Boolean(
             context.sharedState?.isTableNew &&

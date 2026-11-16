@@ -36,6 +36,8 @@ import { selectIsAIAnalysisEnabled } from '@/entities/config/runtime-config';
 import { NodePayloadViewer } from '@/entities/node/node-payload-viewer/ui/NodePayloadViewer';
 import { useCurrentProject } from '@/entities/project/projects';
 
+import { ensureMonacoRuntime } from '@/shared/ui/code-editor';
+
 const nodeTypes: NodeTypes = {
   custom: CustomNode as any,
   widget: WidgetNode as any,
@@ -55,6 +57,14 @@ const ProjectEditorPage_ = () => {
 
   useAIAnalysisPolling(aiAnalysisProjectId);
   useAIAnalysisCompletionAlert(aiAnalysisProjectId);
+
+  // Warm up Monaco while the graph loads so the first node modal opens without
+  // waiting for the editor bundle.
+  useEffect(() => {
+    ensureMonacoRuntime().catch(() => {
+      // Reported inside the runtime; editors show their fallback on failure.
+    });
+  }, []);
 
   useEffect(() => {
     if (!aiAnalysisProjectId) {

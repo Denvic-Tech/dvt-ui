@@ -5,7 +5,7 @@ import { useAppSelector } from '@/app/providers/store';
 
 import { selectThemeMode } from '@/entities/ui-preferences';
 
-import { darkTheme, lightTheme } from '@/shared/ui';
+import { darkTheme, lightTheme } from '@/shared/ui/theme';
 
 interface AppThemeProviderProps {
   children: React.ReactNode;

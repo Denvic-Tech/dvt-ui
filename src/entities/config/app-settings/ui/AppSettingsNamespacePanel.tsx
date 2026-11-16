@@ -28,13 +28,13 @@ import { useAlert } from '@/app/notifications';
 
 import { isApiError } from '@/shared/lib/errors';
 import { getNamespaceIcon } from '@/shared/lib/getNamespaceIcon';
+import { HeaderCopyChip } from '@/shared/ui/header-copy-chip';
 import { PageLayout, PageToolbar } from '@/shared/ui/page-layout';
 import { SingleOptionDropdownSelect } from '@/shared/ui/select';
 
 import {
   buildAppSettingsNamespaceUpdatePayload,
   createAppSettingsFormValues,
-  createDefaultOomGuardSettingsFormValue,
   findAppSettingsNamespace,
   normalizeOomGuardSettingsFormValue,
   validateAppSettingsFormValues,
@@ -45,52 +45,45 @@ import type {
   AppSettingsFieldDescriptor,
   AppSettingsFormValues,
   OomGuardMode,
-  OomGuardSettingsFormErrors,
   OomGuardSettingsFormValue,
   OomGuardWorkerThresholdType,
 } from '../model/types';
+
+import { DccSettingsForm } from './dcc/DccSettingsForm';
+import {
+  applyOomGuardMode,
+  applyOomGuardWorkerThresholdType,
+  getVisibleOomGuardErrors,
+  OOM_GUARD_MODE_OPTIONS,
+  OOM_GUARD_THRESHOLD_TYPE_OPTIONS,
+} from './runtime/oomGuardOptions';
+import { RuntimeSettingsForm } from './runtime/RuntimeSettingsForm';
 
 type AppSettingsNamespacePanelProps = {
   namespaceId: string | null;
 };
 
-const OOM_GUARD_MODE_OPTIONS: Array<{
-  value: OomGuardMode;
-  label: string;
-  description: string;
-}> = [
-  {
-    value: 'DISABLED',
-    label: 'Выключен',
-    description: 'Защита от OOM отключена — task снимает только сам Dask.',
-  },
-  {
-    value: 'HOST_PRESSURE',
-    label: 'По нагрузке хоста',
-    description:
-      'Останавливает task с максимальным RSS, если память host/container превышает порог.',
-  },
-  {
-    value: 'WORKER_THRESHOLD',
-    label: 'По лимиту воркера',
-    description:
-      'Останавливает executing task, который превысил индивидуальный лимит.',
-  },
-];
+const DCC_NAMESPACE_ID = 'dcc';
+const RUNTIME_NAMESPACE_ID = 'runtime';
+const DCC_CONNECTOR_ID_KEY = 'dcc.connector_id';
+// How long «Сохранено» stays next to the save button.
+const SAVED_NOTE_DURATION_MS = 2000;
 
-const OOM_GUARD_THRESHOLD_TYPE_OPTIONS: Array<{
-  value: OomGuardWorkerThresholdType;
-  label: string;
-}> = [
-  {
-    value: 'PERCENT',
-    label: '%',
-  },
-  {
-    value: 'ABSOLUTE_MB',
-    label: 'MB',
-  },
-];
+// The first and the last 8 characters: b084ab4e…af38b7d6.
+const shortenMiddle = (value: string, edge = 8) =>
+  value.length > edge * 2 + 1
+    ? `${value.slice(0, edge)}…${value.slice(-edge)}`
+    : value;
+
+// Form values are primitives, or plain objects such as the OOM guard config.
+const isSameFormValue = (
+  left: AppSettingsFormValues[string],
+  right: AppSettingsFormValues[string]
+) =>
+  left === right ||
+  (typeof left === 'object' &&
+    typeof right === 'object' &&
+    JSON.stringify(left) === JSON.stringify(right));
 
 const resolveErrorMessage = (error: unknown, fallback: string) => {
   if (isApiError(error)) {
@@ -103,62 +96,6 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
 
   return fallback;
 };
-
-const getVisibleOomGuardErrors = (
-  showValidation: boolean,
-  errors: OomGuardSettingsFormErrors
-): OomGuardSettingsFormErrors => (showValidation ? errors : {});
-
-const applyOomGuardMode = (
-  currentValue: OomGuardSettingsFormValue,
-  mode: OomGuardMode
-): OomGuardSettingsFormValue => {
-  if (mode === 'DISABLED') {
-    return createDefaultOomGuardSettingsFormValue();
-  }
-
-  if (mode === 'HOST_PRESSURE') {
-    return {
-      mode,
-      host_threshold_percent: currentValue.host_threshold_percent,
-      worker_threshold_type: '',
-      worker_threshold_percent: '',
-      worker_threshold_mb: '',
-    };
-  }
-
-  const workerThresholdType = currentValue.worker_threshold_type || 'PERCENT';
-
-  return {
-    mode,
-    host_threshold_percent: '',
-    worker_threshold_type: workerThresholdType,
-    worker_threshold_percent:
-      workerThresholdType === 'PERCENT'
-        ? currentValue.worker_threshold_percent
-        : '',
-    worker_threshold_mb:
-      workerThresholdType === 'ABSOLUTE_MB'
-        ? currentValue.worker_threshold_mb
-        : '',
-  };
-};
-
-const applyOomGuardWorkerThresholdType = (
-  currentValue: OomGuardSettingsFormValue,
-  workerThresholdType: OomGuardWorkerThresholdType
-): OomGuardSettingsFormValue => ({
-  ...currentValue,
-  worker_threshold_type: workerThresholdType,
-  worker_threshold_percent:
-    workerThresholdType === 'PERCENT'
-      ? currentValue.worker_threshold_percent
-      : '',
-  worker_threshold_mb:
-    workerThresholdType === 'ABSOLUTE_MB'
-      ? currentValue.worker_threshold_mb
-      : '',
-});
 
 const FieldMeta = ({ field }: { field: AppSettingsFieldDescriptor }) => (
   <Stack spacing={0.75}>
@@ -209,25 +146,9 @@ const FieldRow = ({
   </Box>
 );
 
-const COMPACT_FIELD_COPY: Record<
-  string,
-  { label: string; description: string }
-> = {
-  'runtime.datetime_precision': {
-    label: 'Точность даты и времени',
-    description:
-      'Точность представления даты и времени при обработке данных в Dask.',
-  },
-  'runtime.oom_guard': {
-    label: 'Защита от нехватки памяти',
-    description: 'Управление защитой задач и воркеров при нехватке памяти.',
-  },
-};
-
 const CompactFieldMeta = ({ field }: { field: AppSettingsFieldDescriptor }) => {
-  const fieldCopy = COMPACT_FIELD_COPY[field.key];
-  const label = fieldCopy?.label ?? field.label;
-  const description = fieldCopy?.description ?? field.description;
+  const label = field.label;
+  const description = field.description;
 
   return (
     <Stack spacing={0.55}>
@@ -922,6 +843,33 @@ export const AppSettingsNamespacePanel: React.FC<
     definitionsStatus === 'loading' ||
     (status === 'idle' && definitionsStatus === 'idle');
   const isSaving = upsertStatus === 'loading';
+  const namespaceKey = namespace?.id.toLocaleLowerCase() ?? null;
+  const isDccNamespace = namespaceKey === DCC_NAMESPACE_ID;
+  const isRuntimeNamespace = namespaceKey === RUNTIME_NAMESPACE_ID;
+  // These tabs save from a «Сохранить» that is off until something changes.
+  const hasSaveRow = isDccNamespace || isRuntimeNamespace;
+  // The values as loaded, to tell whether there is anything to save.
+  const loadedValues = React.useMemo(
+    () => createAppSettingsFormValues({ settings, fields }),
+    [fields, settings]
+  );
+  const isDirty = fields.some(
+    field =>
+      field.runtimeEditable &&
+      !isSameFormValue(values[field.key], loadedValues[field.key])
+  );
+  const [showSavedNote, setShowSavedNote] = React.useState(false);
+  const savedNoteTimerRef = React.useRef<number | null>(null);
+
+  const hideSavedNote = React.useCallback(() => {
+    if (savedNoteTimerRef.current !== null) {
+      window.clearTimeout(savedNoteTimerRef.current);
+      savedNoteTimerRef.current = null;
+    }
+    setShowSavedNote(false);
+  }, []);
+
+  React.useEffect(() => hideSavedNote, [hideSavedNote]);
 
   React.useEffect(() => {
     if (status === 'idle' || definitionsStatus === 'idle') {
@@ -930,14 +878,9 @@ export const AppSettingsNamespacePanel: React.FC<
   }, [definitionsStatus, loadAll, status]);
 
   React.useEffect(() => {
-    setValues(
-      createAppSettingsFormValues({
-        settings,
-        fields,
-      })
-    );
+    setValues(loadedValues);
     setErrors({});
-  }, [fields, settings]);
+  }, [loadedValues]);
 
   const updateValue = React.useCallback(
     (
@@ -950,6 +893,7 @@ export const AppSettingsNamespacePanel: React.FC<
       };
 
       setValues(nextValues);
+      hideSavedNote();
 
       if (errors[field.key]) {
         setErrors(
@@ -960,13 +904,14 @@ export const AppSettingsNamespacePanel: React.FC<
         );
       }
     },
-    [errors, fields, values]
+    [errors, fields, hideSavedNote, values]
   );
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!namespace) {
+    // Enter in a field must not resave the loaded values.
+    if (!namespace || (hasSaveRow && !isDirty)) {
       return;
     }
 
@@ -989,6 +934,17 @@ export const AppSettingsNamespacePanel: React.FC<
           fields,
         }),
       });
+
+      if (hasSaveRow) {
+        hideSavedNote();
+        setShowSavedNote(true);
+        savedNoteTimerRef.current = window.setTimeout(() => {
+          setShowSavedNote(false);
+          savedNoteTimerRef.current = null;
+        }, SAVED_NOTE_DURATION_MS);
+        return;
+      }
+
       showAlert({
         type: 'success',
         title: 'Настройки сохранены.',
@@ -1041,28 +997,100 @@ export const AppSettingsNamespacePanel: React.FC<
   }
 
   const normalizedNamespaceId = namespace.id.toLocaleLowerCase();
-  const compactNamespaceConfig =
-    normalizedNamespaceId === 'dcc'
-      ? {
-          title: 'DCC',
-          badge: 'dcc',
-          description:
-            'Параметры и настройки подключения к Denvic Control Center.',
+
+  if (isDccNamespace) {
+    const connectorIdField = fields.find(
+      field => field.key === DCC_CONNECTOR_ID_KEY
+    );
+    const connectorIdValue = connectorIdField
+      ? values[connectorIdField.key]
+      : null;
+    const connectorId =
+      typeof connectorIdValue === 'string' ? connectorIdValue.trim() : '';
+
+    return (
+      <PageLayout
+        key={namespace.id}
+        width='narrow'
+        component='form'
+        onSubmit={handleSubmit}
+        title='DCC'
+        icon={getNamespaceIcon(namespace.id)}
+        headerActions={
+          connectorId ? (
+            <HeaderCopyChip
+              label='Connector ID'
+              value={connectorId}
+              displayValue={shortenMiddle(connectorId)}
+              copyLabel='Скопировать Connector ID'
+            />
+          ) : null
         }
-      : normalizedNamespaceId === 'license'
-        ? {
-            title: 'License',
-            badge: 'license',
-            description: 'Управление лицензионным ключом приложения.',
-          }
-        : normalizedNamespaceId === 'runtime'
-          ? {
-              title: 'Runtime',
-              badge: 'runtime',
-              description:
-                'Параметры выполнения задач и защиты runtime-процессов.',
-            }
-          : null;
+      >
+        {upsertError ? (
+          <Alert severity='error' sx={{ mb: 2.25 }}>
+            {resolveErrorMessage(
+              upsertError,
+              'Не удалось сохранить настройки.'
+            )}
+          </Alert>
+        ) : null}
+
+        <DccSettingsForm
+          fields={fields.filter(
+            field => field.runtimeEditable && field.key !== DCC_CONNECTOR_ID_KEY
+          )}
+          values={values}
+          errors={errors}
+          onChange={updateValue}
+          isDirty={isDirty}
+          isSaving={isSaving}
+          showSaved={showSavedNote}
+        />
+      </PageLayout>
+    );
+  }
+
+  if (isRuntimeNamespace) {
+    return (
+      <PageLayout
+        key={namespace.id}
+        width='narrow'
+        component='form'
+        onSubmit={handleSubmit}
+        title='Runtime'
+        icon={getNamespaceIcon(namespace.id)}
+      >
+        {upsertError ? (
+          <Alert severity='error' sx={{ mb: 2.25 }}>
+            {resolveErrorMessage(
+              upsertError,
+              'Не удалось сохранить настройки.'
+            )}
+          </Alert>
+        ) : null}
+
+        <RuntimeSettingsForm
+          fields={fields}
+          values={values}
+          errors={errors}
+          onChange={updateValue}
+          isDirty={isDirty}
+          isSaving={isSaving}
+          showSaved={showSavedNote}
+        />
+      </PageLayout>
+    );
+  }
+
+  const compactNamespaceConfig =
+    normalizedNamespaceId === 'license'
+      ? {
+          title: 'License',
+          badge: 'license',
+          description: 'Управление лицензионным ключом приложения.',
+        }
+      : null;
 
   if (compactNamespaceConfig) {
     return (

@@ -1,35 +1,14 @@
 export { servicesStatusApi } from './api';
-
-export {
-  type ServicesStatusState,
-  fetchServicesStatus,
-  servicesStatusReducer,
-  servicesStatusActions,
-} from './model/slice';
-
-export {
-  selectServicesStatusState,
-  selectServicesStatsIsLoading,
-  selectServicesStatsError,
-} from './model/selectors';
-
 export { useServicesStatus } from './model/hook';
-
-export type { SystemInfo, ServicesStatus } from './model/types';
-
 export {
-  AutoRefreshButton,
-  HeaderActions,
-  PageContainer,
-  PageDescription,
-  PageHeader,
-  PageHeading,
-  PageTitle,
-  PageTitleRow,
-  RefreshButton,
-  SectionsStack,
-  VersionBadge,
-} from './ui/styles';
-
-export { ServiceStatusCard } from './ui/ServiceStatusCard';
-export { ServicesStatusCategory } from './ui/ServicesStatusCategory';
+  selectServicesStatsError,
+  selectServicesStatsIsLoading,
+  selectServicesStatusState,
+} from './model/selectors';
+export {
+  fetchServicesStatus,
+  servicesStatusActions,
+  servicesStatusReducer,
+  type ServicesStatusState,
+} from './model/slice';
+export type { ServicesStatus, SystemInfo } from './model/types';

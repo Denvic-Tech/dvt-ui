@@ -1,8 +1,5 @@
 import * as React from 'react';
-import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import Box from '@mui/material/Box';
-import { alpha, type Theme } from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
 import { IconCircleArrowUp } from '@tabler/icons-react';
 
 import { useBuildVersion } from '@/features/profile/build-version-info';
@@ -12,62 +9,36 @@ import {
 } from '@/features/profile/system-update';
 
 import type { UserReadSchema } from '@/shared/gatewayClient';
+import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { PageLayout } from '@/shared/ui/page-layout';
 import {
   Alert,
   AlertDescription,
   AlertTitle,
-  Badge,
   Button,
-  Input,
-  RadioGroup,
-  RadioGroupItem,
   Spinner,
-} from '@/shared/ui';
-import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { PageLayout, PageToolbar } from '@/shared/ui/page-layout';
+} from '@/shared/ui/primitives';
+
+import {
+  FieldHint,
+  FieldLabel,
+  FieldRow,
+  StartErrorNotice,
+  TagInput,
+  UpdateButton,
+  UpdateContent,
+  UpdateSection,
+  UpdateTitle,
+  UpdateVersion,
+} from './styles';
 
 interface SystemUpdatePanelProps {
   currentUser: UserReadSchema | null;
 }
 
-type TargetVersionMode = 'latest' | 'manual';
-
-const optionCardSx = (theme: Theme, selected: boolean) => ({
-  backgroundColor: selected
-    ? alpha(
-        theme.palette.primary.main,
-        theme.palette.mode === 'light' ? 0.09 : 0.16
-      )
-    : alpha(
-        theme.palette.background.paper,
-        theme.palette.mode === 'light' ? 0.96 : 0.72
-      ),
-  border: '1px solid',
-  borderColor: selected ? 'primary.main' : 'divider',
-  borderRadius: '12px',
-  cursor: 'pointer',
-  display: 'grid',
-  gap: 1.25,
-  p: 2,
-  transition: 'border-color 150ms ease, background-color 150ms ease',
-  '&:hover': {
-    borderColor: selected
-      ? 'primary.main'
-      : alpha(theme.palette.primary.main, 0.34),
-  },
-});
-
-const optionTitleSx = {
-  fontSize: 14,
-  fontWeight: 600,
-  lineHeight: 1.35,
-};
-
-const optionDescriptionSx = {
-  color: 'text.secondary',
-  fontSize: 13,
-  lineHeight: 1.5,
-};
+// The backend resolves this tag to the latest stable release.
+const LATEST_TAG = 'latest';
+const TAG_INPUT_ID = 'system-update-tag';
 
 export const SystemUpdatePanel = ({ currentUser }: SystemUpdatePanelProps) => {
   const { confirm } = useConfirmDialog();
@@ -78,9 +49,7 @@ export const SystemUpdatePanel = ({ currentUser }: SystemUpdatePanelProps) => {
   } = useBuildVersion();
   const { phase, marker, error, start, resume, clear, clearStartError } =
     useSystemUpdate();
-  const [targetMode, setTargetMode] =
-    React.useState<TargetVersionMode>('manual');
-  const [manualVersion, setManualVersion] = React.useState('');
+  const [tag, setTag] = React.useState(LATEST_TAG);
   const [validationError, setValidationError] = React.useState<string | null>(
     null
   );
@@ -90,8 +59,7 @@ export const SystemUpdatePanel = ({ currentUser }: SystemUpdatePanelProps) => {
   );
   const pausedMarker = ownsMarker && marker?.paused ? marker : null;
   const isStarting = phase === 'starting';
-  const targetVersion =
-    targetMode === 'latest' ? 'latest' : manualVersion.trim();
+  const targetVersion = tag.trim();
   const isFormDisabled = isStarting || Boolean(marker);
   const canStart = Boolean(targetVersion) && !isFormDisabled;
 
@@ -99,19 +67,9 @@ export const SystemUpdatePanel = ({ currentUser }: SystemUpdatePanelProps) => {
     void loadBuildVersion();
   }, [loadBuildVersion]);
 
-  const selectTargetMode = (mode: TargetVersionMode) => {
-    if (isFormDisabled) {
-      return;
-    }
-
-    setTargetMode(mode);
-    setValidationError(null);
-    clearStartError();
-  };
-
   const handleStart = async () => {
     if (!targetVersion) {
-      setValidationError('Укажите целевую версию DVT.');
+      setValidationError('Укажите tag образов.');
       return;
     }
 
@@ -156,51 +114,25 @@ export const SystemUpdatePanel = ({ currentUser }: SystemUpdatePanelProps) => {
     }
   };
 
+  const renderCurrentVersion = () => {
+    if (versionLoading && !versionInfo) {
+      return 'Определение версии…';
+    }
+
+    if (!versionInfo?.version) {
+      return 'Установленная версия неизвестна';
+    }
+
+    return (
+      <>
+        Установлена <b>{versionInfo.version}</b>
+      </>
+    );
+  };
+
   return (
     <PageLayout width='narrow' title='DVT Update' icon={IconCircleArrowUp}>
-      <PageToolbar>
-        <Box
-          sx={theme => ({
-            alignItems: 'center',
-            backgroundColor: alpha(
-              theme.palette.background.paper,
-              theme.palette.mode === 'light' ? 0.98 : 0.76
-            ),
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '10px',
-            color: 'text.secondary',
-            display: 'flex',
-            gap: 1,
-            minHeight: 36,
-            px: 1.5,
-          })}
-        >
-          <LocalOfferOutlinedIcon color='primary' sx={{ fontSize: 15 }} />
-          <Typography sx={{ fontSize: 12 }}>Текущая версия</Typography>
-          <Typography
-            component='code'
-            sx={{
-              color: 'text.primary',
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            {versionLoading && !versionInfo
-              ? 'определение…'
-              : versionInfo?.version || 'неизвестна'}
-          </Typography>
-        </Box>
-      </PageToolbar>
-
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 2.5,
-          width: '100%',
-        }}
-      >
+      <UpdateContent>
         {pausedMarker ? (
           <Alert variant='warning'>
             <AlertTitle>Мониторинг обновления приостановлен</AlertTitle>
@@ -231,254 +163,59 @@ export const SystemUpdatePanel = ({ currentUser }: SystemUpdatePanelProps) => {
           </Alert>
         ) : null}
 
-        {phase === 'idle' && error ? (
-          <Alert variant='destructive'>
-            <AlertTitle>Не удалось запустить обновление</AlertTitle>
-            <AlertDescription>{error.message}</AlertDescription>
-          </Alert>
-        ) : null}
+        <UpdateSection aria-busy={isStarting}>
+          <UpdateTitle>Версия DVT</UpdateTitle>
+          <UpdateVersion>{renderCurrentVersion()}</UpdateVersion>
 
-        <RadioGroup
-          onValueChange={value => selectTargetMode(value as TargetVersionMode)}
-          value={targetMode}
-        >
-          <Box
-            onClick={() => selectTargetMode('latest')}
-            sx={theme => optionCardSx(theme, targetMode === 'latest')}
-          >
-            <Box sx={{ alignItems: 'flex-start', display: 'flex', gap: 1 }}>
-              <RadioGroupItem
-                disabled={isFormDisabled}
-                inputProps={{ 'aria-label': 'Последняя версия' }}
-                sx={{ mt: -0.75, ml: -0.75 }}
-                value='latest'
-              />
-              <Box sx={{ display: 'grid', gap: 0.25, minWidth: 0 }}>
-                <Box
-                  sx={{
-                    alignItems: 'center',
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 0.75,
-                  }}
-                >
-                  <Typography sx={optionTitleSx}>Последняя версия</Typography>
-                  <Badge
-                    variant='success'
-                    style={{
-                      border: 0,
-                      borderRadius: 4,
-                      minHeight: 18,
-                      paddingInline: 7,
-                    }}
-                  >
-                    РЕКОМЕНДУЕТСЯ
-                  </Badge>
-                </Box>
-                <Typography sx={optionDescriptionSx}>
-                  Устанавливает самый свежий стабильный релиз — tag{' '}
-                  <Box
-                    component='code'
-                    sx={theme => ({
-                      backgroundColor: alpha(
-                        theme.palette.text.secondary,
-                        0.08
-                      ),
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: '4px',
-                      color: 'text.primary',
-                      fontFamily:
-                        'ui-monospace, SFMono-Regular, Menlo, monospace',
-                      fontSize: 12,
-                      px: 0.5,
-                      py: 0.125,
-                    })}
-                  >
-                    latest
-                  </Box>
-                  .
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
+          <FieldLabel htmlFor={TAG_INPUT_ID}>Tag образов</FieldLabel>
+          <FieldRow>
+            <TagInput
+              id={TAG_INPUT_ID}
+              value={tag}
+              disabled={isFormDisabled}
+              error={Boolean(validationError)}
+              inputProps={{ spellCheck: false }}
+              onChange={event => {
+                setTag(event.target.value);
+                setValidationError(null);
+                clearStartError();
+              }}
+              onKeyDown={event => {
+                if (event.key === 'Enter' && canStart) {
+                  event.preventDefault();
+                  void handleStart();
+                }
+              }}
+            />
+            <UpdateButton
+              disableRipple
+              busy={isStarting}
+              disabled={!canStart}
+              onClick={() => void handleStart()}
+            >
+              {isStarting ? (
+                <>
+                  <Spinner color='inherit' size={12} />
+                  Запуск обновления…
+                </>
+              ) : (
+                'Обновить'
+              )}
+            </UpdateButton>
+          </FieldRow>
+          <FieldHint error={Boolean(validationError)}>
+            {validationError ?? 'latest — последний стабильный релиз'}
+          </FieldHint>
 
-          <Box
-            onClick={() => selectTargetMode('manual')}
-            sx={theme => optionCardSx(theme, targetMode === 'manual')}
-          >
-            <Box sx={{ alignItems: 'flex-start', display: 'flex', gap: 1 }}>
-              <RadioGroupItem
-                disabled={isFormDisabled}
-                inputProps={{ 'aria-label': 'Указать версию вручную' }}
-                sx={{ mt: -0.75, ml: -0.75 }}
-                value='manual'
-              />
-              <Box sx={{ display: 'grid', gap: 0.25, minWidth: 0 }}>
-                <Typography sx={optionTitleSx}>
-                  Указать версию вручную
-                </Typography>
-                <Typography sx={optionDescriptionSx}>
-                  Разверните конкретный tag образов.
-                </Typography>
-              </Box>
-            </Box>
-
-            {targetMode === 'manual' ? (
-              <Box
-                onClick={event => event.stopPropagation()}
-                sx={theme => ({
-                  display: 'grid',
-                  gap: 0.75,
-                  pl: { xs: 0, sm: 3.75 },
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: theme.palette.background.paper,
-                    borderRadius: '8px',
-                    boxShadow: 'none',
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: theme.palette.divider,
-                      borderRadius: '8px',
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: theme.palette.divider,
-                    },
-                    '&.Mui-focused': {
-                      boxShadow: 'none',
-                    },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: theme.palette.primary.main,
-                      borderWidth: 1,
-                    },
-                    '&.Mui-error .MuiOutlinedInput-notchedOutline': {
-                      borderColor: theme.palette.error.main,
-                    },
-                    '&.Mui-error:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: theme.palette.error.main,
-                    },
-                  },
-                  '& input': {
-                    fontFamily:
-                      'ui-monospace, SFMono-Regular, Menlo, monospace',
-                    fontSize: 14,
-                  },
-                })}
-              >
-                <Input
-                  autoFocus
-                  disabled={isFormDisabled}
-                  error={Boolean(validationError)}
-                  id='system-update-version'
-                  inputProps={{
-                    'aria-label': 'Целевая версия DVT',
-                  }}
-                  onChange={event => {
-                    setManualVersion(event.target.value);
-                    setValidationError(null);
-                    clearStartError();
-                  }}
-                  placeholder='1.20.0'
-                  startAdornment={
-                    <LocalOfferOutlinedIcon sx={{ fontSize: 17 }} />
-                  }
-                  value={manualVersion}
-                />
-                <Typography
-                  color={validationError ? 'error.main' : 'text.secondary'}
-                  sx={{ fontSize: 12, lineHeight: 1.5 }}
-                >
-                  {validationError ?? (
-                    <>
-                      Например:{' '}
-                      <Box
-                        component='code'
-                        sx={{
-                          fontFamily:
-                            'ui-monospace, SFMono-Regular, Menlo, monospace',
-                        }}
-                      >
-                        1.20.0
-                      </Box>
-                    </>
-                  )}
-                </Typography>
-              </Box>
-            ) : null}
-          </Box>
-        </RadioGroup>
-
-        <Alert
-          sx={theme => ({
-            backgroundColor: alpha(
-              theme.palette.warning.main,
-              theme.palette.mode === 'light' ? 0.07 : 0.12
-            ),
-            borderColor: alpha(theme.palette.warning.main, 0.38),
-            borderRadius: '12px',
-            px: 1.75,
-            py: 1.25,
-          })}
-          variant='warning'
-        >
-          <AlertTitle sx={{ fontSize: 14, mb: 0.25 }}>
-            Сервисы будут перезапущены
-          </AlertTitle>
-          <AlertDescription sx={{ fontSize: 13, lineHeight: 1.5 }}>
-            Во время обновления DVT временно потеряет соединение. После запуска
-            откроется экран мониторинга.
-          </AlertDescription>
-        </Alert>
-      </Box>
-
-      <Box
-        sx={{
-          alignItems: { xs: 'stretch', sm: 'center' },
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: 1.5,
-          justifyContent: 'flex-end',
-          mt: 3,
-          width: '100%',
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column-reverse', sm: 'row' },
-            gap: 1,
-          }}
-        >
-          <Button
-            disabled={!canStart}
-            onClick={() => void handleStart()}
-            startIcon={
-              isStarting ? <Spinner color='inherit' size={16} /> : undefined
-            }
-            sx={{
-              backgroundColor: 'primary.main',
-              backgroundImage: 'none',
-              borderRadius: '12px',
-              boxShadow: 'none',
-              color: 'common.white',
-              fontSize: 14,
-              fontWeight: 500,
-              minWidth: 0,
-              px: 3,
-              '&:hover': {
-                backgroundColor: 'primary.dark',
-                backgroundImage: 'none',
-                boxShadow: 'none',
-              },
-              '&.Mui-disabled': {
-                backgroundColor: 'grey.300',
-                backgroundImage: 'none',
-                color: 'common.white',
-              },
-            }}
-          >
-            {isStarting ? 'Запуск обновления…' : 'Обновить DVT'}
-          </Button>
-        </Box>
-      </Box>
+          {phase === 'idle' && error ? (
+            <StartErrorNotice
+              title='Не удалось запустить обновление'
+              message={error.message}
+              onDismiss={clearStartError}
+            />
+          ) : null}
+        </UpdateSection>
+      </UpdateContent>
     </PageLayout>
   );
 };

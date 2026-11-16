@@ -1,24 +1,13 @@
 import { useCallback } from 'react';
 
-import { useAppDispatch, useAppSelector } from '@/app/providers/store';
+import { useAppDispatch, useAppSelector } from '@/app/providers/store/hooks';
+
 import type {
   AdminUserCreateSchema,
   AdminUserReadSchema,
   AdminUserUpdateSchema,
 } from '@/shared/gatewayClient';
 
-import {
-  createAdminUser,
-  deleteAdminUser,
-  fetchAdminUserById,
-  fetchAdminUsers,
-  resetAdminCreateState,
-  resetAdminDeleteState,
-  resetAdminSelectedUser,
-  resetAdminUpdateState,
-  setAdminSelectedUser,
-  updateAdminUser,
-} from './slice.ts';
 import {
   selectAdminCreateError,
   selectAdminCreateStatus,
@@ -40,6 +29,18 @@ import {
   selectAdminUsersIsLoading,
   selectAdminUsersStatus,
 } from './selectors.ts';
+import {
+  createAdminUser,
+  deleteAdminUser,
+  fetchAdminUserById,
+  fetchAdminUsers,
+  resetAdminCreateState,
+  resetAdminDeleteState,
+  resetAdminSelectedUser,
+  resetAdminUpdateState,
+  setAdminSelectedUser,
+  updateAdminUser,
+} from './slice.ts';
 
 export const useAdmin = () => {
   const dispatch = useAppDispatch();

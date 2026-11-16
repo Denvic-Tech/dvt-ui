@@ -5,6 +5,13 @@ import { Box, ButtonBase, type SxProps, type Theme } from '@mui/material';
 
 import { useHomeWidgetsPreference } from '@/entities/ui-preferences';
 
+import { homeAppearSx } from '@/shared/ui/home-theme/motion';
+import {
+  hc,
+  homeCardSx,
+  homeSectionTitleSx,
+} from '@/shared/ui/home-theme/tokens';
+
 import type { HomeRole } from '../config/sections';
 import {
   layoutWidgets,
@@ -12,8 +19,6 @@ import {
   WIDGET_CELL_HEIGHT,
   WIDGET_GRID_GAP,
 } from '../lib/widgetLayout';
-import { homeAppearSx } from '../styles/motion';
-import { hc, homeCardSx, homeSectionTitleSx } from '../styles/tokens';
 
 import { HomeWidgetPicker } from './HomeWidgetPicker';
 import { HomeWidgetShell } from './HomeWidgetShell';

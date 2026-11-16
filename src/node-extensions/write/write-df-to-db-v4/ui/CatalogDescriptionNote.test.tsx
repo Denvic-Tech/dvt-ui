@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { NodeField } from '@/entities/data/lineage';
 
+import { ColumnCommentPanel } from './schema-step/ColumnCommentPanel';
 import { CatalogDescriptionNote } from './CatalogDescriptionNote';
-import { ColumnCommentEditor } from './ColumnCommentEditor';
 
 vi.mock('@/app/providers/store', () => ({
   useAppSelector: () => undefined,
@@ -32,21 +32,28 @@ const field = (
   }) as unknown as NodeField;
 
 describe('catalog description note', () => {
-  it('keeps only the description in the cell and moves provenance to a tooltip', async () => {
+  it('keeps only the description in the source box and moves provenance to a tooltip', async () => {
     render(
-      <ColumnCommentEditor
-        name='category'
+      <ColumnCommentPanel
+        columnName='category'
         value='Категория'
-        adornment={
+        onChange={vi.fn()}
+        sourceComment='Категория'
+        onUseSource={vi.fn()}
+        sourceAdornment={
           <CatalogDescriptionNote field={field('Категория', 'inherited')} />
         }
-        onChange={vi.fn()}
+        hasPrevious={false}
+        hasNext={false}
+        onPrevious={vi.fn()}
+        onNext={vi.fn()}
+        onClose={vi.fn()}
       />
     );
 
     expect(
-      screen.getByRole('button', { name: 'Комментарий колонки category' })
-    ).toHaveTextContent(/^Категория$/);
+      screen.getByText('Категория', { selector: '.source-value' })
+    ).toBeInTheDocument();
     expect(screen.queryByText(/наследуется от/)).not.toBeInTheDocument();
 
     fireEvent.mouseOver(

@@ -1,13 +1,19 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import {
+  languageActions,
   LanguageContext,
   LanguageOption,
-  languageActions,
   selectCurrentLanguage,
   selectLanguageOptions,
 } from '@/app/i18n';
 import { useAppDispatch, useAppSelector } from '@/app/providers/store/hooks';
+
+import {
+  fetchNodeDefinitions,
+  selectNodeDefinitionsStatus,
+} from '@/entities/node/node-definition';
+
 import {
   getSavedLanguage,
   saveLanguage,
@@ -23,6 +29,7 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
   const dispatch = useAppDispatch();
   const language = useAppSelector(selectCurrentLanguage);
   const options = useAppSelector(selectLanguageOptions);
+  const nodeDefinitionsStatus = useAppSelector(selectNodeDefinitionsStatus);
   const hydratedRef = useRef(false);
 
   useEffect(() => {
@@ -44,9 +51,18 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
 
   const setLanguage = useCallback(
     (nextLanguage: LanguageOption) => {
+      // Saved before the dispatch: the gateway client reads the X-Language
+      // header from storage, and requests fired by the re-render must already
+      // go out in the new language.
+      saveLanguage(nextLanguage.value);
       dispatch(languageActions.setLanguage(nextLanguage));
+
+      // Node definitions come localized and are loaded once per session.
+      if (nodeDefinitionsStatus !== 'idle') {
+        dispatch(fetchNodeDefinitions());
+      }
     },
-    [dispatch]
+    [dispatch, nodeDefinitionsStatus]
   );
 
   const value = useMemo(

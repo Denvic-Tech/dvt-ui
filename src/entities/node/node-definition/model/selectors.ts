@@ -1,9 +1,10 @@
 import { createSelector } from '@reduxjs/toolkit';
 
-import { RootState } from '@/app/providers/store';
+import type { RootState } from '@/app/providers/store/types';
+
+import { type NodeDefinition } from '@/shared/gatewayClient';
 
 import { type NodeDefinitionSliceState } from './slice.ts';
-import { type NodeDefinition } from '@/shared/gatewayClient';
 
 export const selectNodeDefinitionState = (
   state: RootState

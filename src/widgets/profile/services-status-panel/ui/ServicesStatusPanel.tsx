@@ -1,123 +1,211 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import DnsRoundedIcon from '@mui/icons-material/DnsRounded';
-import PrecisionManufacturingRoundedIcon from '@mui/icons-material/PrecisionManufacturingRounded';
-import { Box } from '@mui/material';
-import { IconActivity } from '@tabler/icons-react';
+import { IconActivity, IconRefresh } from '@tabler/icons-react';
 
-import { useBuildVersion } from '@/features/profile/build-version-info';
 import { useServicesStatus } from '@/features/profile/services-status';
 
-import { Alert, Spinner } from '@/shared/ui';
+import type { ServicesStatus } from '@/shared/gatewayClient';
+import { useDelayedLoading } from '@/shared/lib/hooks/useDelayedLoading';
 import { PageLayout } from '@/shared/ui/page-layout';
+import { Alert } from '@/shared/ui/primitives';
+import { TokenListMessage } from '@/shared/ui/token-list';
 
-import { sortByStatus } from './lib/sortByStatus.ts';
-import { ServicesStatusHeader } from './ServicesStatusHeader.tsx';
-import { ServicesStatusSection } from './ServicesStatusSection.tsx';
-import { LoadingState, PanelInner, SectionsStack } from './styled.ts';
-import type { ServiceStatusRowItem } from './types.ts';
+import { getElapsedSeconds } from './lib/formatters.ts';
+import { normalizeTimestamp } from './lib/normalizeTimestamp.ts';
+import { ServiceRow, ServiceRowSkeleton } from './ServiceRow.tsx';
+import {
+  RefreshButton,
+  ServicesBox,
+  ServicesStack,
+  ShowAllButton,
+  UpdatedText,
+} from './styles.ts';
+import type { ServiceRowItem } from './types.ts';
+
+const REFRESH_INTERVAL_MS = 5000;
+const WORKERS_LIMIT = 8;
+const WORKER_TYPE_NAME = 'Воркер задач';
+
+const SERVICE_SKELETON_ROWS = [{ nameWidth: 72 }, { nameWidth: 136 }];
+const WORKER_SKELETON_ROWS = [
+  { nameWidth: 120 },
+  { nameWidth: 112 },
+  { nameWidth: 124 },
+];
+
+const getServiceItems = (status: ServicesStatus): ServiceRowItem[] => [
+  {
+    key: 'gateway',
+    name: 'Gateway',
+    data: status.gateway,
+    isAvailable: true,
+    lastResponseAt: null,
+  },
+  {
+    key: 'project_scheduler',
+    name: 'Планировщик задач',
+    data: status.project_scheduler,
+    isAvailable: Boolean(status.project_scheduler),
+    lastResponseAt: null,
+  },
+];
+
+// Unavailable instances first, then the busiest ones. The number keeps the
+// position in the response, so it does not change when the order does.
+const getWorkerItems = (status: ServicesStatus): ServiceRowItem[] =>
+  (status.task_workers ?? [])
+    .map((worker, index) => ({
+      key: worker.worker_id || `task_worker_${index}`,
+      name: `${WORKER_TYPE_NAME} #${index + 1}`,
+      data: worker,
+      isAvailable: worker.status !== 'offline',
+      lastResponseAt: normalizeTimestamp(
+        worker.last_heartbeat_received_at ?? worker.last_heartbeat_at
+      ),
+    }))
+    .sort(
+      (left, right) =>
+        Number(left.isAvailable) - Number(right.isAvailable) ||
+        right.data.cpu_percent - left.data.cpu_percent
+    );
+
+const formatUpdatedAgo = (seconds: number) => {
+  if (seconds < 60) {
+    return `${seconds} с`;
+  }
+
+  if (seconds < 3600) {
+    return `${Math.floor(seconds / 60)} мин`;
+  }
+
+  return `${Math.floor(seconds / 3600)} ч`;
+};
+
+const useNow = (intervalMs: number) => {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(Date.now()), intervalMs);
+    return () => window.clearInterval(intervalId);
+  }, [intervalMs]);
+
+  return now;
+};
 
 export const ServicesStatusPanel: React.FC = () => {
-  const { versionInfo, loadBuildVersion } = useBuildVersion();
-  const { servicesStatus, isLoading, error, loadServicesStatus } =
+  const { servicesStatus, isLoading, error, updatedAt, loadServicesStatus } =
     useServicesStatus();
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [showAllWorkers, setShowAllWorkers] = useState(false);
+  const now = useNow(1000);
+
+  const refresh = React.useCallback(() => {
+    loadServicesStatus().catch(() => {});
+  }, [loadServicesStatus]);
 
   useEffect(() => {
-    void loadBuildVersion();
-    void loadServicesStatus();
-  }, [loadBuildVersion, loadServicesStatus]);
+    refresh();
+  }, [refresh]);
 
   useEffect(() => {
-    if (!autoRefreshEnabled) {
-      return undefined;
-    }
-
     const intervalId = window.setInterval(() => {
       if (!isLoading) {
-        void loadServicesStatus();
+        refresh();
       }
-    }, 5000);
+    }, REFRESH_INTERVAL_MS);
 
     return () => window.clearInterval(intervalId);
-  }, [autoRefreshEnabled, isLoading, loadServicesStatus]);
+  }, [isLoading, refresh]);
 
-  const serviceItems = useMemo<ServiceStatusRowItem[]>(() => {
-    if (!servicesStatus) return [];
+  const serviceItems = useMemo(
+    () => (servicesStatus ? getServiceItems(servicesStatus) : []),
+    [servicesStatus]
+  );
+  const workerItems = useMemo(
+    () => (servicesStatus ? getWorkerItems(servicesStatus) : []),
+    [servicesStatus]
+  );
+  const visibleWorkers = showAllWorkers
+    ? workerItems
+    : workerItems.slice(0, WORKERS_LIMIT);
 
-    const items: ServiceStatusRowItem[] = [
-      {
-        key: 'gateway',
-        title: 'Gateway',
-        data: servicesStatus.gateway,
-        hasRunningTask: false,
-        isWorker: false,
-        status: 'online',
-      },
-      {
-        key: 'project_scheduler',
-        title: 'Планировщик задач',
-        data: servicesStatus.project_scheduler,
-        hasRunningTask: false,
-        isWorker: false,
-        status: servicesStatus.project_scheduler ? 'online' : 'offline',
-      },
-    ];
-
-    return sortByStatus<ServiceStatusRowItem>(items);
-  }, [servicesStatus]);
-
-  const workerItems = useMemo<ServiceStatusRowItem[]>(() => {
-    if (!servicesStatus?.task_workers?.length) return [];
-
-    return sortByStatus<ServiceStatusRowItem>(
-      servicesStatus.task_workers.map((worker, index, array) => ({
-        key: `task_worker_${index}`,
-        title: array.length > 1 ? `Воркер задач #${index + 1}` : 'Воркер задач',
-        data: worker,
-        hasRunningTask: worker.has_running_task === true,
-        isWorker: true,
-        offlineSince: worker.offline_since,
-        status: worker.status === 'offline' ? 'offline' : 'online',
-        workerStatus: worker.status,
-      }))
-    );
-  }, [servicesStatus]);
+  const isFirstLoading = !servicesStatus && !error;
+  const showSkeleton = useDelayedLoading(isFirstLoading);
 
   return (
-    <PageLayout width='fluid' title='Services Stats Panel' icon={IconActivity}>
-      <ServicesStatusHeader
-        autoRefreshEnabled={autoRefreshEnabled}
-        isLoading={isLoading}
-        onRefresh={() => void loadServicesStatus()}
-        onToggleAutoRefresh={() => setAutoRefreshEnabled(prev => !prev)}
-        version={versionInfo?.version ?? null}
-      />
-
-      <PanelInner>
+    <PageLayout
+      width='default'
+      title='Services Stats Panel'
+      icon={IconActivity}
+      headerActions={
+        <>
+          {updatedAt ? (
+            <UpdatedText>
+              Обновлено {formatUpdatedAgo(getElapsedSeconds(updatedAt, now))}{' '}
+              назад
+            </UpdatedText>
+          ) : null}
+          <RefreshButton
+            aria-label='Обновить'
+            title='Обновить'
+            disableRipple
+            onClick={() => {
+              if (!isLoading) {
+                refresh();
+              }
+            }}
+          >
+            <IconRefresh size={15} stroke={1.5} />
+          </RefreshButton>
+        </>
+      }
+    >
+      <ServicesStack>
         {error ? <Alert variant='destructive'>{error.message}</Alert> : null}
 
-        {isLoading && !servicesStatus ? (
-          <LoadingState>
-            <Spinner />
-            <Box>Загружаем данные о сервисах...</Box>
-          </LoadingState>
-        ) : (
-          <SectionsStack>
-            <ServicesStatusSection
-              emptyText='Нет данных по внутренним сервисам.'
-              icon={<DnsRoundedIcon />}
-              items={serviceItems}
-              title='Сервисы'
-            />
-            <ServicesStatusSection
-              emptyText='Активные воркеры сейчас не обнаружены.'
-              icon={<PrecisionManufacturingRoundedIcon />}
-              items={workerItems}
-              title='Воркеры'
-            />
-          </SectionsStack>
-        )}
-      </PanelInner>
+        {servicesStatus ? (
+          <>
+            <ServicesBox aria-label='Сервисы'>
+              {serviceItems.map(item => (
+                <ServiceRow key={item.key} item={item} now={now} />
+              ))}
+            </ServicesBox>
+
+            <ServicesBox aria-label={WORKER_TYPE_NAME}>
+              {workerItems.length === 0 ? (
+                <TokenListMessage>
+                  Активные воркеры сейчас не обнаружены.
+                </TokenListMessage>
+              ) : (
+                visibleWorkers.map(item => (
+                  <ServiceRow key={item.key} item={item} now={now} />
+                ))
+              )}
+              {workerItems.length > WORKERS_LIMIT ? (
+                <ShowAllButton
+                  disableRipple
+                  onClick={() => setShowAllWorkers(prev => !prev)}
+                >
+                  {showAllWorkers
+                    ? 'Свернуть'
+                    : `Показать все ${workerItems.length}`}
+                </ShowAllButton>
+              ) : null}
+            </ServicesBox>
+          </>
+        ) : showSkeleton ? (
+          <>
+            <ServicesBox aria-hidden>
+              {SERVICE_SKELETON_ROWS.map(row => (
+                <ServiceRowSkeleton key={row.nameWidth} {...row} />
+              ))}
+            </ServicesBox>
+            <ServicesBox aria-hidden>
+              {WORKER_SKELETON_ROWS.map(row => (
+                <ServiceRowSkeleton key={row.nameWidth} {...row} />
+              ))}
+            </ServicesBox>
+          </>
+        ) : null}
+      </ServicesStack>
     </PageLayout>
   );
 };

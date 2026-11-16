@@ -7,6 +7,16 @@ afterEach(() => {
   cleanup();
 });
 
+// Editors are gated behind the Monaco runtime; tests mock `@monaco-editor/react`
+// directly, so report the runtime as ready and never touch the real loader.
+vi.mock('@/shared/ui/code-editor/runtime/monacoRuntime', () => ({
+  ensureMonacoRuntime: () => Promise.resolve(),
+  getMonacoRuntimeStatus: () => 'ready',
+  isMonacoRuntimeReady: () => true,
+  getMonacoRuntimeError: () => null,
+  subscribeMonacoRuntime: () => () => {},
+}));
+
 if (typeof window !== 'undefined' && !window.matchMedia) {
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     matches: false,

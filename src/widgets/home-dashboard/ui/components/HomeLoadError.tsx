@@ -2,7 +2,7 @@ import CloudOffOutlinedIcon from '@mui/icons-material/CloudOffOutlined';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import { Box, ButtonBase } from '@mui/material';
 
-import { hc } from '../styles/tokens';
+import { hc } from '@/shared/ui/home-theme/tokens';
 
 type HomeLoadErrorProps = {
   /** Small inline variant for widget cards: muted icon, no description. */

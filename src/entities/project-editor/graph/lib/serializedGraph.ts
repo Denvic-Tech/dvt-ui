@@ -1,14 +1,9 @@
 import type { Edge } from '@xyflow/react';
 
-import {
-  CustomNodeType,
-  isCustomEdgeType,
-  isCustomNodeType,
-} from '@/entities/project-editor/graph';
-
 import type { SubgraphUiSchema } from '@/shared/gatewayClient';
 
-import type { CustomEdgeType } from '../model/types';
+import { isCustomEdgeType, isCustomNodeType } from '../model/guards';
+import type { CustomEdgeType, CustomNodeType } from '../model/types';
 
 type LegacySubgraphPort = {
   id?: unknown;

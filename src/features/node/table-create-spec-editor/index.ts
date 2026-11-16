@@ -14,4 +14,5 @@ export {
   type TableCreateSpecDraft,
   validateTableCreateSpecDraft,
 } from './model/helpers';
+export { useTableCreateSpecDraft } from './model/useTableCreateSpecDraft';
 export { TableCreateSpecEditor } from './ui/TableCreateSpecEditor';

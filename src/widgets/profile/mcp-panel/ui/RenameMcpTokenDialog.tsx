@@ -8,9 +8,7 @@ import {
   CancelButton,
   CreateButton,
 } from '@/shared/ui/create-entity-dialog/styles';
-
-import { McpDialog } from './McpDialog';
-import { TokenNameInput } from './TokenFormFields';
+import { TokenDialog, TokenNameInput } from '@/shared/ui/token-form';
 
 type RenameMcpTokenDialogProps = {
   token: McpTokenReadSchema | null;
@@ -47,7 +45,7 @@ export const RenameMcpTokenDialog = ({
   };
 
   return (
-    <McpDialog
+    <TokenDialog
       open={token !== null}
       icon={<EditOutlinedIcon />}
       title='Переименовать токен'
@@ -74,6 +72,6 @@ export const RenameMcpTokenDialog = ({
         autoFocus
         onChange={setName}
       />
-    </McpDialog>
+    </TokenDialog>
   );
 };

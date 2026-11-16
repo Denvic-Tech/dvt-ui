@@ -22,6 +22,8 @@ import {
   tokenizeInlineExpression,
   type VariableOutput,
 } from '@/shared/lib/variables';
+import { tokens } from '@/shared/ui/clean-minimal/tokens';
+import { MonacoRuntimeGate } from '@/shared/ui/code-editor/runtime/MonacoRuntimeGate';
 import { getControlHeight } from '@/shared/ui/primitives/components/theme-style-helpers';
 
 import {
@@ -56,7 +58,25 @@ type HighlightedSingleLineFieldV2Props = {
   errorText?: React.ReactNode | undefined;
   warningText?: React.ReactNode | undefined;
   borderRadius?: number | string | undefined;
+  /**
+   * `clean-minimal` — компактное поле в стиле Clean Minimal: 32px, рамка
+   * токенов, скругление 8px, моно 12.5px. `borderRadius` при этом не
+   * используется.
+   */
+  appearance?: HighlightedSingleLineFieldAppearance | undefined;
+  /**
+   * Placeholder пустого выражения (значение — один «=»), например
+   * `="orders" или =table_name`. Без фокуса «=» скрыт и поле выглядит
+   * пустым с серой подсказкой; в фокусе «=» виден, а пример после него
+   * остаётся серым, пока не начат ввод.
+   */
+  expressionPlaceholder?: string | undefined;
 };
+
+export type HighlightedSingleLineFieldAppearance = 'default' | 'clean-minimal';
+
+const CLEAN_ERROR_BORDER = '#E5484D';
+const CLEAN_ERROR_RING = '0 0 0 3px #FDECEC';
 
 const COLOR_CLASS_BY_TOKEN_KIND = {
   boolean: 'dvt-inline-boolean',
@@ -204,9 +224,14 @@ export const HighlightedSingleLineFieldV2 = forwardRef<
     errorText,
     warningText,
     borderRadius = '15px',
+    appearance = 'default',
+    expressionPlaceholder,
   },
   forwardedRef
 ) {
+  const isCleanMinimal = appearance === 'clean-minimal';
+  const horizontalPadding = isCleanMinimal ? 10 : 14;
+  const editorFontSize = isCleanMinimal ? 12.5 : 13;
   const editorRef = useRef<MonacoEditorInstance | null>(null);
   const monacoRef = useRef<MonacoInstance | null>(null);
   const decorationIdsRef = useRef<string[]>([]);
@@ -235,6 +260,17 @@ export const HighlightedSingleLineFieldV2 = forwardRef<
   const normalizedValue = sanitizeSingleLineValue(
     normalizeMonacoTextValue(value)
   );
+  const isEmptyExpression =
+    Boolean(expressionPlaceholder) && normalizedValue === '=';
+  const overlayPlaceholder = isEmptyExpression
+    ? isFocused
+      ? expressionPlaceholder?.replace(/^=/, '')
+      : expressionPlaceholder
+    : !normalizedValue && !isFocused
+      ? placeholder
+      : undefined;
+  // В фокусе пример начинается сразу после «=» (1ch в моноширинном шрифте).
+  const overlayOffset = isEmptyExpression && isFocused ? ' + 1ch' : '';
   const resolvedHelperText = errorText ?? warningText ?? helperText;
   const hasError =
     Boolean(errorText) ||
@@ -788,44 +824,68 @@ export const HighlightedSingleLineFieldV2 = forwardRef<
             forwardedRef.current = node;
           }
         }}
-        sx={theme => ({
-          minWidth: 150,
-          display: 'flex',
-          alignItems: 'center',
-          minHeight: getControlHeight(),
-          border: '1px solid',
-          borderColor: isFocused
-            ? hasError
-              ? theme.palette.error.main
-              : alpha(theme.palette.primary.main, 0.34)
-            : theme.palette.divider,
-          borderRadius,
-          boxSizing: 'border-box',
-          backgroundColor: alpha(
-            theme.palette.background.paper,
-            theme.palette.mode === 'light' ? 0.94 : 0.72
-          ),
-          boxShadow: isFocused
-            ? `0 0 0 3px ${alpha(
-                hasError
-                  ? theme.palette.error.main
-                  : theme.palette.primary.main,
-                theme.palette.mode === 'light' ? 0.1 : 0.18
-              )}`
-            : 'none',
-          transition:
-            'background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease',
-          '&:hover': {
-            borderColor: alpha(theme.palette.primary.main, 0.34),
-          },
-        })}
+        sx={theme =>
+          isCleanMinimal
+            ? {
+                minWidth: 150,
+                display: 'flex',
+                alignItems: 'center',
+                minHeight: 32,
+                border: '1px solid',
+                borderColor: hasError
+                  ? CLEAN_ERROR_BORDER
+                  : isFocused
+                    ? tokens.accent
+                    : tokens.border,
+                borderRadius: '8px',
+                boxSizing: 'border-box',
+                backgroundColor: tokens.surface,
+                boxShadow: isFocused
+                  ? hasError
+                    ? CLEAN_ERROR_RING
+                    : tokens.focusRing
+                  : 'none',
+                transition: 'border-color 150ms ease, box-shadow 150ms ease',
+              }
+            : {
+                minWidth: 150,
+                display: 'flex',
+                alignItems: 'center',
+                minHeight: getControlHeight(),
+                border: '1px solid',
+                borderColor: isFocused
+                  ? hasError
+                    ? theme.palette.error.main
+                    : alpha(theme.palette.primary.main, 0.34)
+                  : theme.palette.divider,
+                borderRadius,
+                boxSizing: 'border-box',
+                backgroundColor: alpha(
+                  theme.palette.background.paper,
+                  theme.palette.mode === 'light' ? 0.94 : 0.72
+                ),
+                boxShadow: isFocused
+                  ? `0 0 0 3px ${alpha(
+                      hasError
+                        ? theme.palette.error.main
+                        : theme.palette.primary.main,
+                      theme.palette.mode === 'light' ? 0.1 : 0.18
+                    )}`
+                  : 'none',
+                transition:
+                  'background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease',
+                '&:hover': {
+                  borderColor: alpha(theme.palette.primary.main, 0.34),
+                },
+              }
+        }
       >
         {startActions ? (
           <Box
             ref={startAdornmentRef}
             sx={{
-              ml: 1,
-              mr: '-14px',
+              ml: isCleanMinimal ? '4px' : 1,
+              mr: `-${horizontalPadding}px`,
               display: 'inline-flex',
               alignItems: 'center',
               gap: 0.25,
@@ -842,25 +902,30 @@ export const HighlightedSingleLineFieldV2 = forwardRef<
             alignItems: 'center',
             flex: 1,
             minWidth: 0,
-            pl: `calc(14px + ${startActionsWidth}px)`,
-            py: '10.5px',
-            pr: `calc(14px + ${endActionsWidth}px)`,
+            pl: `calc(${horizontalPadding}px + ${startActionsWidth}px)`,
+            py: isCleanMinimal ? '5px' : '10.5px',
+            pr: `calc(${horizontalPadding}px + ${endActionsWidth}px)`,
           }}
         >
-          {!normalizedValue && placeholder && !isFocused ? (
+          {overlayPlaceholder ? (
             <Typography
               sx={{
                 position: 'absolute',
-                inset: `50% auto auto calc(14px + ${startActionsWidth}px)`,
+                top: '50%',
                 transform: 'translateY(-50%)',
-                color: 'text.disabled',
+                left: `calc(${horizontalPadding}px + ${startActionsWidth}px${overlayOffset})`,
+                right: `calc(${horizontalPadding}px + ${endActionsWidth}px)`,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                color: isCleanMinimal ? tokens.textSubtle : 'text.disabled',
                 fontFamily: CODE_FONT_FAMILY,
-                fontSize: 13,
+                fontSize: editorFontSize,
                 lineHeight: 1.4375,
                 pointerEvents: 'none',
               }}
             >
-              {placeholder}
+              {overlayPlaceholder}
             </Typography>
           ) : null}
           <Box
@@ -868,77 +933,87 @@ export const HighlightedSingleLineFieldV2 = forwardRef<
             sx={{
               width: '100%',
               minWidth: 0,
+              // Пустое выражение без фокуса: «=» прячем за placeholder.
+              opacity: isEmptyExpression && !isFocused ? 0 : 1,
+              // Собственный placeholder Monaco рисуется там же, но темнее и
+              // на 1px выше: пока виден наш, его прячем, иначе текст двоится.
+              '& .monaco-editor .editorPlaceholder': {
+                ...(isCleanMinimal ? { color: tokens.textSubtle } : {}),
+                ...(overlayPlaceholder ? { visibility: 'hidden' } : {}),
+              },
               '& .monaco-editor, & .monaco-editor .overflow-guard': {
                 borderRadius: 0,
               },
             }}
           >
-            <MonacoEditor
-              height='20px'
-              language={highlightingEnabled ? languageId : 'plaintext'}
-              value={normalizedValue}
-              onChange={handleEditorChange}
-              onMount={handleMount}
-              loading={null}
-              options={{
-                automaticLayout: true,
-                contextmenu: false,
-                cursorBlinking: 'solid',
-                cursorStyle: 'line',
-                fixedOverflowWidgets: false,
-                folding: false,
-                fontFamily: CODE_FONT_FAMILY,
-                fontSize: 13,
-                glyphMargin: false,
-                hideCursorInOverviewRuler: true,
-                hover: {
-                  enabled: highlightingEnabled,
-                },
-                lineDecorationsWidth: 0,
-                lineNumbers: 'off',
-                lineNumbersMinChars: 0,
-                matchBrackets: 'never',
-                minimap: { enabled: false },
-                overviewRulerBorder: false,
-                overviewRulerLanes: 0,
-                padding: { top: 0, bottom: 0 },
-                placeholder,
-                quickSuggestions: highlightingEnabled
-                  ? { other: true, comments: false, strings: true }
-                  : false,
-                acceptSuggestionOnCommitCharacter: false,
-                renderFinalNewline: 'off',
-                renderLineHighlight: 'none',
-                renderValidationDecorations: 'on',
-                roundedSelection: false,
-                scrollBeyondLastColumn: 0,
-                scrollBeyondLastLine: false,
-                scrollbar: {
-                  alwaysConsumeMouseWheel: false,
-                  handleMouseWheel: false,
-                  horizontal: 'hidden',
-                  vertical: 'hidden',
-                  useShadows: false,
-                },
-                suggest: {
-                  showIcons: false,
-                  showStatusBar: false,
-                  preview: false,
-                },
-                suggestOnTriggerCharacters: highlightingEnabled,
-                tabCompletion: highlightingEnabled ? 'on' : 'off',
-                wordWrap: 'off',
-              }}
-              theme='vs'
-            />
+            <MonacoRuntimeGate fallback={<Box sx={{ height: 20 }} />}>
+              <MonacoEditor
+                height='20px'
+                language={highlightingEnabled ? languageId : 'plaintext'}
+                value={normalizedValue}
+                onChange={handleEditorChange}
+                onMount={handleMount}
+                loading={null}
+                options={{
+                  automaticLayout: true,
+                  contextmenu: false,
+                  cursorBlinking: 'solid',
+                  cursorStyle: 'line',
+                  fixedOverflowWidgets: false,
+                  folding: false,
+                  fontFamily: CODE_FONT_FAMILY,
+                  fontSize: editorFontSize,
+                  glyphMargin: false,
+                  hideCursorInOverviewRuler: true,
+                  hover: {
+                    enabled: highlightingEnabled,
+                  },
+                  lineDecorationsWidth: 0,
+                  lineNumbers: 'off',
+                  lineNumbersMinChars: 0,
+                  matchBrackets: 'never',
+                  minimap: { enabled: false },
+                  overviewRulerBorder: false,
+                  overviewRulerLanes: 0,
+                  padding: { top: 0, bottom: 0 },
+                  placeholder,
+                  quickSuggestions: highlightingEnabled
+                    ? { other: true, comments: false, strings: true }
+                    : false,
+                  acceptSuggestionOnCommitCharacter: false,
+                  renderFinalNewline: 'off',
+                  renderLineHighlight: 'none',
+                  renderValidationDecorations: 'on',
+                  roundedSelection: false,
+                  scrollBeyondLastColumn: 0,
+                  scrollBeyondLastLine: false,
+                  scrollbar: {
+                    alwaysConsumeMouseWheel: false,
+                    handleMouseWheel: false,
+                    horizontal: 'hidden',
+                    vertical: 'hidden',
+                    useShadows: false,
+                  },
+                  suggest: {
+                    showIcons: false,
+                    showStatusBar: false,
+                    preview: false,
+                  },
+                  suggestOnTriggerCharacters: highlightingEnabled,
+                  tabCompletion: highlightingEnabled ? 'on' : 'off',
+                  wordWrap: 'off',
+                }}
+                theme='vs'
+              />
+            </MonacoRuntimeGate>
           </Box>
         </Box>
         {resolvedEndActions ? (
           <Box
             ref={endAdornmentRef}
             sx={{
-              mr: 1,
-              ml: '-14px',
+              mr: isCleanMinimal ? '4px' : 1,
+              ml: `-${horizontalPadding}px`,
               display: 'inline-flex',
               alignItems: 'center',
               gap: 0.25,

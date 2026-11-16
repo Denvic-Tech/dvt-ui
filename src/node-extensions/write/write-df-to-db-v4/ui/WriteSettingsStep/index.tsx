@@ -5,30 +5,15 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  FormControlLabel,
-  IconButton,
-  Skeleton,
-  Stack,
-  Switch,
-  Tooltip,
-  Typography,
-} from '@mui/material';
 
 import { NodeModalStepperExtensionProps } from '@/app/providers/node-extensions';
 
 import { useNodeConnections } from '@/features/node/get-node-connections';
 import {
-  CLICKHOUSE_ENGINE_OPTIONS,
   hydrateTableCreateSpecDraft,
   serializeTableCreateSpecDraft,
-  TableCreateSpecEditor,
 } from '@/features/node/table-create-spec-editor';
 
-import { ColumnDropdownSelect } from '@/entities/data/dataframe';
 import { requireDbConnectionId } from '@/entities/data/db-connection';
 import { useDbCatalogTable } from '@/entities/data/db-connection/model/hooks/useDbCatalog';
 
@@ -37,10 +22,10 @@ import type {
   DbMetadata as DBMetadata,
   DbTable as DBTable,
   InputDefinitionModel,
+  TableCreateSpec,
 } from '@/shared/gatewayClient';
 import { client } from '@/shared/gatewayClient';
-import { SingleOptionDropdownSelect } from '@/shared/ui';
-import { CodeEditor, type CodeEditorOptions } from '@/shared/ui/code-editor';
+import { dropdownBoundaryProps } from '@/shared/ui/clean-minimal/dropdownPlacement';
 
 import {
   buildColumnMappingNameKey,
@@ -69,96 +54,31 @@ import {
   supportsSchemas,
   type WriteDataFrameToDBValues,
 } from '../../lib/helpers';
-import { FieldBlock, FieldLabel } from '../SchemaStrategyStep.styles';
+import { MessageBox, MessageList } from '../schema-step/SchemaStep.styles';
 
-import { BatchSettingsSection } from './sections/BatchSettingsSection';
-import { StatusAlertsSection } from './sections/StatusAlertsSection';
 import {
-  DdlHeader,
-  DdlPanel,
-  SectionTitle,
-  SettingsLayout,
-  SettingsSection,
-  SettingsSidebar,
-} from './layout.styles';
+  AdvancedSettingsSection,
+  SyncDescriptionsSection,
+} from './sections/BatchSettingsSection';
+import { StatusAlertsSection } from './sections/StatusAlertsSection';
+import { ColumnsSelect } from './ColumnsSelect';
+import { DdlPreviewPane } from './DdlPreviewPane';
+import { SettingLine } from './SettingLine';
+import {
+  SettingsBox,
+  SettingsForm,
+  SettingsFormInner,
+  SettingsGroup,
+  SettingsNote,
+  SettingsRoot,
+} from './settings.styles';
+import { TableSpecSections } from './TableSpecSections';
 
-const ignorePreviewChange = () => {};
-const DDL_EDITOR_OPTIONS: CodeEditorOptions = {
-  readOnly: true,
-  domReadOnly: true,
-  wordWrap: 'off',
-  fontSize: 13,
-  lineHeight: 23,
-  padding: { top: 12, bottom: 12 },
-  renderLineHighlight: 'none',
-};
-
-const SCHEMA_STRATEGY_FONT_FAMILY =
-  'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-
-const RefreshIconSvg = ({
-  spinning,
-  size = 12,
-  color = 'currentColor',
-}: {
-  spinning?: boolean;
-  size?: number;
-  color?: string;
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox='0 0 16 16'
-    fill='none'
-    style={{
-      display: 'block',
-      flexShrink: 0,
-      color,
-      animation: spinning
-        ? 'writeSettingsRefreshSpin 0.9s linear infinite'
-        : 'none',
-    }}
-  >
-    <path
-      d='M13 7.5A5 5 0 103.8 10M3 12v-2.5h2.5'
-      stroke={color}
-      strokeWidth='1.4'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-    <style>
-      {
-        '@keyframes writeSettingsRefreshSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }'
-      }
-    </style>
-  </svg>
-);
-
-const CopyIconSvg = ({ size = 12, color = 'currentColor' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox='0 0 16 16'
-    fill='none'
-    style={{ display: 'block', flexShrink: 0 }}
-  >
-    <rect
-      x='5'
-      y='3.5'
-      width='7.5'
-      height='9'
-      rx='1.5'
-      stroke={color}
-      strokeWidth='1.2'
-    />
-    <path
-      d='M3.5 10.5V5A1.5 1.5 0 015 3.5h4'
-      stroke={color}
-      strokeWidth='1.2'
-      strokeLinecap='round'
-    />
-  </svg>
-);
+const NO_COLUMN_OPTIONS: readonly string[] = [];
+const INLINE_ERROR_KEYS = new Set(['rows_per_batch', 'table_create_spec']);
+// Пауза после последней правки параметров перед автообновлением DDL.
+const DDL_AUTO_REFRESH_DELAY_MS = 600;
+const ignoreChange = () => undefined;
 
 const toOptionalInt = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
@@ -220,83 +140,22 @@ export const WriteSettingsStep: React.FC<
     [nodeDefinition.input_definitions]
   );
 
-  const chunkSizeInputDef = useMemo(() => {
-    return getInputDefinition('chunksize');
-  }, [getInputDefinition]);
-
-  const minBatchRowsInputDef = useMemo(() => {
-    return getInputDefinition('min_batch_rows');
-  }, [getInputDefinition]);
-
-  const parseBounds = useCallback(
-    (
-      inputDef:
-        | Pick<InputDefinitionModel, 'min_value' | 'max_value' | 'default'>
-        | undefined,
-      defaults: { min: number; max: number; def: number }
-    ) => {
-      const toNum = (value: unknown): number | undefined => {
-        if (typeof value === 'number') return value;
-        if (typeof value === 'string') {
-          const parsed = Number.parseInt(value, 10);
-          return Number.isFinite(parsed) ? parsed : undefined;
-        }
-        return undefined;
-      };
-
-      const min = toNum(inputDef?.min_value) ?? defaults.min;
-      const max = toNum(inputDef?.max_value) ?? defaults.max;
-      let def = toNum(inputDef?.default) ?? defaults.def;
-      if (def < min) def = min;
-      if (def > max) def = max;
-      return { min, max, def };
-    },
-    []
-  );
-
-  const chunkSizeBounds = useMemo(() => {
-    return parseBounds(chunkSizeInputDef, {
-      min: 1,
-      max: 1_000_000,
-      def: 1000,
-    });
-  }, [chunkSizeInputDef, parseBounds]);
-
-  const minBatchRowsBounds = useMemo(() => {
-    return parseBounds(minBatchRowsInputDef, {
-      min: 1,
-      max: 100_000,
-      def: 5000,
-    });
-  }, [minBatchRowsInputDef, parseBounds]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    setLocalInputData(prev => {
-      if (prev?.chunksize !== undefined) {
-        return prev;
+  // Пустое значение — бэкенд подбирает размер пакета сам, поэтому без default.
+  const rowsPerBatchBounds = useMemo(() => {
+    const inputDef = getInputDefinition('rows_per_batch');
+    const toNum = (value: unknown): number | undefined => {
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string') {
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) ? parsed : undefined;
       }
-      return {
-        ...(prev ?? {}),
-        chunksize: chunkSizeBounds.def,
-      };
-    });
-  }, [chunkSizeBounds.def, isOpen, setLocalInputData]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    setLocalInputData(prev => {
-      if (prev?.min_batch_rows !== undefined) {
-        return prev;
-      }
-      return {
-        ...(prev ?? {}),
-        min_batch_rows: minBatchRowsBounds.def,
-      };
-    });
-  }, [isOpen, minBatchRowsBounds.def, setLocalInputData]);
+      return undefined;
+    };
+    return {
+      min: toNum(inputDef?.min_value) ?? 1,
+      max: toNum(inputDef?.max_value) ?? 1_000_000,
+    };
+  }, [getInputDefinition]);
 
   useEffect(() => {
     if (!isOpen || !isClickHouse) return;
@@ -363,88 +222,43 @@ export const WriteSettingsStep: React.FC<
     return resolveCreationMode(sharedState, localInputData);
   }, [localInputData, sharedState]);
 
-  const handleChunkSizeChange = useCallback(
+  const handleRowsPerBatchChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const parsed = toOptionalInt(event.target.value);
-      if (parsed === null) {
-        setLocalInputData(prev => ({
-          ...(prev ?? {}),
-          chunksize: null,
-        }));
-        return;
-      }
-
-      const clamped = Math.min(
-        Math.max(parsed, chunkSizeBounds.min),
-        chunkSizeBounds.max
-      );
+      const rowsPerBatch =
+        parsed === null
+          ? null
+          : Math.min(
+              Math.max(parsed, rowsPerBatchBounds.min),
+              rowsPerBatchBounds.max
+            );
       setLocalInputData(prev => ({
         ...(prev ?? {}),
-        chunksize: clamped,
+        rows_per_batch: rowsPerBatch,
       }));
     },
-    [chunkSizeBounds.max, chunkSizeBounds.min, setLocalInputData]
+    [rowsPerBatchBounds.max, rowsPerBatchBounds.min, setLocalInputData]
   );
-
-  const handleMinBatchRowsChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const parsed = toOptionalInt(event.target.value);
-      if (parsed === null) {
-        setLocalInputData(prev => ({
-          ...(prev ?? {}),
-          min_batch_rows: null,
-        }));
-        return;
-      }
-
-      const clamped = Math.min(
-        Math.max(parsed, minBatchRowsBounds.min),
-        minBatchRowsBounds.max
-      );
-      setLocalInputData(prev => ({
-        ...(prev ?? {}),
-        min_batch_rows: clamped,
-      }));
-    },
-    [minBatchRowsBounds.max, minBatchRowsBounds.min, setLocalInputData]
-  );
-
-  useEffect(() => {
-    setLocalInputData(prev => {
-      if (prev?.chunksize == null || !Number.isFinite(prev.chunksize)) {
-        return prev;
-      }
-      const clamped = Math.min(
-        Math.max(prev.chunksize, chunkSizeBounds.min),
-        chunkSizeBounds.max
-      );
-      if (clamped === prev.chunksize) return prev;
-      return {
-        ...(prev ?? {}),
-        chunksize: clamped,
-      };
-    });
-  }, [chunkSizeBounds.max, chunkSizeBounds.min, setLocalInputData]);
 
   useEffect(() => {
     setLocalInputData(prev => {
       if (
-        prev?.min_batch_rows == null ||
-        !Number.isFinite(prev.min_batch_rows)
+        prev?.rows_per_batch == null ||
+        !Number.isFinite(prev.rows_per_batch)
       ) {
         return prev;
       }
       const clamped = Math.min(
-        Math.max(prev.min_batch_rows, minBatchRowsBounds.min),
-        minBatchRowsBounds.max
+        Math.max(prev.rows_per_batch, rowsPerBatchBounds.min),
+        rowsPerBatchBounds.max
       );
-      if (clamped === prev.min_batch_rows) return prev;
+      if (clamped === prev.rows_per_batch) return prev;
       return {
         ...(prev ?? {}),
-        min_batch_rows: clamped,
+        rows_per_batch: clamped,
       };
     });
-  }, [minBatchRowsBounds.max, minBatchRowsBounds.min, setLocalInputData]);
+  }, [rowsPerBatchBounds.max, rowsPerBatchBounds.min, setLocalInputData]);
 
   const requestedMapping = useMemo(() => {
     return buildRequestedColumnMappingDraft({
@@ -647,17 +461,6 @@ export const WriteSettingsStep: React.FC<
     localInputData?.table_create_spec,
     typedMapping,
   ]);
-  const tableCreateSpecDraft = useMemo(() => {
-    return hydrateTableCreateSpecDraft(
-      localInputData?.table_create_spec ?? null
-    );
-  }, [localInputData?.table_create_spec]);
-  const clickhouseEngineOptions = useMemo(() => {
-    return CLICKHOUSE_ENGINE_OPTIONS.map(option => ({
-      value: option,
-      label: option,
-    }));
-  }, []);
   const typedSpecErrors = useMemo(() => {
     if (!isTableNew || selectedCreationMode !== 'typed') {
       return [] as string[];
@@ -706,6 +509,32 @@ export const WriteSettingsStep: React.FC<
     typedResolutionErrors.length === 0 &&
     specDraftErrors.length === 0 &&
     !sharedState?.isResolvingColumns
+  );
+  // Ключ DDL для текущих параметров: совпадает с lastCreateSqlKey, когда
+  // показанный SQL получен именно для них.
+  const typedCreateSqlKey = useMemo(
+    () =>
+      buildCreateSqlCacheKey({
+        connectionMetadata: inputConnectionMetadata,
+        dataframeMetadata: inputDataframeMetadata,
+        inputValues: {
+          ...(localInputData ?? {}),
+          column_mapping: typedMapping,
+          table_create_spec: normalizedTypedSpecForDialect,
+        },
+        mode: 'typed',
+        commentOverrides: sharedState?.typedCommentOverrides,
+        commentsSupported: sharedState?.columnCommentsSupported,
+      }),
+    [
+      inputConnectionMetadata,
+      inputDataframeMetadata,
+      localInputData,
+      normalizedTypedSpecForDialect,
+      sharedState?.columnCommentsSupported,
+      sharedState?.typedCommentOverrides,
+      typedMapping,
+    ]
   );
 
   useEffect(() => {
@@ -808,19 +637,21 @@ export const WriteSettingsStep: React.FC<
         return;
       }
 
-      const requestKey = buildCreateSqlCacheKey({
-        connectionMetadata: inputConnectionMetadata,
-        dataframeMetadata: inputDataframeMetadata,
-        inputValues: {
-          ...(localInputData ?? {}),
-          column_mapping: mode === 'typed' ? typedMapping : null,
-          table_create_spec:
-            mode === 'typed' ? normalizedTypedSpecForDialect : null,
-        },
-        mode,
-        commentOverrides: sharedState?.typedCommentOverrides,
-        commentsSupported: sharedState?.columnCommentsSupported,
-      });
+      const requestKey =
+        mode === 'typed'
+          ? typedCreateSqlKey
+          : buildCreateSqlCacheKey({
+              connectionMetadata: inputConnectionMetadata,
+              dataframeMetadata: inputDataframeMetadata,
+              inputValues: {
+                ...(localInputData ?? {}),
+                column_mapping: null,
+                table_create_spec: null,
+              },
+              mode,
+              commentOverrides: sharedState?.typedCommentOverrides,
+              commentsSupported: sharedState?.columnCommentsSupported,
+            });
 
       if (
         !forceRefresh &&
@@ -913,11 +744,35 @@ export const WriteSettingsStep: React.FC<
       sharedState?.lastCreateSqlKey,
       sharedState?.typedCommentOverrides,
       sharedState?.columnCommentsSupported,
+      typedCreateSqlKey,
       typedMapping,
       typedPreviewSql,
       isTableNew,
     ]
   );
+  const fetchCreateTableSqlRef = useRef(fetchCreateTableSql);
+  fetchCreateTableSqlRef.current = fetchCreateTableSql;
+
+  // Параметры изменились — DDL пересобирается сам после короткой паузы.
+  // Пока запрос в работе, ждём его: если параметры поменялись за это время,
+  // ключ ответа не совпадёт с текущим, и DDL запросится снова. Ошибка
+  // запоминает свой ключ, поэтому повторов без новых правок нет.
+  const isDdlAutoRefreshPending = Boolean(
+    isOpen &&
+    isTableNew &&
+    selectedCreationMode === 'typed' &&
+    canFetchTypedPreviewSql &&
+    !sharedState?.isCreateSqlLoading &&
+    sharedState?.lastCreateSqlKey !== typedCreateSqlKey
+  );
+
+  useEffect(() => {
+    if (!isDdlAutoRefreshPending) return;
+    const timer = window.setTimeout(() => {
+      void fetchCreateTableSqlRef.current('typed');
+    }, DDL_AUTO_REFRESH_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [isDdlAutoRefreshPending, typedCreateSqlKey]);
 
   const refreshPreview = useCallback(() => {
     if (!isTableNew) return;
@@ -976,30 +831,16 @@ export const WriteSettingsStep: React.FC<
       errors['upsert_config'] = ['Укажите key column для upsert.'];
     }
 
-    const chunkSize = localInputData?.chunksize;
-    if (chunkSize == null) {
-      errors['chunksize'] = ['Chunk size не задан.'];
-    } else if (!Number.isFinite(chunkSize)) {
-      errors['chunksize'] = ['Chunk size имеет неверный формат.'];
-    } else if (
-      chunkSize < chunkSizeBounds.min ||
-      chunkSize > chunkSizeBounds.max
-    ) {
-      errors['chunksize'] = [
-        `Chunk size должен быть в диапазоне [${chunkSizeBounds.min}..${chunkSizeBounds.max}], текущее: ${chunkSize}.`,
-      ];
-    }
-
-    const minBatchRows = localInputData?.min_batch_rows;
-    if (minBatchRows != null) {
-      if (!Number.isFinite(minBatchRows)) {
-        errors['min_batch_rows'] = ['min_batch_rows имеет неверный формат.'];
+    const rowsPerBatch = localInputData?.rows_per_batch;
+    if (rowsPerBatch != null) {
+      if (!Number.isFinite(rowsPerBatch)) {
+        errors['rows_per_batch'] = ['Размер чанка имеет неверный формат.'];
       } else if (
-        minBatchRows < minBatchRowsBounds.min ||
-        minBatchRows > minBatchRowsBounds.max
+        rowsPerBatch < rowsPerBatchBounds.min ||
+        rowsPerBatch > rowsPerBatchBounds.max
       ) {
-        errors['min_batch_rows'] = [
-          `min_batch_rows должен быть в диапазоне [${minBatchRowsBounds.min}..${minBatchRowsBounds.max}], текущее: ${minBatchRows}.`,
+        errors['rows_per_batch'] = [
+          `Размер чанка должен быть от ${rowsPerBatchBounds.min} до ${rowsPerBatchBounds.max} строк.`,
         ];
       }
     }
@@ -1067,20 +908,17 @@ export const WriteSettingsStep: React.FC<
     setValidationErrors?.({});
     return Object.keys(errors).length === 0;
   }, [
-    chunkSizeBounds.max,
-    chunkSizeBounds.min,
     columnDiff,
     isSchemaRequired,
     isTableNew,
-    localInputData?.chunksize,
     localInputData?.create_table_sql,
-    localInputData?.min_batch_rows,
+    localInputData?.rows_per_batch,
     localInputData?.schema_name,
     localInputData?.table_name,
     localInputData?.upsert_config?.key_column,
     localInputData?.write_mode,
-    minBatchRowsBounds.max,
-    minBatchRowsBounds.min,
+    rowsPerBatchBounds.max,
+    rowsPerBatchBounds.min,
     selectedCreationMode,
     selectedTargetLabel,
     setValidationErrors,
@@ -1111,397 +949,141 @@ export const WriteSettingsStep: React.FC<
     if (isOpen) void runValidation();
   }, [isOpen, runValidation]);
 
+  const handleAdvancedSpecChange = useCallback(
+    (value: TableCreateSpec | null) => {
+      setLocalInputData(prev => ({
+        ...(prev ?? {}),
+        table_create_spec: value,
+      }));
+      setSharedState(prev => ({
+        ...(prev ?? {}),
+        createTableError: null,
+        createTableSuccess: null,
+        createTableSuccessAt: null,
+        isCreateTableLoading: false,
+        lastCreateTableKey: null,
+      }));
+    },
+    [setLocalInputData, setSharedState]
+  );
+
+  const existingPrimaryKey = useMemo(
+    () =>
+      (selectedTable?.columns ?? [])
+        .filter(column => column.primary_key)
+        .map(column => column.name),
+    [selectedTable?.columns]
+  );
+  const generalErrors = Object.entries(fieldErrors).filter(
+    ([key]) => !INLINE_ERROR_KEYS.has(key)
+  );
+  const isTypedNewTable = isTableNew && selectedCreationMode === 'typed';
+  // Параметры изменились, а DDL пересобрать нельзя (например, в настройках
+  // ошибка) — иначе он уже обновляется сам.
+  const isDdlStale =
+    isTypedNewTable &&
+    Boolean(previewSql) &&
+    !sharedState?.typedPreviewSql &&
+    !sharedState?.isCreateSqlLoading &&
+    !isDdlAutoRefreshPending;
+
   return (
-    <SettingsLayout>
-      <SettingsSidebar>
-        <SettingsSection>
-          <SectionTitle>Пакетная запись</SectionTitle>
-          <BatchSettingsSection
-            chunkSize={localInputData?.chunksize}
-            chunkSizeBounds={chunkSizeBounds}
-            minBatchRows={localInputData?.min_batch_rows}
-            minBatchRowsBounds={minBatchRowsBounds}
-            onChunkSizeChange={handleChunkSizeChange}
-            onMinBatchRowsChange={handleMinBatchRowsChange}
-            errors={fieldErrors}
-          />
-        </SettingsSection>
-
-        <SettingsSection>
-          <SectionTitle>Описания колонок</SectionTitle>
-          <FormControlLabel
-            control={
-              <Switch
-                size='small'
-                checked={localInputData?.sync_column_descriptions ?? true}
-                onChange={event => {
-                  const checked = event.target.checked;
-                  setLocalInputData(prev => ({
-                    ...(prev ?? {}),
-                    sync_column_descriptions: checked,
-                  }));
-                }}
-                inputProps={{
-                  'aria-label': 'Синхронизировать описания колонок с каталогом',
-                }}
-              />
-            }
-            label='Синхронизировать описания колонок с каталогом'
-            sx={{ ml: 0, '& .MuiFormControlLabel-label': { fontSize: 13 } }}
-          />
-          <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
-            На каждом прогоне описания из Data Catalog записываются в
-            комментарии колонок таблицы; пустое описание комментарий не стирает.
-          </Typography>
-          {sharedState?.catalogDescriptionsError ? (
-            <Alert severity='warning' sx={{ mt: 1 }}>
-              {sharedState.catalogDescriptionsError}
-            </Alert>
-          ) : null}
-        </SettingsSection>
-
-        {isTableNew && selectedCreationMode === 'typed' ? (
-          <>
-            <SettingsSection>
-              <Stack spacing={1.5}>
-                {isClickHouse ? (
-                  <FieldBlock>
-                    <FieldLabel>Engine</FieldLabel>
-                    <SingleOptionDropdownSelect
-                      value={tableCreateSpecDraft.clickhouse.engineName}
-                      onChange={(value: string) =>
-                        patchTableCreateSpec(current => ({
-                          ...current,
-                          clickhouse: {
-                            ...current.clickhouse,
-                            engineName:
-                              value as (typeof CLICKHOUSE_ENGINE_OPTIONS)[number],
-                          },
-                        }))
-                      }
-                      options={clickhouseEngineOptions}
-                      searchable
-                      textFieldSx={{
-                        fontFamily: SCHEMA_STRATEGY_FONT_FAMILY,
-                        '& .MuiTypography-root': {
-                          fontFamily: SCHEMA_STRATEGY_FONT_FAMILY,
-                        },
-                      }}
-                      optionTextSx={{
-                        fontFamily: SCHEMA_STRATEGY_FONT_FAMILY,
-                      }}
-                    />
-                  </FieldBlock>
-                ) : null}
-
-                {isClickHouse ? (
-                  <>
-                    <Box>
-                      <FieldLabel>Order by</FieldLabel>
-                      <ColumnDropdownSelect
-                        multiple
-                        allowNew
-                        columns={typedColumnOptions}
-                        error={typedSpecErrors.some(error =>
-                          error.includes('Order by')
-                        )}
-                        value={tableCreateSpecDraft.clickhouse.orderBy}
-                        onChange={(value: string[]) =>
-                          patchTableCreateSpec(current => ({
-                            ...current,
-                            clickhouse: {
-                              ...current.clickhouse,
-                              orderBy: value,
-                            },
-                          }))
-                        }
-                        placeholder='Добавьте колонку в order_by...'
-                      />
-                    </Box>
-
-                    <Box>
-                      <FieldLabel>Partition by</FieldLabel>
-                      <ColumnDropdownSelect
-                        multiple
-                        allowNew
-                        columns={typedColumnOptions}
-                        value={tableCreateSpecDraft.clickhouse.partitionBy}
-                        onChange={(value: string[]) =>
-                          patchTableCreateSpec(current => ({
-                            ...current,
-                            clickhouse: {
-                              ...current.clickhouse,
-                              partitionBy: value,
-                            },
-                          }))
-                        }
-                        placeholder='Добавьте колонку в partition_by...'
-                      />
-                    </Box>
-
-                    <Box>
-                      <FieldLabel>Первичный ключ</FieldLabel>
-                      <ColumnDropdownSelect
-                        multiple
-                        allowNew
-                        columns={typedColumnOptions}
-                        error={typedSpecErrors.some(error =>
-                          error.includes('Primary key')
-                        )}
-                        value={tableCreateSpecDraft.clickhouse.primaryKey}
-                        onChange={(value: string[]) =>
-                          patchTableCreateSpec(current => ({
-                            ...current,
-                            clickhouse: {
-                              ...current.clickhouse,
-                              primaryKey: value,
-                            },
-                          }))
-                        }
-                        placeholder='Добавьте колонку в primary_key...'
-                      />
-                    </Box>
-                  </>
-                ) : (
-                  <Box>
-                    <FieldLabel>Первичный ключ</FieldLabel>
-                    <ColumnDropdownSelect
-                      multiple
-                      allowNew
-                      columns={typedColumnOptions}
-                      value={tableCreateSpecDraft.primaryKeyColumns}
-                      onChange={(value: string[]) =>
-                        patchTableCreateSpec(current => ({
-                          ...current,
-                          primaryKeyColumns: value,
-                        }))
-                      }
-                      placeholder='Добавьте колонку в primary_key...'
-                    />
-                  </Box>
-                )}
-              </Stack>
-              {typedSpecErrors.map(error => (
-                <Typography
-                  key={error}
-                  color='error'
-                  sx={{ mt: 0.75, fontSize: 12 }}
-                >
-                  {error}
-                </Typography>
-              ))}
-            </SettingsSection>
-            <TableCreateSpecEditor
-              compact
-              showErrors={false}
-              columns={typedColumnOptions}
-              isClickHouse={isClickHouse}
-              showPrimaryKeySection={false}
-              showClickHouseCoreSection={false}
-              value={localInputData?.table_create_spec ?? null}
-              onValidationChange={setSpecDraftErrors}
-              onChange={value => {
+    <SettingsRoot {...dropdownBoundaryProps}>
+      <SettingsForm>
+        <SettingsFormInner>
+          <SettingsGroup>
+            <SyncDescriptionsSection
+              syncDescriptions={
+                localInputData?.sync_column_descriptions ?? true
+              }
+              onSyncDescriptionsChange={checked =>
                 setLocalInputData(prev => ({
                   ...(prev ?? {}),
-                  table_create_spec: value,
-                }));
-                setSharedState(prev => ({
-                  ...(prev ?? {}),
-                  createTableError: null,
-                  createTableSuccess: null,
-                  createTableSuccessAt: null,
-                  isCreateTableLoading: false,
-                  lastCreateTableKey: null,
-                }));
-              }}
+                  sync_column_descriptions: checked,
+                }))
+              }
             />
-          </>
-        ) : (
-          <SettingsSection>
-            {!isTableNew ? (
-              <>
-                <SectionTitle>Первичный ключ</SectionTitle>
-                <ColumnDropdownSelect
-                  multiple
-                  disabled
-                  columns={typedColumnOptions}
-                  value={(selectedTable?.columns ?? [])
-                    .filter(column => column.primary_key)
-                    .map(column => column.name)}
-                  onChange={ignorePreviewChange}
-                  placeholder='Первичный ключ не задан'
-                />
-              </>
+            {sharedState?.catalogDescriptionsError ? (
+              <MessageBox tone='info' role='status'>
+                {sharedState.catalogDescriptionsError}
+              </MessageBox>
             ) : null}
-            <Typography
-              sx={{
-                mt: isTableNew ? 0 : 1,
-                fontSize: 12,
-                color: '#9b9ba6',
-                lineHeight: 1.6,
-              }}
-            >
-              {isTableNew
-                ? 'Ключи и индексы заданы в SQL на шаге «Настройка схемы».'
-                : 'Параметры структуры существующей таблицы доступны на шаге «Настройка схемы».'}
-            </Typography>
-          </SettingsSection>
-        )}
-        {Object.entries(fieldErrors)
-          .filter(
-            ([key]) =>
-              !['chunksize', 'min_batch_rows', 'table_create_spec'].includes(
-                key
-              )
-          )
-          .map(([key, errors]) => (
-            <Alert key={key} severity='error' sx={{ m: 2, fontSize: 12 }}>
-              {errors.join(' ')}
-            </Alert>
-          ))}
-        {sharedState?.createTableError ? (
-          <Box sx={{ p: 2 }}>
-            <StatusAlertsSection
-              createTableError={sharedState.createTableError}
-              isCreateTableLoading={Boolean(sharedState?.isCreateTableLoading)}
-              isTableNew={isTableNew}
+          </SettingsGroup>
+
+          {isTypedNewTable ? (
+            <TableSpecSections
+              isClickHouse={isClickHouse}
+              value={localInputData?.table_create_spec ?? null}
+              columns={typedColumnOptions}
+              typedSpecErrors={typedSpecErrors}
+              onPatchCore={patchTableCreateSpec}
+              onAdvancedChange={handleAdvancedSpecChange}
+              onValidationChange={setSpecDraftErrors}
             />
-          </Box>
-        ) : null}
-      </SettingsSidebar>
-      <DdlPanel>
-        <DdlHeader>
-          <Typography sx={{ minWidth: 0, fontSize: 12, color: '#9b9ba6' }}>
-            <Box
-              component='span'
-              sx={{ fontFamily: 'Consolas, monospace', mr: 1 }}
-            >
-              DDL
-            </Box>
-            {isTableNew
-              ? selectedTargetLabel
-              : 'Предпросмотр структуры таблицы'}
-          </Typography>
-          {isTableNew ? (
-            <Stack
-              direction='row'
-              spacing={1}
-              alignItems='center'
-              sx={{ flexShrink: 0 }}
-            >
-              <Tooltip title='Обновить DDL' arrow>
-                <span>
-                  <IconButton
-                    aria-label='Обновить DDL'
-                    disableRipple
-                    onClick={refreshPreview}
-                    disabled={
-                      !canRefreshPreview ||
-                      Boolean(sharedState?.isCreateSqlLoading)
-                    }
-                    sx={{
-                      width: 30,
-                      height: 30,
-                      color: '#c0c0c8',
-                      '&:hover': {
-                        color: '#6b6b76',
-                        background: 'transparent',
-                      },
-                    }}
-                  >
-                    <RefreshIconSvg
-                      size={17}
-                      spinning={Boolean(sharedState?.isCreateSqlLoading)}
-                    />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              <Button
-                variant='outlined'
-                size='small'
-                disableRipple
-                onClick={() => void copySql(previewSql)}
-                disabled={!previewSql.trim()}
-                startIcon={<CopyIconSvg size={15} />}
-                sx={{
-                  height: 30,
-                  borderRadius: '7px',
-                  fontSize: 12.5,
-                  color: '#6b6b76',
-                  borderColor: 'divider',
-                  background: '#fff',
-                }}
-              >
-                {isSqlCopied === 'typed' ? 'Скопировано' : 'Копировать'}
-              </Button>
-            </Stack>
-          ) : null}
-        </DdlHeader>
-        {isTableNew && previewError ? (
-          <Alert severity='error' sx={{ m: 1.5, flexShrink: 0 }}>
-            {previewError}
-          </Alert>
-        ) : null}
-        <Box
-          sx={{
-            flex: 1,
-            minHeight: 0,
-            position: 'relative',
-            '& .ddl-editor': {
-              height: '100%',
-              border: 0,
-              borderRadius: 0,
-              background: 'transparent',
-            },
-          }}
-        >
-          {!isTableNew ? (
-            <Box
-              sx={{
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                p: 3,
-                boxSizing: 'border-box',
-              }}
-            >
-              <Typography
-                sx={{ fontSize: 13, color: '#9b9ba6', textAlign: 'center' }}
-              >
-                Предпросмотр DDL доступен только для создаваемой таблицы.
-              </Typography>
-            </Box>
-          ) : previewSql ? (
-            <CodeEditor
-              className='ddl-editor'
-              language='sql'
-              value={previewSql}
-              onChange={ignorePreviewChange}
-              height='100%'
-              options={DDL_EDITOR_OPTIONS}
-            />
-          ) : sharedState?.isCreateSqlLoading ? (
-            <Stack spacing={1.5} sx={{ p: 2.5 }} aria-label='Генерация DDL'>
-              {[75, 60, 85, 70, 55, 65].map((width, index) => (
-                <Skeleton
-                  key={index}
-                  variant='rounded'
-                  animation='wave'
-                  height={14}
-                  width={width + '%'}
-                />
-              ))}
-            </Stack>
+          ) : isTableNew ? (
+            <SettingsGroup>
+              <SettingsBox>
+                <SettingsNote>
+                  Ключи и индексы заданы в SQL на шаге «Настройка схемы».
+                </SettingsNote>
+              </SettingsBox>
+            </SettingsGroup>
           ) : (
-            <Typography sx={{ p: 2.5, fontSize: 13, color: '#9b9ba6' }}>
-              {canRefreshPreview
-                ? 'Нажмите «Обновить DDL», чтобы получить SQL.'
-                : 'Заполните обязательные поля для генерации DDL.'}
-            </Typography>
+            <SettingsGroup>
+              <SettingsBox>
+                <SettingLine label='Первичный ключ'>
+                  <ColumnsSelect
+                    ariaLabel='Первичный ключ'
+                    multiple
+                    disabled
+                    values={existingPrimaryKey}
+                    options={NO_COLUMN_OPTIONS}
+                    onChange={ignoreChange}
+                    placeholder='Не задан'
+                  />
+                </SettingLine>
+              </SettingsBox>
+            </SettingsGroup>
           )}
-        </Box>
-      </DdlPanel>
-    </SettingsLayout>
+
+          <AdvancedSettingsSection
+            rowsPerBatch={localInputData?.rows_per_batch}
+            rowsPerBatchBounds={rowsPerBatchBounds}
+            onRowsPerBatchChange={handleRowsPerBatchChange}
+            errors={fieldErrors}
+          />
+
+          {generalErrors.length || sharedState?.createTableError ? (
+            <MessageList>
+              {generalErrors.map(([key, errors]) => (
+                <MessageBox key={key} tone='error' role='alert'>
+                  {errors.join(' ')}
+                </MessageBox>
+              ))}
+              <StatusAlertsSection
+                createTableError={sharedState?.createTableError}
+                isCreateTableLoading={Boolean(
+                  sharedState?.isCreateTableLoading
+                )}
+                isTableNew={isTableNew}
+              />
+            </MessageList>
+          ) : null}
+        </SettingsFormInner>
+      </SettingsForm>
+      <DdlPreviewPane
+        isTableNew={isTableNew}
+        sql={previewSql}
+        error={isTableNew ? previewError : null}
+        isLoading={
+          Boolean(sharedState?.isCreateSqlLoading) || isDdlAutoRefreshPending
+        }
+        isStale={isDdlStale}
+        canRefresh={canRefreshPreview}
+        onRefresh={refreshPreview}
+        copied={isSqlCopied === 'typed'}
+        onCopy={() => void copySql(previewSql)}
+      />
+    </SettingsRoot>
   );
 };

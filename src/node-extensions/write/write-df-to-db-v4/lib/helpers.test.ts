@@ -1082,6 +1082,38 @@ describe('writeDataFrameToDBV4 helpers', () => {
     ).toBe(true);
   });
 
+  it('takes target levels from the lazy catalog: MySQL has a database, no schema', () => {
+    const mysqlMetadata = {
+      connection_id: 'connection-mysql',
+      dialect: 'mysql',
+      catalog_mode: 'lazy',
+      catalog_capabilities: {
+        supports_databases: true,
+        supports_schemas: false,
+        supports_tables: true,
+        supports_views: true,
+        supports_search: true,
+      },
+    } as any;
+    const sharedState = {
+      inputConnectionMetadata: mysqlMetadata,
+      isTableNew: true,
+    };
+
+    expect(
+      isTargetStepValid(
+        { database_name: 'dvt_test', schema_name: null, table_name: 'orders' },
+        sharedState
+      )
+    ).toBe(true);
+    expect(
+      isTargetStepValid(
+        { database_name: null, schema_name: null, table_name: 'orders' },
+        sharedState
+      )
+    ).toBe(false);
+  });
+
   it('requires write mode and upsert key on dedicated write mode step', () => {
     expect(
       isWriteModeStepValid(

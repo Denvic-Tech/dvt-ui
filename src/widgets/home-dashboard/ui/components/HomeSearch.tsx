@@ -8,17 +8,17 @@ import { useNavigate } from 'react-router-dom';
 import { ProjectsSourceSearchDialog } from '@/features/projects/users-projects/ui/ProjectsSourceSearchDialog';
 
 import type { ProjectReadSchema } from '@/shared/gatewayClient';
-
-import { useProjectSearch } from '../../model/useProjectSearch';
-import type { HomeSection } from '../config/sections';
-import { useDismiss } from '../lib/useDismiss';
-import { homePopAppearSx } from '../styles/motion';
+import { useDismiss } from '@/shared/lib/hooks/useDismiss';
+import { homePopAppearSx } from '@/shared/ui/home-theme/motion';
 import {
   hc,
   homeCaptionSx,
   homeEllipsisSx,
   homePopoverSx,
-} from '../styles/tokens';
+} from '@/shared/ui/home-theme/tokens';
+
+import { useProjectSearch } from '../../model/useProjectSearch';
+import type { HomeSection } from '../config/sections';
 
 /** Same glyph as the «search by source» action on /projects. */
 const DatabaseIcon = () => (

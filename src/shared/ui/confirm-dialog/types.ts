@@ -11,6 +11,20 @@ export interface ConfirmDialogActionConfig {
   disabled?: boolean;
 }
 
+// An option the user can switch on before confirming, e.g. «Удалить данные».
+export interface ConfirmDialogCheckbox {
+  label: string;
+  defaultChecked?: boolean;
+  // Shown under the checkbox while it is checked: what the option will do.
+  checkedWarning?: string;
+}
+
+export interface ConfirmDialogResult {
+  actionId: ConfirmDialogActionId;
+  // The checkbox state at the moment of the action; false without a checkbox.
+  checked: boolean;
+}
+
 export interface ConfirmDialogOptions {
   title?: string;
   message?: string;
@@ -27,6 +41,7 @@ export interface ConfirmDialogOptions {
   maxWidth?: ConfirmDialogMaxWidth;
   /** Explicit dialog width in pixels; defaults to 320. */
   width?: number;
+  checkbox?: ConfirmDialogCheckbox;
   onConfirm?: () => void | Promise<void>;
   onCancel?: () => void | Promise<void>;
 }
@@ -41,11 +56,16 @@ export interface CustomDialogOptions {
   maxWidth?: ConfirmDialogMaxWidth;
   /** Explicit dialog width in pixels; defaults to 320. */
   width?: number;
+  checkbox?: ConfirmDialogCheckbox;
   actions: CustomDialogAction[];
 }
 
 export interface ConfirmDialogContextValue {
   openDialog: (options: CustomDialogOptions) => Promise<ConfirmDialogActionId>;
+  // Same as openDialog, but also reports the checkbox state.
+  openDialogWithResult: (
+    options: CustomDialogOptions
+  ) => Promise<ConfirmDialogResult>;
 }
 
 export interface ConfirmDialogProps {
@@ -55,6 +75,9 @@ export interface ConfirmDialogProps {
   actions: ConfirmDialogActionConfig[];
   maxWidth: ConfirmDialogMaxWidth;
   width?: number;
+  checkbox?: ConfirmDialogCheckbox | undefined;
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
   onAction: (actionId: ConfirmDialogActionId) => void;
   onClose: () => void;
   onExited?: () => void;

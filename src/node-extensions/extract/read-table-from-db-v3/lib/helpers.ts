@@ -10,28 +10,20 @@ import type {
   DbColumn,
   DbMetadata as DBMetadata,
   DbTable,
+  NodeInputExpressionValue,
 } from '@/shared/gatewayClient';
+import { findDbMetadataTable } from '@/shared/lib/db-metadata';
 import {
-  buildDbMetadataTableLabel,
-  type DbMetadataOption,
-  findDbMetadataTable,
-  getDbMetadataDatabaseOptions,
-  getDbMetadataFilteredTables,
-  getDbMetadataSchemaOptions,
-  isDialectSupportsDatabases,
-  isDialectSupportsSchemas,
-} from '@/shared/lib/db-metadata';
-import { isExpressionValue } from '@/shared/lib/node-input-values';
+  isExpressionValue,
+  makeExpressionValue,
+} from '@/shared/lib/node-input-values';
 
 import type {
   ReadTableFromDBV3Errors,
   ReadTableFromDBV3SectionErrors,
-  ReadTableFromDBV3SectionId,
   ReadTableFromDBV3SelectorValue,
   ReadTableFromDBV3Values,
 } from './types';
-
-export type MetadataOption = DbMetadataOption;
 
 export const getLiteralStringValue = (
   value: ReadTableFromDBV3SelectorValue
@@ -47,6 +39,37 @@ export const hasConfiguredSelectorValue = (
   }
 
   return isExpressionValue(value);
+};
+
+/** Значение задано: непустая строка или непустое выражение. */
+export const hasFilledSelectorValue = (value: unknown): boolean => {
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+
+  return isExpressionValue(value) && value.value.trim().length > 0;
+};
+
+export const hasSelectorExpression = (
+  values: ReadTableFromDBV3Values | null | undefined
+): boolean =>
+  isExpressionValue(values?.database_name) ||
+  isExpressionValue(values?.schema_name) ||
+  isExpressionValue(values?.table_name);
+
+/**
+ * Переводит значение селектора в выражение. Выбранное имя становится
+ * строковым литералом внутри выражения, как при ручном переключении поля.
+ */
+export const toSelectorExpression = (
+  value: ReadTableFromDBV3SelectorValue
+): NodeInputExpressionValue => {
+  if (isExpressionValue(value)) {
+    return value;
+  }
+
+  const literal = getLiteralStringValue(value);
+  return makeExpressionValue(literal ? JSON.stringify(literal) : '', 'single');
 };
 
 export const parseOptionalInteger = (
@@ -84,57 +107,23 @@ export const sanitizeTTLCache = (value: unknown): number => {
   return Math.max(0, Math.floor(parsed));
 };
 
-export const getInitialActiveSection = (
-  inputData?: ReadTableFromDBV3Values | null,
-  inputMetadata?: DBMetadata | null
-): ReadTableFromDBV3SectionId => {
-  const databaseSelectionSupported =
-    inputMetadata && isDialectSupportsDatabases(inputMetadata.dialect);
-  const schemaSelectionSupported =
-    inputMetadata && isDialectSupportsSchemas(inputMetadata.dialect);
+/**
+ * Сколько полей блока «Дополнительные настройки» отличается
+ * от значений по умолчанию.
+ */
+export const countChangedAdvancedSettings = (
+  values: ReadTableFromDBV3Values | null | undefined
+): number => {
+  const optionalFields = [
+    values?.npartitions,
+    values?.max_rows_per_partition,
+    values?.limit,
+  ];
+  const changedOptional = optionalFields.filter(
+    value => value !== undefined && value !== null
+  ).length;
 
-  if (
-    databaseSelectionSupported &&
-    !hasConfiguredSelectorValue(inputData?.database_name)
-  ) {
-    return 'database';
-  }
-
-  if (
-    schemaSelectionSupported &&
-    !hasConfiguredSelectorValue(inputData?.schema_name)
-  ) {
-    return 'schema';
-  }
-
-  if (!hasConfiguredSelectorValue(inputData?.table_name)) {
-    return 'table';
-  }
-
-  return 'table';
-};
-
-export const buildInitialOpenSections = (
-  inputData?: ReadTableFromDBV3Values | null,
-  inputMetadata?: DBMetadata | null
-): ReadTableFromDBV3SectionId[] => [
-  getInitialActiveSection(inputData, inputMetadata),
-];
-
-export const getReadTablePreviewState = ({
-  hasExpression,
-  hasTableName,
-  loading,
-  hasSelectedTable,
-}: {
-  hasExpression: boolean;
-  hasTableName: boolean;
-  loading: boolean;
-  hasSelectedTable: boolean;
-}): 'empty' | 'loading' | 'ready' | 'error' => {
-  if (hasExpression || !hasTableName) return 'empty';
-  if (loading) return 'loading';
-  return hasSelectedTable ? 'ready' : 'error';
+  return changedOptional + (sanitizeTTLCache(values?.TTL_CACHE) !== 0 ? 1 : 0);
 };
 
 export const getReadTableDataPreviewState = ({
@@ -169,80 +158,6 @@ export const findSelectedTable = (
     databaseName,
     schemaName,
     tableName,
-  });
-};
-
-export const buildSelectedTableLabel = (
-  inputData?: ReadTableFromDBV3Values | null
-): string => {
-  const tableName = getLiteralStringValue(inputData?.table_name);
-  const databaseName = getLiteralStringValue(inputData?.database_name);
-  const schemaName = getLiteralStringValue(inputData?.schema_name);
-
-  if (!tableName) {
-    return '';
-  }
-
-  return buildDbMetadataTableLabel({
-    name: tableName,
-    database_name: databaseName,
-    schema_name: schemaName,
-  });
-};
-
-export const getSelectorCollapsedValue = (
-  value: ReadTableFromDBV3SelectorValue,
-  fallback: string
-): string => {
-  const literalValue = getLiteralStringValue(value);
-  if (literalValue) {
-    return literalValue;
-  }
-
-  return isExpressionValue(value) ? 'Expression' : fallback;
-};
-
-export const getDatabaseOptions = (
-  inputMetadata: DBMetadata | null
-): MetadataOption[] => {
-  return getDbMetadataDatabaseOptions(inputMetadata);
-};
-
-export const getSchemaOptions = (
-  inputMetadata: DBMetadata | null,
-  databaseNameValue?: ReadTableFromDBV3SelectorValue
-): MetadataOption[] => {
-  return getDbMetadataSchemaOptions(
-    inputMetadata,
-    getLiteralStringValue(databaseNameValue)
-  );
-};
-
-export const getFilteredTables = (
-  inputMetadata: DBMetadata | null,
-  databaseNameValue?: ReadTableFromDBV3SelectorValue,
-  schemaNameValue?: ReadTableFromDBV3SelectorValue
-): DbTable[] => {
-  return getDbMetadataFilteredTables(inputMetadata, {
-    databaseName: getLiteralStringValue(databaseNameValue),
-    schemaName: getLiteralStringValue(schemaNameValue),
-  });
-};
-
-export const getFilteredColumns = (
-  selectedTable: DbTable | null,
-  selectedColumnNames?: string[] | null
-): DbColumn[] => {
-  if (
-    !selectedTable ||
-    !selectedColumnNames ||
-    selectedColumnNames.length === 0
-  ) {
-    return [];
-  }
-
-  return selectedTable.columns.filter(column => {
-    return selectedColumnNames.includes(column.name);
   });
 };
 
@@ -337,18 +252,24 @@ export const isPartitionGroupingModeCompatible = (
   return !modeInfo || modeInfo.compatibleTypes.includes(columnType);
 };
 
+/**
+ * Переключает колонку в выборе, сохраняя порядок колонок таблицы.
+ * Пустой выбор сохраняется как null.
+ */
 export const toggleColumnSelection = (
+  tableColumns: readonly string[],
   selectedColumns: string[] | null | undefined,
   columnName: string
 ): string[] | null => {
-  const nextColumns = selectedColumns ? [...selectedColumns] : [];
+  const selected = new Set(selectedColumns ?? []);
 
-  if (nextColumns.includes(columnName)) {
-    nextColumns.splice(nextColumns.indexOf(columnName), 1);
+  if (selected.has(columnName)) {
+    selected.delete(columnName);
   } else {
-    nextColumns.push(columnName);
+    selected.add(columnName);
   }
 
+  const nextColumns = tableColumns.filter(name => selected.has(name));
   return nextColumns.length > 0 ? nextColumns : null;
 };
 
@@ -365,14 +286,8 @@ export const getSectionErrors = (
       errors.limit ||
       errors.time_zone
     ),
+    advanced: Boolean(
+      errors.npartitions || errors.max_rows_per_partition || errors.limit
+    ),
   };
-};
-
-export const getFirstErrorSection = (
-  errors: ReadTableFromDBV3Errors
-): Extract<ReadTableFromDBV3SectionId, 'table' | 'options'> | null => {
-  const sectionErrors = getSectionErrors(errors);
-  if (sectionErrors.table) return 'table';
-  if (sectionErrors.options) return 'options';
-  return null;
 };

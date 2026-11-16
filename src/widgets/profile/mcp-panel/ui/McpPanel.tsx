@@ -1,7 +1,9 @@
 import * as React from 'react';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { Alert, Box, ButtonBase, Typography } from '@mui/material';
+import { Alert, Box } from '@mui/material';
 import { IconPlugConnected } from '@tabler/icons-react';
+
+import { useAlert } from '@/app/notifications';
 
 import { useMcpTokens } from '@/entities/admin/mcp-token';
 
@@ -9,29 +11,30 @@ import type { McpTokenReadSchema } from '@/shared/gatewayClient';
 import { useContainerMinWidth } from '@/shared/lib/hooks/useContainerMinWidth';
 import { useDelayedLoading } from '@/shared/lib/hooks/useDelayedLoading';
 import { useConfirmDialog } from '@/shared/ui/confirm-dialog';
+import { HeaderCopyChip } from '@/shared/ui/header-copy-chip';
 import { PageLayout } from '@/shared/ui/page-layout';
+import {
+  getTokenListBoxHeight,
+  TokenListBox,
+  TokenListCreateButton,
+  TokenListRowSkeleton,
+  TokenListScroll,
+} from '@/shared/ui/token-list';
 
 import { useConnectAgentState } from '../model/useConnectAgentState';
 
 import { ConnectAgentDrawer } from './ConnectAgentDrawer';
 import { ConnectAgentPanel } from './ConnectAgentPanel';
-import { CopyIconButton } from './CopyIconButton';
 import { CreateMcpTokenDialog } from './CreateMcpTokenDialog';
-import { McpTokenItem } from './McpTokenItem';
-import { McpTokenItemSkeleton } from './McpTokenItemSkeleton';
+import { MCP_NAME_COLUMN_WIDTH, McpTokenItem } from './McpTokenItem';
 import { McpTokensEmptyState } from './McpTokensEmptyState';
 import { RenameMcpTokenDialog } from './RenameMcpTokenDialog';
-import { connectButtonSx, MONO_FONT_FAMILY } from './styles';
 
 const SKELETON_ROWS = [
   { nameWidth: 148, accessWidth: 196 },
   { nameWidth: 112, accessWidth: 164 },
   { nameWidth: 176, accessWidth: 196 },
 ];
-
-// Fixed, so switching modes in the connect panel does not resize the token box.
-const LIST_BOX_MIN_HEIGHT = 619;
-const TOKEN_ROW_HEIGHT = 48;
 
 // List 960 + gap 40 + panel 440 + container paddings 64.
 const COLUMN_LAYOUT_MIN_WIDTH = 1504;
@@ -40,6 +43,7 @@ export const McpPanel: React.FC = () => {
   const { items, status, error, loadMcpTokens, revokeMcpToken } =
     useMcpTokens();
   const { confirm } = useConfirmDialog();
+  const { showNotification } = useAlert();
   const connectAgentState = useConnectAgentState();
   const { ref: containerRef, matches: isColumnLayout } =
     useContainerMinWidth<HTMLDivElement>(COLUMN_LAYOUT_MIN_WIDTH);
@@ -107,46 +111,23 @@ export const McpPanel: React.FC = () => {
   }
   const isLoadingList = !hasLoadedRef.current && items.length === 0;
   const showSkeleton = useDelayedLoading(isLoadingList);
-  // The box keeps its height with any number of tokens, and grows with a list
-  // that does not fit; the container may still shrink it, then the rows scroll.
-  const listBoxHeight = Math.max(
-    LIST_BOX_MIN_HEIGHT,
-    items.length * TOKEN_ROW_HEIGHT + 2
-  );
+  const listBoxHeight = getTokenListBoxHeight(items.length);
 
   const openCreateDialog = () => setIsCreateOpen(true);
 
   const serverAddress = (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        minWidth: 0,
-        height: 30,
-        pl: 1.5,
-        pr: '3px',
-        borderRadius: '8px',
-        bgcolor: '#F5F6FA',
-      }}
-    >
-      <Typography sx={{ color: '#6B7385', fontSize: 13 }}>Сервер</Typography>
-      <Typography
-        noWrap
-        sx={{
-          color: '#3A4152',
-          fontFamily: MONO_FONT_FAMILY,
-          fontSize: 12.5,
-        }}
-      >
-        {mcpUrl}
-      </Typography>
-      <CopyIconButton
-        text={mcpUrl}
-        label='Скопировать адрес сервера'
-        alwaysVisible
-      />
-    </Box>
+    <HeaderCopyChip
+      label='Сервер'
+      value={mcpUrl}
+      copyLabel='Скопировать адрес сервера'
+      onCopyError={() =>
+        showNotification({
+          type: 'error',
+          title: 'Не удалось скопировать',
+          group: 'mcp-copy',
+        })
+      }
+    />
   );
 
   return (
@@ -159,14 +140,13 @@ export const McpPanel: React.FC = () => {
           <>
             {serverAddress}
             {isColumnLayout ? null : (
-              <ButtonBase
+              <TokenListCreateButton
                 disableRipple
                 onClick={() => setIsDrawerOpen(true)}
-                sx={connectButtonSx}
               >
                 <AddRoundedIcon sx={{ fontSize: 16 }} />
                 Подключить MCP
-              </ButtonBase>
+              </TokenListCreateButton>
             )}
           </>
         }
@@ -183,7 +163,7 @@ export const McpPanel: React.FC = () => {
                 overflow: 'hidden',
                 bgcolor: '#fff',
                 border: '1px solid #EEF0F4',
-                borderRadius: '16px',
+                borderRadius: '12px',
               }}
             >
               <ConnectAgentPanel
@@ -198,39 +178,25 @@ export const McpPanel: React.FC = () => {
         {error && items.length === 0 ? (
           <Alert severity='error'>{error.description ?? error.message}</Alert>
         ) : (
-          <Box
-            component='section'
+          <TokenListBox
             aria-label='Токены'
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              flex: `0 1 ${listBoxHeight}px`,
-              minHeight: 0,
-              overflow: 'hidden',
-              bgcolor: '#fff',
-              border: '1px solid #EEF0F4',
-              borderRadius: '16px',
-            }}
+            sx={{ flex: `0 1 ${listBoxHeight}px` }}
           >
             {showSkeleton ? (
               <>
                 {SKELETON_ROWS.map(row => (
-                  <McpTokenItemSkeleton key={row.nameWidth} {...row} />
+                  <TokenListRowSkeleton
+                    key={row.nameWidth}
+                    nameWidth={row.nameWidth}
+                    detailsWidth={row.accessWidth}
+                    nameColumnWidth={MCP_NAME_COLUMN_WIDTH}
+                  />
                 ))}
               </>
             ) : isLoadingList ? null : items.length === 0 ? (
               <McpTokensEmptyState onCreateToken={openCreateDialog} />
             ) : (
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  minHeight: 0,
-                  overflowY: 'auto',
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: '#D3D8E2 transparent',
-                }}
-              >
+              <TokenListScroll>
                 {items.map(token => (
                   <McpTokenItem
                     key={token.id}
@@ -239,9 +205,9 @@ export const McpPanel: React.FC = () => {
                     onRevoke={item => void handleRevoke(item)}
                   />
                 ))}
-              </Box>
+              </TokenListScroll>
             )}
-          </Box>
+          </TokenListBox>
         )}
       </PageLayout>
 

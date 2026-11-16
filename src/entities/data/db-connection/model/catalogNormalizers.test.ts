@@ -166,6 +166,8 @@ describe('DB catalog normalizers', () => {
           [2, null],
         ],
         truncated: true,
+        row_count: 5_000_000,
+        row_count_exact: true,
       })
     ).toEqual({
       columns: [
@@ -177,6 +179,26 @@ describe('DB catalog normalizers', () => {
         [2, null],
       ],
       truncated: true,
+      rowCount: 5_000_000,
+      rowCountExact: true,
     });
+  });
+
+  it('drops a missing or non-numeric table row count', () => {
+    const base = { columns: [], rows: [] };
+
+    expect(normalizeTablePreview(base)).toMatchObject({
+      rowCount: null,
+      rowCountExact: false,
+    });
+    expect(
+      normalizeTablePreview({ ...base, row_count: null, row_count_exact: true })
+    ).toMatchObject({ rowCount: null });
+    expect(
+      normalizeTablePreview({ ...base, row_count: '42' as never })
+    ).toMatchObject({ rowCount: null });
+    expect(
+      normalizeTablePreview({ ...base, row_count: Number.NaN })
+    ).toMatchObject({ rowCount: null });
   });
 });

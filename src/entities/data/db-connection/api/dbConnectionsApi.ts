@@ -3,6 +3,8 @@ import {
   type ConnectionCheckResult,
   type ConnectionKindInfoResponse,
   type ConnectionTypeInfoResponse,
+  type PartitioningAdviceRequest,
+  type PartitioningAdviceResponse,
 } from '@/shared/gatewayClient';
 
 import type {
@@ -81,6 +83,21 @@ export const dbConnectionsApi = {
       .connectionId(connectionId)
       .catalog.refresh.post(undefined, { silent: true });
     return response.data.catalog_version;
+  },
+
+  /** Профилирует таблицу и ранжирует колонки-кандидаты для сегментации. */
+  async partitioningAdvice(
+    connectionId: string,
+    body: PartitioningAdviceRequest,
+    signal?: AbortSignal
+  ): Promise<PartitioningAdviceResponse> {
+    const response = await client.dbConnections
+      .connectionId(connectionId)
+      .partitioningAdvice.post(
+        { body },
+        { silent: true, ...(signal ? { signal } : {}) }
+      );
+    return response.data;
   },
 
   async checkByPayload(
