@@ -16,7 +16,7 @@ import { McpPanel } from '@/widgets/profile/mcp-panel';
 import { PreferencesPanel } from '@/widgets/profile/preferences-panel';
 import { SchedulePanel } from '@/widgets/profile/schedule-panel';
 import { ServicesStatusPanel } from '@/widgets/profile/services-status-panel';
-import { SystemUpdatePanel } from '@/widgets/profile/system-update-panel';
+import { OperatorUpdatePanel } from '@/widgets/profile/system-update-panel';
 import { ProfileSidebar } from '@/widgets/profile/user-pofile-sidebar';
 
 import {
@@ -298,7 +298,7 @@ export default function ProfilePage() {
                 allowed={canAccessUpdatePanel}
                 loading={currentUserLoading}
               >
-                <SystemUpdatePanel currentUser={currentUser} />
+                <OperatorUpdatePanel currentUser={currentUser} />
               </AdminOnlyRoute>
             }
           />

@@ -8,6 +8,9 @@ import {
 } from './client';
 import { client } from './client.gen';
 import type {
+  ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostData,
+  ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostErrors,
+  ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponses,
   AddFavoriteProjectProjectsProjectIdFavoritePutData,
   AddFavoriteProjectProjectsProjectIdFavoritePutErrors,
   AddFavoriteProjectProjectsProjectIdFavoritePutResponses,
@@ -103,6 +106,9 @@ import type {
   CreateTaskPublicProjectsProjectIdTasksNewPostData,
   CreateTaskPublicProjectsProjectIdTasksNewPostErrors,
   CreateTaskPublicProjectsProjectIdTasksNewPostResponses,
+  CreateUpdateOperationUpdateOperationsPostData,
+  CreateUpdateOperationUpdateOperationsPostErrors,
+  CreateUpdateOperationUpdateOperationsPostResponses,
   CreateUserAdminUsersPostData,
   CreateUserAdminUsersPostErrors,
   CreateUserAdminUsersPostResponses,
@@ -202,6 +208,8 @@ import type {
   GenerateTableDdlUtilsDdlGenerateTableDdlPostData,
   GenerateTableDdlUtilsDdlGenerateTableDdlPostErrors,
   GenerateTableDdlUtilsDdlGenerateTableDdlPostResponses,
+  GetActiveUpdateUpdateOperationsActiveGetData,
+  GetActiveUpdateUpdateOperationsActiveGetResponses,
   GetAiAnalysisRequestProjectsProjectIdAiAnalyzeRequestIdGetData,
   GetAiAnalysisRequestProjectsProjectIdAiAnalyzeRequestIdGetErrors,
   GetAiAnalysisRequestProjectsProjectIdAiAnalyzeRequestIdGetResponses,
@@ -352,6 +360,19 @@ import type {
   GetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetResponses,
   GetTestsPytestMonTestsGetData,
   GetTestsPytestMonTestsGetResponses,
+  GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetData,
+  GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetErrors,
+  GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponses,
+  GetUpdateHistoryUpdateOperationsGetData,
+  GetUpdateHistoryUpdateOperationsGetResponses,
+  GetUpdateManagerUpdateManagerGetData,
+  GetUpdateManagerUpdateManagerGetResponses,
+  GetUpdateOperationUpdateOperationsOperationIdGetData,
+  GetUpdateOperationUpdateOperationsOperationIdGetErrors,
+  GetUpdateOperationUpdateOperationsOperationIdGetResponses,
+  GetUpdateReleasesUpdateReleasesGetData,
+  GetUpdateReleasesUpdateReleasesGetErrors,
+  GetUpdateReleasesUpdateReleasesGetResponses,
   GetUserApiTokensApiTokensGetData,
   GetUserApiTokensApiTokensGetResponses,
   GetUserByIdAdminUsersUserIdGetData,
@@ -430,6 +451,9 @@ import type {
   MovePathStoragePathMovePostData,
   MovePathStoragePathMovePostErrors,
   MovePathStoragePathMovePostResponses,
+  PairSetupSetupPairingPostData,
+  PairSetupSetupPairingPostErrors,
+  PairSetupSetupPairingPostResponses,
   PatchScheduleProjectsSchedulerScheduleProjectIdPatchData,
   PatchScheduleProjectsSchedulerScheduleProjectIdPatchErrors,
   PatchScheduleProjectsSchedulerScheduleProjectIdPatchResponses,
@@ -596,6 +620,8 @@ import type {
   UserProfileProfileGetResponses,
 } from './types.gen';
 import {
+  zActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostData,
+  zActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponse,
   zAddFavoriteProjectProjectsProjectIdFavoritePutData,
   zAddFavoriteProjectProjectsProjectIdFavoritePutResponse,
   zApplyColumnActionsUtilsDdlApplyTableColumnActionsPostData,
@@ -660,6 +686,8 @@ import {
   zCreateTaskProjectsProjectIdTasksNewPostResponse,
   zCreateTaskPublicProjectsProjectIdTasksNewPostData,
   zCreateTaskPublicProjectsProjectIdTasksNewPostResponse,
+  zCreateUpdateOperationUpdateOperationsPostData,
+  zCreateUpdateOperationUpdateOperationsPostResponse,
   zCreateUserAdminUsersPostData,
   zCreateUserAdminUsersPostResponse,
   zCreateUserPublicAdminUsersPostData,
@@ -722,6 +750,8 @@ import {
   zGenerateSchemaDdlUtilsDdlGenerateSchemaDdlPostResponse,
   zGenerateTableDdlUtilsDdlGenerateTableDdlPostData,
   zGenerateTableDdlUtilsDdlGenerateTableDdlPostResponse,
+  zGetActiveUpdateUpdateOperationsActiveGetData,
+  zGetActiveUpdateUpdateOperationsActiveGetResponse,
   zGetAiAnalysisRequestProjectsProjectIdAiAnalyzeRequestIdGetData,
   zGetAiAnalysisRequestProjectsProjectIdAiAnalyzeRequestIdGetResponse,
   zGetAppSettingDefinitionsAppSettingsDefinitionsGetData,
@@ -830,6 +860,16 @@ import {
   zGetTaskInfoPublicProjectsProjectIdTasksTaskIdInfoGetResponse,
   zGetTestsPytestMonTestsGetData,
   zGetTestsPytestMonTestsGetResponse,
+  zGetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetData,
+  zGetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponse,
+  zGetUpdateHistoryUpdateOperationsGetData,
+  zGetUpdateHistoryUpdateOperationsGetResponse,
+  zGetUpdateManagerUpdateManagerGetData,
+  zGetUpdateManagerUpdateManagerGetResponse,
+  zGetUpdateOperationUpdateOperationsOperationIdGetData,
+  zGetUpdateOperationUpdateOperationsOperationIdGetResponse,
+  zGetUpdateReleasesUpdateReleasesGetData,
+  zGetUpdateReleasesUpdateReleasesGetResponse,
   zGetUserApiTokensApiTokensGetData,
   zGetUserApiTokensApiTokensGetResponse,
   zGetUserByIdAdminUsersUserIdGetData,
@@ -889,6 +929,8 @@ import {
   zMetricsMetricsGetData,
   zMovePathStoragePathMovePostData,
   zMovePathStoragePathMovePostResponse,
+  zPairSetupSetupPairingPostData,
+  zPairSetupSetupPairingPostResponse,
   zPatchScheduleProjectsSchedulerScheduleProjectIdPatchData,
   zPatchScheduleProjectsSchedulerScheduleProjectIdPatchResponse,
   zPostQueueQueuePostData,
@@ -1451,6 +1493,244 @@ export const updateStatusUpdateStatusGet = <
       return await zUpdateStatusUpdateStatusGetResponse.parseAsync(data);
     },
     url: '/update/status',
+    ...options,
+  });
+};
+
+/**
+ * Get Update Manager
+ */
+export const getUpdateManagerUpdateManagerGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetUpdateManagerUpdateManagerGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    GetUpdateManagerUpdateManagerGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetUpdateManagerUpdateManagerGetData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetUpdateManagerUpdateManagerGetResponse.parseAsync(data);
+    },
+    url: '/update/manager',
+    ...options,
+  });
+};
+
+/**
+ * Get Update Releases
+ */
+export const getUpdateReleasesUpdateReleasesGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetUpdateReleasesUpdateReleasesGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    GetUpdateReleasesUpdateReleasesGetResponses,
+    GetUpdateReleasesUpdateReleasesGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetUpdateReleasesUpdateReleasesGetData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetUpdateReleasesUpdateReleasesGetResponse.parseAsync(data);
+    },
+    url: '/update/releases',
+    ...options,
+  });
+};
+
+/**
+ * Get Update History
+ */
+export const getUpdateHistoryUpdateOperationsGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetUpdateHistoryUpdateOperationsGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    GetUpdateHistoryUpdateOperationsGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetUpdateHistoryUpdateOperationsGetData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetUpdateHistoryUpdateOperationsGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/update/operations',
+    ...options,
+  });
+};
+
+/**
+ * Create Update Operation
+ */
+export const createUpdateOperationUpdateOperationsPost = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<CreateUpdateOperationUpdateOperationsPostData, ThrowOnError>
+) => {
+  return (options.client ?? client).post<
+    CreateUpdateOperationUpdateOperationsPostResponses,
+    CreateUpdateOperationUpdateOperationsPostErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zCreateUpdateOperationUpdateOperationsPostData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zCreateUpdateOperationUpdateOperationsPostResponse.parseAsync(
+        data
+      );
+    },
+    url: '/update/operations',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+};
+
+/**
+ * Get Active Update
+ */
+export const getActiveUpdateUpdateOperationsActiveGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetActiveUpdateUpdateOperationsActiveGetData, ThrowOnError>
+) => {
+  return (options?.client ?? client).get<
+    GetActiveUpdateUpdateOperationsActiveGetResponses,
+    unknown,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetActiveUpdateUpdateOperationsActiveGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetActiveUpdateUpdateOperationsActiveGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/update/operations/active',
+    ...options,
+  });
+};
+
+/**
+ * Get Update Operation
+ */
+export const getUpdateOperationUpdateOperationsOperationIdGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    GetUpdateOperationUpdateOperationsOperationIdGetData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).get<
+    GetUpdateOperationUpdateOperationsOperationIdGetResponses,
+    GetUpdateOperationUpdateOperationsOperationIdGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetUpdateOperationUpdateOperationsOperationIdGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetUpdateOperationUpdateOperationsOperationIdGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/update/operations/{operation_id}',
+    ...options,
+  });
+};
+
+/**
+ * Act On Update Operation
+ */
+export const actOnUpdateOperationUpdateOperationsOperationIdActionsActionPost =
+  <ThrowOnError extends boolean = false>(
+    options: Options<
+      ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostData,
+      ThrowOnError
+    >
+  ) => {
+    return (options.client ?? client).post<
+      ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponses,
+      ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostErrors,
+      ThrowOnError
+    >({
+      requestValidator: async data => {
+        return await zActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostData.parseAsync(
+          data
+        );
+      },
+      responseType: 'json',
+      responseValidator: async data => {
+        return await zActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponse.parseAsync(
+          data
+        );
+      },
+      url: '/update/operations/{operation_id}/actions/{action}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  };
+
+/**
+ * Get Update Diagnostics
+ */
+export const getUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGet = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<
+    GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetData,
+    ThrowOnError
+  >
+) => {
+  return (options.client ?? client).get<
+    GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponses,
+    GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zGetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetData.parseAsync(
+        data
+      );
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zGetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponse.parseAsync(
+        data
+      );
+    },
+    url: '/update/operations/{operation_id}/diagnostics',
     ...options,
   });
 };
@@ -6170,6 +6450,33 @@ export const getSetupStatusSetupStatusGet = <
     },
     url: '/setup/status',
     ...options,
+  });
+};
+
+/**
+ * Pair Setup
+ */
+export const pairSetupSetupPairingPost = <ThrowOnError extends boolean = false>(
+  options: Options<PairSetupSetupPairingPostData, ThrowOnError>
+) => {
+  return (options.client ?? client).post<
+    PairSetupSetupPairingPostResponses,
+    PairSetupSetupPairingPostErrors,
+    ThrowOnError
+  >({
+    requestValidator: async data => {
+      return await zPairSetupSetupPairingPostData.parseAsync(data);
+    },
+    responseType: 'json',
+    responseValidator: async data => {
+      return await zPairSetupSetupPairingPostResponse.parseAsync(data);
+    },
+    url: '/setup/pairing',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 };
 

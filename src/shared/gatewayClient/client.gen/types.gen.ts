@@ -218,6 +218,16 @@ export type AiServiceSourceContextItemSchema = {
 };
 
 /**
+ * ActionConfirmation
+ */
+export type ActionConfirmation = {
+  /**
+   * Confirm
+   */
+  confirm?: boolean;
+};
+
+/**
  * AdminUserCreateSchema
  *
  * Схема для создания пользователя в БД
@@ -1352,6 +1362,46 @@ export type CatalogTableSummarySchema = {
    * Comment
    */
   comment?: string | null;
+};
+
+/**
+ * CatalogView
+ */
+export type CatalogView = {
+  /**
+   * Catalog Fetched At
+   */
+  catalog_fetched_at: string | null;
+  /**
+   * Catalog Error
+   */
+  catalog_error: string | null;
+  /**
+   * Source Error
+   */
+  source_error: string | null;
+  source: SourceFacts | null;
+  /**
+   * Trust Configured
+   */
+  trust_configured: boolean;
+  /**
+   * Releases
+   */
+  releases: Array<ReleaseOption>;
+  recommended_stable: ReleaseOption | null;
+  /**
+   * Paths
+   */
+  paths: {
+    [key: string]: Array<string>;
+  };
+  /**
+   * First Steps
+   */
+  first_steps: {
+    [key: string]: ReleaseOption;
+  };
 };
 
 /**
@@ -4251,6 +4301,58 @@ export type ExpressionsConfig = {
 };
 
 /**
+ * ExtensionCatalogVersionSchema
+ */
+export type ExtensionCatalogVersionSchema = {
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Channel
+   */
+  channel: 'stable' | 'rc';
+  /**
+   * Download Url
+   */
+  download_url: string;
+  /**
+   * Dvt Version
+   */
+  dvt_version?: string | null;
+  /**
+   * Incompatibility
+   */
+  incompatibility?: 'target' | 'dvt_version' | null;
+  /**
+   * Operation
+   */
+  operation?: 'install' | 'upgrade' | 'downgrade' | 'reinstall' | null;
+  /**
+   * Incompatibility Details
+   */
+  incompatibility_details?: Array<ExtensionCompatibilityDifferenceSchema>;
+};
+
+/**
+ * ExtensionCompatibilityDifferenceSchema
+ */
+export type ExtensionCompatibilityDifferenceSchema = {
+  /**
+   * Field
+   */
+  field: 'os' | 'architecture' | 'python' | 'implementation' | 'dvt_version';
+  /**
+   * Current
+   */
+  current: string | null;
+  /**
+   * Required
+   */
+  required: string;
+};
+
+/**
  * ExtensionDepsStatus
  *
  * Статус установки зависимостей расширения.
@@ -4455,55 +4557,6 @@ export type ExtensionPackagePreviewSchema = {
    * Warnings
    */
   warnings?: Array<string>;
-};
-
-export type ExtensionCatalogVersionSchema = {
-  /**
-   * Version
-   */
-  version: string;
-  /**
-   * Channel
-   */
-  channel: 'stable' | 'rc';
-  /**
-   * Download Url
-   */
-  download_url: string;
-  /**
-   * Dvt Version
-   */
-  dvt_version?: string | null;
-  /**
-   * Incompatibility
-   */
-  incompatibility?: 'target' | 'dvt_version' | null;
-  /**
-   * Operation
-   */
-  operation?: 'install' | 'upgrade' | 'downgrade' | 'reinstall' | null;
-  /**
-   * Incompatibility Details
-   */
-  incompatibility_details?: Array<ExtensionCompatibilityDifferenceSchema>;
-};
-
-/**
- * ExtensionCompatibilityDifferenceSchema
- */
-export type ExtensionCompatibilityDifferenceSchema = {
-  /**
-   * Field
-   */
-  field: 'os' | 'architecture' | 'python' | 'implementation' | 'dvt_version';
-  /**
-   * Current
-   */
-  current: string | null;
-  /**
-   * Required
-   */
-  required: string;
 };
 
 /**
@@ -6680,6 +6733,16 @@ export type MssqltcpProperties = {
 };
 
 /**
+ * ManagerAccess
+ */
+export type ManagerAccess = {
+  /**
+   * Origin
+   */
+  origin: string | null;
+};
+
+/**
  * ManifestInfoSchema
  */
 export type ManifestInfoSchema = {
@@ -8288,6 +8351,142 @@ export type OomGuardMode = 'DISABLED' | 'HOST_PRESSURE' | 'WORKER_THRESHOLD';
  * OOMWorkerThresholdType
  */
 export type OomWorkerThresholdType = 'PERCENT' | 'ABSOLUTE_MB';
+
+/**
+ * OperationPlan
+ */
+export type OperationPlan = {
+  /**
+   * Source Version
+   */
+  source_version: string | null;
+  /**
+   * Source Revision
+   */
+  source_revision: string | null;
+  /**
+   * Target Revision
+   */
+  target_revision: string;
+  /**
+   * Add
+   */
+  add: Array<string>;
+  /**
+   * Recreate
+   */
+  recreate: Array<string>;
+  /**
+   * Retire
+   */
+  retire: Array<string>;
+  /**
+   * Profiles
+   */
+  profiles: Array<string>;
+  /**
+   * Migration
+   */
+  migration: 'from_revision' | 'none' | null;
+  /**
+   * Rollback
+   */
+  rollback: 'restore_backup' | 'compatible_apps' | null;
+  /**
+   * Target Version
+   */
+  target_version: string;
+  /**
+   * Pull And Unpack Bytes
+   */
+  pull_and_unpack_bytes: number;
+  /**
+   * Data Reserve Bytes
+   */
+  data_reserve_bytes: number;
+  /**
+   * Maintenance Drain Seconds
+   */
+  maintenance_drain_seconds: number;
+  /**
+   * Schedule Policy
+   */
+  schedule_policy: 'skip_cron_preserve_existing_retries';
+  /**
+   * Queue Policy
+   */
+  queue_policy: 'drain_admitted_cancel_unadmitted_roots';
+};
+
+/**
+ * OperationView
+ */
+export type OperationView = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Kind
+   */
+  kind: 'install' | 'update' | 'manager_recovery' | 'restore';
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Manifest Digest
+   */
+  manifest_digest: string;
+  /**
+   * Stage
+   */
+  stage:
+    | 'admitted'
+    | 'preparing'
+    | 'prepared'
+    | 'maintenance'
+    | 'backup'
+    | 'migrating'
+    | 'applying'
+    | 'verifying'
+    | 'resuming'
+    | 'recovery_required'
+    | 'recovering'
+    | 'succeeded'
+    | 'cancelled'
+    | 'failed';
+  /**
+   * Failure
+   */
+  failure: string | null;
+  /**
+   * Actions
+   */
+  actions: Array<OperatorAction>;
+  plan: OperationPlan | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Finished At
+   */
+  finished_at: string | null;
+};
+
+/**
+ * OperatorAction
+ */
+export type OperatorAction =
+  | 'apply'
+  | 'resume'
+  | 'cancel_preparation'
+  | 'extend_maintenance'
+  | 'defer_maintenance'
+  | 'recover_manager'
+  | 'return_to_source'
+  | 'restore_start';
 
 /**
  * OracleSqlOracledbDefaultDriverConnectionCreateRequest
@@ -11171,6 +11370,24 @@ export type RelationKeyStatsSchema = {
 };
 
 /**
+ * ReleaseOption
+ */
+export type ReleaseOption = {
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Channel
+   */
+  channel: 'stable' | 'rc';
+  /**
+   * Manifest Digest
+   */
+  manifest_digest: string;
+};
+
+/**
  * RenamePathIn
  */
 export type RenamePathIn = {
@@ -12052,6 +12269,16 @@ export type ServicesWidgetSchema = {
 };
 
 /**
+ * SetupPairing
+ */
+export type SetupPairing = {
+  /**
+   * Operation Id
+   */
+  operation_id: string;
+};
+
+/**
  * SetupStatus
  */
 export type SetupStatus = {
@@ -12061,6 +12288,10 @@ export type SetupStatus = {
    * Is DVT fully initialized?
    */
   initialized: boolean;
+  /**
+   * Pairing Required
+   */
+  pairing_required?: boolean;
   /**
    * Steps
    *
@@ -12616,6 +12847,20 @@ export type SmbprotocolFileNoDriverConnectionUpdateRequest = {
 };
 
 /**
+ * SourceFacts
+ */
+export type SourceFacts = {
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Revision
+   */
+  revision: string;
+};
+
+/**
  * SubgraphData
  */
 export type SubgraphData = {
@@ -13119,6 +13364,28 @@ export type UnresolvedPortSchema = {
    * Detail
    */
   detail?: string | null;
+};
+
+/**
+ * UpdateRequest
+ */
+export type UpdateRequest = {
+  /**
+   * Version
+   */
+  version: string;
+  /**
+   * Manifest Digest
+   */
+  manifest_digest: string;
+  /**
+   * Confirm Rc
+   */
+  confirm_rc?: boolean;
+  /**
+   * Kind
+   */
+  kind: 'update';
 };
 
 /**
@@ -16003,7 +16270,9 @@ export type RegisteredException =
   | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121
   | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122
   | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123
-  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124;
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel125
+  | SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel126;
 
 /**
  * BadPipelineException
@@ -16627,7 +16896,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * TaskExecutionFlowError
+ * TaskExecutionDomainError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120 =
   {
@@ -16654,7 +16923,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidReconciliationTerminationReason
+ * TaskAdmissionClosed
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121 =
   {
@@ -16681,7 +16950,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * InvalidPendingExecutionFailureReason
+ * TaskExecutionFlowError
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122 =
   {
@@ -16708,7 +16977,7 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * QueueTopicNotFoundException
+ * InvalidReconciliationTerminationReason
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123 =
   {
@@ -16735,9 +17004,63 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   };
 
 /**
- * QueueTopicAlreadyExistsException
+ * InvalidPendingExecutionFailureReason
  */
 export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * QueueTopicNotFoundException
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel125 =
+  {
+    /**
+     * Name
+     */
+    name?: string;
+    /**
+     * Code
+     */
+    code?: string;
+    /**
+     * Description
+     */
+    description?: string;
+    /**
+     * Category
+     */
+    category?: string;
+    /**
+     * Type
+     */
+    type?: string;
+  };
+
+/**
+ * QueueTopicAlreadyExistsException
+ */
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel126 =
   {
     /**
      * Name
@@ -19577,6 +19900,41 @@ export type ConnectionTypeV1 =
   | 'smbprotocol'
   | string;
 
+/**
+ * DVTServiceFilesSecrets
+ */
+export type DvtServiceFilesSecretsWritable = {
+  [key: string]: never;
+};
+
+/**
+ * NoDriverOptions
+ */
+export type NoDriverOptionsWritable = {
+  [key: string]: never;
+};
+
+/**
+ * SetupPairing
+ */
+export type SetupPairingWritable = {
+  /**
+   * Code
+   */
+  code: string;
+  /**
+   * Operation Id
+   */
+  operation_id: string;
+};
+
+/**
+ * ApiTokenEmptyData
+ */
+export type ApiTokenEmptyDataWritable = {
+  [key: string]: unknown;
+};
+
 export type MetricsMetricsGetData = {
   body?: never;
   path?: never;
@@ -19989,6 +20347,238 @@ export type UpdateStatusUpdateStatusGetResponses = {
 
 export type UpdateStatusUpdateStatusGetResponse =
   UpdateStatusUpdateStatusGetResponses[keyof UpdateStatusUpdateStatusGetResponses];
+
+export type GetUpdateManagerUpdateManagerGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/update/manager';
+};
+
+export type GetUpdateManagerUpdateManagerGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ManagerAccess;
+};
+
+export type GetUpdateManagerUpdateManagerGetResponse =
+  GetUpdateManagerUpdateManagerGetResponses[keyof GetUpdateManagerUpdateManagerGetResponses];
+
+export type GetUpdateReleasesUpdateReleasesGetData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Channel
+     */
+    channel?: 'stable' | 'rc';
+  };
+  url: '/update/releases';
+};
+
+export type GetUpdateReleasesUpdateReleasesGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetUpdateReleasesUpdateReleasesGetError =
+  GetUpdateReleasesUpdateReleasesGetErrors[keyof GetUpdateReleasesUpdateReleasesGetErrors];
+
+export type GetUpdateReleasesUpdateReleasesGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: CatalogView;
+};
+
+export type GetUpdateReleasesUpdateReleasesGetResponse =
+  GetUpdateReleasesUpdateReleasesGetResponses[keyof GetUpdateReleasesUpdateReleasesGetResponses];
+
+export type GetUpdateHistoryUpdateOperationsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/update/operations';
+};
+
+export type GetUpdateHistoryUpdateOperationsGetResponses = {
+  /**
+   * Response Get Update History Update Operations Get
+   *
+   * Successful Response
+   */
+  200: Array<OperationView>;
+};
+
+export type GetUpdateHistoryUpdateOperationsGetResponse =
+  GetUpdateHistoryUpdateOperationsGetResponses[keyof GetUpdateHistoryUpdateOperationsGetResponses];
+
+export type CreateUpdateOperationUpdateOperationsPostData = {
+  body: UpdateRequest;
+  headers: {
+    /**
+     * Idempotency-Key
+     */
+    'Idempotency-Key': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/update/operations';
+};
+
+export type CreateUpdateOperationUpdateOperationsPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateUpdateOperationUpdateOperationsPostError =
+  CreateUpdateOperationUpdateOperationsPostErrors[keyof CreateUpdateOperationUpdateOperationsPostErrors];
+
+export type CreateUpdateOperationUpdateOperationsPostResponses = {
+  /**
+   * Successful Response
+   */
+  202: OperationView;
+};
+
+export type CreateUpdateOperationUpdateOperationsPostResponse =
+  CreateUpdateOperationUpdateOperationsPostResponses[keyof CreateUpdateOperationUpdateOperationsPostResponses];
+
+export type GetActiveUpdateUpdateOperationsActiveGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/update/operations/active';
+};
+
+export type GetActiveUpdateUpdateOperationsActiveGetResponses = {
+  /**
+   * Response Get Active Update Update Operations Active Get
+   *
+   * Successful Response
+   */
+  200: OperationView | null;
+};
+
+export type GetActiveUpdateUpdateOperationsActiveGetResponse =
+  GetActiveUpdateUpdateOperationsActiveGetResponses[keyof GetActiveUpdateUpdateOperationsActiveGetResponses];
+
+export type GetUpdateOperationUpdateOperationsOperationIdGetData = {
+  body?: never;
+  path: {
+    /**
+     * Operation Id
+     */
+    operation_id: string;
+  };
+  query?: never;
+  url: '/update/operations/{operation_id}';
+};
+
+export type GetUpdateOperationUpdateOperationsOperationIdGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetUpdateOperationUpdateOperationsOperationIdGetError =
+  GetUpdateOperationUpdateOperationsOperationIdGetErrors[keyof GetUpdateOperationUpdateOperationsOperationIdGetErrors];
+
+export type GetUpdateOperationUpdateOperationsOperationIdGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: OperationView;
+};
+
+export type GetUpdateOperationUpdateOperationsOperationIdGetResponse =
+  GetUpdateOperationUpdateOperationsOperationIdGetResponses[keyof GetUpdateOperationUpdateOperationsOperationIdGetResponses];
+
+export type ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostData =
+  {
+    body: ActionConfirmation;
+    path: {
+      /**
+       * Operation Id
+       */
+      operation_id: string;
+      action: OperatorAction;
+    };
+    query?: never;
+    url: '/update/operations/{operation_id}/actions/{action}';
+  };
+
+export type ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostErrors =
+  {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+  };
+
+export type ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostError =
+  ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostErrors[keyof ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostErrors];
+
+export type ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponses =
+  {
+    /**
+     * Successful Response
+     */
+    202: OperationView;
+  };
+
+export type ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponse =
+  ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponses[keyof ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponses];
+
+export type GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetData =
+  {
+    body?: never;
+    path: {
+      /**
+       * Operation Id
+       */
+      operation_id: string;
+    };
+    query?: {
+      /**
+       * After
+       */
+      after?: number;
+    };
+    url: '/update/operations/{operation_id}/diagnostics';
+  };
+
+export type GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetErrors =
+  {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+  };
+
+export type GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetError =
+  GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetErrors[keyof GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetErrors];
+
+export type GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponses =
+  {
+    /**
+     * Response Get Update Diagnostics Update Operations  Operation Id  Diagnostics Get
+     *
+     * Successful Response
+     */
+    200: {
+      [key: string]: unknown;
+    };
+  };
+
+export type GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponse =
+  GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponses[keyof GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponses];
 
 export type GetNodeDefinitionsNodesGetData = {
   body?: never;
@@ -25727,6 +26317,33 @@ export type GetSetupStatusSetupStatusGetResponses = {
 
 export type GetSetupStatusSetupStatusGetResponse =
   GetSetupStatusSetupStatusGetResponses[keyof GetSetupStatusSetupStatusGetResponses];
+
+export type PairSetupSetupPairingPostData = {
+  body: SetupPairingWritable;
+  path?: never;
+  query?: never;
+  url: '/setup/pairing';
+};
+
+export type PairSetupSetupPairingPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type PairSetupSetupPairingPostError =
+  PairSetupSetupPairingPostErrors[keyof PairSetupSetupPairingPostErrors];
+
+export type PairSetupSetupPairingPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: SetupStatus;
+};
+
+export type PairSetupSetupPairingPostResponse =
+  PairSetupSetupPairingPostResponses[keyof PairSetupSetupPairingPostResponses];
 
 export type SubmitSetupStepOrganizationSetupOrganizationPostData = {
   body: SetupStepSubmitRequest;

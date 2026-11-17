@@ -1,11 +1,12 @@
 import React from 'react';
-import { Alert, Box, CircularProgress, Stack } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Stack } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 import {
   buildSetupPayload,
   createSetupFormValues,
   getSetupFieldDescriptors,
+  setupApi,
   type SetupFieldDescriptor,
   type SetupFormValues,
   useSetup,
@@ -29,6 +30,39 @@ const resolveErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+function readPairingLink() {
+  if (typeof window === 'undefined' || window.location.pathname !== '/setup') {
+    return null;
+  }
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const code = params.get('pairing');
+  const operation = params.get('operation');
+  if (!code || !operation) return null;
+  const { pathname, search } = window.location;
+  window.history.replaceState(window.history.state, '', pathname + search);
+  return { code, operation_id: operation };
+}
+
+// Capture once, before React effects or any reload can consume the fragment.
+const initialPairing = readPairingLink();
+
+function fieldErrors(detail: unknown): Record<string, string> {
+  if (!Array.isArray(detail)) return {};
+  return Object.fromEntries(
+    detail.flatMap(error => {
+      if (error?.loc?.[1] !== 'values' || typeof error.loc[2] !== 'string')
+        return [];
+      if (error.loc[2] === 'email') {
+        return [['email', 'Введите корректный адрес электронной почты.']];
+      }
+      if (error.loc[2] === 'password') {
+        return [['password', 'Введите пароль длиной от 8 до 255 символов.']];
+      }
+      return typeof error.msg === 'string' ? [[error.loc[2], error.msg]] : [];
+    })
+  );
+}
+
 export default function SetupPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -45,6 +79,26 @@ export default function SetupPage() {
   } = useSetup();
 
   const [statusError, setStatusError] = React.useState<string | null>(null);
+  const [pairing, setPairing] = React.useState(initialPairing);
+  const [pairingBusy, setPairingBusy] = React.useState(false);
+  const [pairingError, setPairingError] = React.useState<string | null>(null);
+
+  const pair = async () => {
+    if (!pairing || pairingBusy) return;
+    setPairingBusy(true);
+    try {
+      await setupApi.pair(pairing);
+      setPairing(null);
+      await loadSetupStatus();
+    } catch {
+      setPairing(null);
+      setPairingError(
+        'Ссылка истекла или уже использована. Откройте первичную настройку заново из мастера.'
+      );
+    } finally {
+      setPairingBusy(false);
+    }
+  };
 
   React.useEffect(() => {
     let mounted = true;
@@ -131,12 +185,33 @@ export default function SetupPage() {
           <Alert severity='error'>{loadError.message}</Alert>
         ) : null}
 
+        {status?.pairing_required && (
+          <Alert
+            severity={pairingError ? 'error' : 'info'}
+            action={
+              pairing && (
+                <Button onClick={() => void pair()} disabled={pairingBusy}>
+                  Подтвердить первичную настройку
+                </Button>
+              )
+            }
+          >
+            {pairingError ??
+              (pairing
+                ? 'Подтвердите, что вы открыли страницу из мастера установки DVT.'
+                : 'Откройте первичную настройку из защищённого мастера установки DVT.')}
+          </Alert>
+        )}
+
         {steps
           .filter(step => !step.completed)
           .map(step => {
             const fields = getSetupFieldDescriptors({
               fields: step.fields,
             });
+
+            const submitError = getSubmitError(step.code);
+            const serverErrors = fieldErrors(submitError?.detail);
 
             return (
               <SetupStepForm
@@ -149,13 +224,18 @@ export default function SetupPage() {
                   fields,
                 })}
                 loading={getSubmitStatus(step.code) === 'loading'}
-                submitError={getSubmitError(step.code)?.message ?? null}
+                serverErrors={serverErrors}
+                submitError={
+                  Object.keys(serverErrors).length
+                    ? null
+                    : (submitError?.message ?? null)
+                }
                 onSubmit={values => handleStepSubmit(step.code, fields, values)}
               />
             );
           })}
 
-        {steps.length === 0 && !isInitialized ? (
+        {steps.length === 0 && !isInitialized && !status?.pairing_required ? (
           <Alert severity='info'>
             Сервер не вернул шаги первичной настройки.
           </Alert>

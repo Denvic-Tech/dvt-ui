@@ -16,5 +16,6 @@ export {
   clearSystemUpdateMarker,
   hasSystemUpdateMarker,
   markSystemUpdateInProgress,
+  OPERATOR_UPDATE_SESSION_KEY,
   SYSTEM_UPDATE_IN_PROGRESS_KEY,
 } from './model/storage';

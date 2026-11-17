@@ -1,4 +1,5 @@
 export const SYSTEM_UPDATE_IN_PROGRESS_KEY = 'dvt-update-in-progress';
+export const OPERATOR_UPDATE_SESSION_KEY = 'dvt-protected-update-id';
 
 export const hasSystemUpdateMarker = (): boolean => {
   if (typeof window === 'undefined') {
