@@ -185,6 +185,15 @@ export const zAiAnalysisReadSchema = z.object({
 export type AiAnalysisReadSchemaZodType = z.infer<typeof zAiAnalysisReadSchema>;
 
 /**
+ * ActionConfirmation
+ */
+export const zActionConfirmation = z.object({
+  confirm: z.optional(z.boolean()).default(false),
+});
+
+export type ActionConfirmationZodType = z.infer<typeof zActionConfirmation>;
+
+/**
  * DVTDefaultRoles
  */
 export const zDvtDefaultRoles = z.enum(['superadmin', 'admin', 'user']);
@@ -1191,6 +1200,44 @@ export const zCatalogTablePreviewResponseSchema = z.object({
 export type CatalogTablePreviewResponseSchemaZodType = z.infer<
   typeof zCatalogTablePreviewResponseSchema
 >;
+
+/**
+ * SourceFacts
+ */
+export const zSourceFacts = z.object({
+  version: z.string(),
+  revision: z.string(),
+});
+
+export type SourceFactsZodType = z.infer<typeof zSourceFacts>;
+
+/**
+ * ReleaseOption
+ */
+export const zReleaseOption = z.object({
+  version: z.string(),
+  channel: z.enum(['stable', 'rc']),
+  manifest_digest: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+});
+
+export type ReleaseOptionZodType = z.infer<typeof zReleaseOption>;
+
+/**
+ * CatalogView
+ */
+export const zCatalogView = z.object({
+  catalog_fetched_at: z.union([z.string(), z.null()]),
+  catalog_error: z.union([z.string(), z.null()]),
+  source_error: z.union([z.string(), z.null()]),
+  source: z.union([zSourceFacts, z.null()]),
+  trust_configured: z.boolean(),
+  releases: z.array(zReleaseOption),
+  recommended_stable: z.union([zReleaseOption, z.null()]),
+  paths: z.record(z.string(), z.array(z.string())),
+  first_steps: z.record(z.string(), zReleaseOption),
+});
+
+export type CatalogViewZodType = z.infer<typeof zCatalogView>;
 
 /**
  * ClearProjectCacheRequest
@@ -2635,6 +2682,51 @@ export const zExpressionsConfig = z.object({
 export type ExpressionsConfigZodType = z.infer<typeof zExpressionsConfig>;
 
 /**
+ * ExtensionCompatibilityDifferenceSchema
+ */
+export const zExtensionCompatibilityDifferenceSchema = z.object({
+  field: z.enum([
+    'os',
+    'architecture',
+    'python',
+    'implementation',
+    'dvt_version',
+  ]),
+  current: z.union([z.string(), z.null()]),
+  required: z.string(),
+});
+
+export type ExtensionCompatibilityDifferenceSchemaZodType = z.infer<
+  typeof zExtensionCompatibilityDifferenceSchema
+>;
+
+/**
+ * ExtensionCatalogVersionSchema
+ */
+export const zExtensionCatalogVersionSchema = z.object({
+  version: z.string(),
+  channel: z.enum(['stable', 'rc']),
+  download_url: z.string(),
+  dvt_version: z.optional(z.union([z.string(), z.null()])),
+  incompatibility: z.optional(
+    z.union([z.enum(['target', 'dvt_version']), z.null()])
+  ),
+  operation: z.optional(
+    z.union([
+      z.enum(['install', 'upgrade', 'downgrade', 'reinstall']),
+      z.null(),
+    ])
+  ),
+  incompatibility_details: z.optional(
+    z.array(zExtensionCompatibilityDifferenceSchema)
+  ),
+});
+
+export type ExtensionCatalogVersionSchemaZodType = z.infer<
+  typeof zExtensionCatalogVersionSchema
+>;
+
+/**
  * ExtensionDepsStatus
  *
  * Статус установки зависимостей расширения.
@@ -2747,48 +2839,6 @@ export const zExtensionPackagePreviewSchema = z.object({
 
 export type ExtensionPackagePreviewSchemaZodType = z.infer<
   typeof zExtensionPackagePreviewSchema
->;
-
-/**
- * ExtensionCompatibilityDifferenceSchema
- */
-export const zExtensionCompatibilityDifferenceSchema = z.object({
-  field: z.enum([
-    'os',
-    'architecture',
-    'python',
-    'implementation',
-    'dvt_version',
-  ]),
-  current: z.union([z.string(), z.null()]),
-  required: z.string(),
-});
-
-export type ExtensionCompatibilityDifferenceSchemaZodType = z.infer<
-  typeof zExtensionCompatibilityDifferenceSchema
->;
-
-export const zExtensionCatalogVersionSchema = z.object({
-  version: z.string(),
-  channel: z.enum(['stable', 'rc']),
-  download_url: z.string(),
-  dvt_version: z.optional(z.union([z.string(), z.null()])),
-  incompatibility: z.optional(
-    z.union([z.enum(['target', 'dvt_version']), z.null()])
-  ),
-  operation: z.optional(
-    z.union([
-      z.enum(['install', 'upgrade', 'downgrade', 'reinstall']),
-      z.null(),
-    ])
-  ),
-  incompatibility_details: z.optional(
-    z.array(zExtensionCompatibilityDifferenceSchema)
-  ),
-});
-
-export type ExtensionCatalogVersionSchemaZodType = z.infer<
-  typeof zExtensionCatalogVersionSchema
 >;
 
 /**
@@ -4006,6 +4056,15 @@ export const zMssqlProperties = z.union([
 export type MssqlPropertiesZodType = z.infer<typeof zMssqlProperties>;
 
 /**
+ * ManagerAccess
+ */
+export const zManagerAccess = z.object({
+  origin: z.union([z.string(), z.null()]),
+});
+
+export type ManagerAccessZodType = z.infer<typeof zManagerAccess>;
+
+/**
  * MissingColumnsMode
  */
 export const zMissingColumnsMode = z.enum([
@@ -4639,6 +4698,85 @@ export const zNodeFileInputResponse = z.object({
 export type NodeFileInputResponseZodType = z.infer<
   typeof zNodeFileInputResponse
 >;
+
+/**
+ * OperationPlan
+ */
+export const zOperationPlan = z.object({
+  source_version: z.union([z.string(), z.null()]),
+  source_revision: z.union([z.string(), z.null()]),
+  target_revision: z.string().regex(/^[a-f0-9]{4,32}$/),
+  add: z.array(z.string()),
+  recreate: z.array(z.string()),
+  retire: z.array(z.string()),
+  profiles: z.array(z.string()),
+  migration: z.union([z.enum(['from_revision', 'none']), z.null()]),
+  rollback: z.union([z.enum(['restore_backup', 'compatible_apps']), z.null()]),
+  target_version: z.string(),
+  pull_and_unpack_bytes: z.int(),
+  data_reserve_bytes: z.int(),
+  maintenance_drain_seconds: z.int(),
+  schedule_policy: z.literal('skip_cron_preserve_existing_retries'),
+  queue_policy: z.literal('drain_admitted_cancel_unadmitted_roots'),
+});
+
+export type OperationPlanZodType = z.infer<typeof zOperationPlan>;
+
+/**
+ * OperatorAction
+ */
+export const zOperatorAction = z.enum([
+  'apply',
+  'resume',
+  'cancel_preparation',
+  'extend_maintenance',
+  'defer_maintenance',
+  'recover_manager',
+  'return_to_source',
+  'restore_start',
+]);
+
+export type OperatorActionZodType = z.infer<typeof zOperatorAction>;
+
+/**
+ * OperationView
+ */
+export const zOperationView = z.object({
+  id: z.uuid(),
+  kind: z.enum(['install', 'update', 'manager_recovery', 'restore']),
+  version: z.string(),
+  manifest_digest: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  stage: z.enum([
+    'admitted',
+    'preparing',
+    'prepared',
+    'maintenance',
+    'backup',
+    'migrating',
+    'applying',
+    'verifying',
+    'resuming',
+    'recovery_required',
+    'recovering',
+    'succeeded',
+    'cancelled',
+    'failed',
+  ]),
+  failure: z.union([z.string(), z.null()]),
+  actions: z.array(zOperatorAction),
+  plan: z.union([zOperationPlan, z.null()]),
+  created_at: z.iso.datetime({
+    offset: true,
+  }),
+  finished_at: z.union([
+    z.iso.datetime({
+      offset: true,
+    }),
+    z.null(),
+  ]),
+});
+
+export type OperationViewZodType = z.infer<typeof zOperationView>;
 
 /**
  * OracleSqlOracledbDefaultDriverConnectionCreateRequest
@@ -6500,6 +6638,15 @@ export const zServicesWidgetSchema = z.object({
 export type ServicesWidgetSchemaZodType = z.infer<typeof zServicesWidgetSchema>;
 
 /**
+ * SetupPairing
+ */
+export const zSetupPairing = z.object({
+  operation_id: z.uuid(),
+});
+
+export type SetupPairingZodType = z.infer<typeof zSetupPairing>;
+
+/**
  * SetupStepField
  */
 export const zSetupStepField = z.object({
@@ -6534,6 +6681,7 @@ export type SetupStepZodType = z.infer<typeof zSetupStep>;
  */
 export const zSetupStatus = z.object({
   initialized: z.boolean(),
+  pairing_required: z.optional(z.boolean()).default(false),
   steps: z.optional(z.array(zSetupStep)),
 });
 
@@ -6779,6 +6927,18 @@ export const zTruncateTableRequest = z.object({
 });
 
 export type TruncateTableRequestZodType = z.infer<typeof zTruncateTableRequest>;
+
+/**
+ * UpdateRequest
+ */
+export const zUpdateRequest = z.object({
+  version: z.string().regex(/^\d+\.\d+\.\d+(?:-?rc[1-9]\d*)?$/),
+  manifest_digest: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  confirm_rc: z.optional(z.boolean()).default(false),
+  kind: z.literal('update'),
+});
+
+export type UpdateRequestZodType = z.infer<typeof zUpdateRequest>;
 
 /**
  * UpdateRequestSchema
@@ -10422,9 +10582,45 @@ export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubcla
   >;
 
 /**
- * TaskExecutionFlowError
+ * TaskExecutionDomainError
  */
 export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120 =
+  z.object({
+    name: z.optional(z.string()).default('TASK_EXECUTION_DOMAIN_ERROR'),
+    code: z.optional(z.string()).default('TASK_EXECUTION_DOMAIN_001'),
+    description: z.optional(z.string()).default('Task execution domain error'),
+    category: z.optional(z.string()).default('TASK_EXECUTION_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120
+  >;
+
+/**
+ * TaskAdmissionClosed
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121 =
+  z.object({
+    name: z.optional(z.string()).default('TASK_ADMISSION_CLOSED'),
+    code: z.optional(z.string()).default('TASK_EXECUTION_DOMAIN_002'),
+    description: z
+      .optional(z.string())
+      .default('Task admission is closed for DVT maintenance'),
+    category: z.optional(z.string()).default('TASK_EXECUTION_DOMAIN_ERROR'),
+    type: z.optional(z.string()).default('CUSTOM'),
+  });
+
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121ZodType =
+  z.infer<
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121
+  >;
+
+/**
+ * TaskExecutionFlowError
+ */
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122 =
   z.object({
     name: z.optional(z.string()).default('TASK_EXECUTION_FLOW_ERROR'),
     code: z.optional(z.string()).default('TASK_EXECUTION_FLOW_001'),
@@ -10435,15 +10631,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel120
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122
   >;
 
 /**
  * InvalidReconciliationTerminationReason
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123 =
   z.object({
     name: z
       .optional(z.string())
@@ -10456,15 +10652,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel121
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123
   >;
 
 /**
  * InvalidPendingExecutionFailureReason
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124 =
   z.object({
     name: z
       .optional(z.string())
@@ -10477,15 +10673,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124
   >;
 
 /**
  * QueueTopicNotFoundException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel125 =
   z.object({
     name: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_NOT_FOUND'),
     code: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_404'),
@@ -10494,15 +10690,15 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel125ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel125
   >;
 
 /**
  * QueueTopicAlreadyExistsException
  */
-export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124 =
+export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel126 =
   z.object({
     name: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_ALREADY_EXISTS'),
     code: z.optional(z.string()).default('CRUD_QUEUE_TOPIC_409'),
@@ -10511,9 +10707,9 @@ export const zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubc
     type: z.optional(z.string()).default('CUSTOM'),
   });
 
-export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124ZodType =
+export type SrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel126ZodType =
   z.infer<
-    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124
+    typeof zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel126
   >;
 
 export const zRegisteredException = z.union([
@@ -10641,6 +10837,8 @@ export const zRegisteredException = z.union([
   zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel122,
   zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel123,
   zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel124,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel125,
+  zSrcExceptionRegistryRegisteredExceptionRegisteredExceptionInitSubclassLocalsModel126,
 ]);
 
 export type RegisteredExceptionZodType = z.infer<typeof zRegisteredException>;
@@ -10926,6 +11124,43 @@ export const zConnectionTypeV1 = z.union([
 ]);
 
 export type ConnectionTypeV1ZodType = z.infer<typeof zConnectionTypeV1>;
+
+/**
+ * DVTServiceFilesSecrets
+ */
+export const zDvtServiceFilesSecretsWritable = z.record(z.string(), z.never());
+
+export type DvtServiceFilesSecretsWritableZodType = z.infer<
+  typeof zDvtServiceFilesSecretsWritable
+>;
+
+/**
+ * NoDriverOptions
+ */
+export const zNoDriverOptionsWritable = z.record(z.string(), z.never());
+
+export type NoDriverOptionsWritableZodType = z.infer<
+  typeof zNoDriverOptionsWritable
+>;
+
+/**
+ * SetupPairing
+ */
+export const zSetupPairingWritable = z.object({
+  code: z.string().length(43),
+  operation_id: z.uuid(),
+});
+
+export type SetupPairingWritableZodType = z.infer<typeof zSetupPairingWritable>;
+
+/**
+ * ApiTokenEmptyData
+ */
+export const zApiTokenEmptyDataWritable = z.record(z.string(), z.unknown());
+
+export type ApiTokenEmptyDataWritableZodType = z.infer<
+  typeof zApiTokenEmptyDataWritable
+>;
 
 export const zMetricsMetricsGetData = z.object({
   body: z.optional(z.never()),
@@ -11249,6 +11484,194 @@ export const zUpdateStatusUpdateStatusGetResponse = zUpdateStatusSchema;
 export type UpdateStatusUpdateStatusGetResponseZodType = z.infer<
   typeof zUpdateStatusUpdateStatusGetResponse
 >;
+
+export const zGetUpdateManagerUpdateManagerGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type GetUpdateManagerUpdateManagerGetDataZodType = z.infer<
+  typeof zGetUpdateManagerUpdateManagerGetData
+>;
+
+/**
+ * Successful Response
+ */
+export const zGetUpdateManagerUpdateManagerGetResponse = zManagerAccess;
+
+export type GetUpdateManagerUpdateManagerGetResponseZodType = z.infer<
+  typeof zGetUpdateManagerUpdateManagerGetResponse
+>;
+
+export const zGetUpdateReleasesUpdateReleasesGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(
+    z.object({
+      channel: z.optional(z.enum(['stable', 'rc'])),
+    })
+  ),
+});
+
+export type GetUpdateReleasesUpdateReleasesGetDataZodType = z.infer<
+  typeof zGetUpdateReleasesUpdateReleasesGetData
+>;
+
+/**
+ * Successful Response
+ */
+export const zGetUpdateReleasesUpdateReleasesGetResponse = zCatalogView;
+
+export type GetUpdateReleasesUpdateReleasesGetResponseZodType = z.infer<
+  typeof zGetUpdateReleasesUpdateReleasesGetResponse
+>;
+
+export const zGetUpdateHistoryUpdateOperationsGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type GetUpdateHistoryUpdateOperationsGetDataZodType = z.infer<
+  typeof zGetUpdateHistoryUpdateOperationsGetData
+>;
+
+/**
+ * Response Get Update History Update Operations Get
+ *
+ * Successful Response
+ */
+export const zGetUpdateHistoryUpdateOperationsGetResponse =
+  z.array(zOperationView);
+
+export type GetUpdateHistoryUpdateOperationsGetResponseZodType = z.infer<
+  typeof zGetUpdateHistoryUpdateOperationsGetResponse
+>;
+
+export const zCreateUpdateOperationUpdateOperationsPostData = z.object({
+  body: zUpdateRequest,
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+  headers: z.object({
+    'Idempotency-Key': z.string(),
+  }),
+});
+
+export type CreateUpdateOperationUpdateOperationsPostDataZodType = z.infer<
+  typeof zCreateUpdateOperationUpdateOperationsPostData
+>;
+
+/**
+ * Successful Response
+ */
+export const zCreateUpdateOperationUpdateOperationsPostResponse =
+  zOperationView;
+
+export type CreateUpdateOperationUpdateOperationsPostResponseZodType = z.infer<
+  typeof zCreateUpdateOperationUpdateOperationsPostResponse
+>;
+
+export const zGetActiveUpdateUpdateOperationsActiveGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type GetActiveUpdateUpdateOperationsActiveGetDataZodType = z.infer<
+  typeof zGetActiveUpdateUpdateOperationsActiveGetData
+>;
+
+/**
+ * Response Get Active Update Update Operations Active Get
+ *
+ * Successful Response
+ */
+export const zGetActiveUpdateUpdateOperationsActiveGetResponse = z.union([
+  zOperationView,
+  z.null(),
+]);
+
+export type GetActiveUpdateUpdateOperationsActiveGetResponseZodType = z.infer<
+  typeof zGetActiveUpdateUpdateOperationsActiveGetResponse
+>;
+
+export const zGetUpdateOperationUpdateOperationsOperationIdGetData = z.object({
+  body: z.optional(z.never()),
+  path: z.object({
+    operation_id: z.uuid(),
+  }),
+  query: z.optional(z.never()),
+});
+
+export type GetUpdateOperationUpdateOperationsOperationIdGetDataZodType =
+  z.infer<typeof zGetUpdateOperationUpdateOperationsOperationIdGetData>;
+
+/**
+ * Successful Response
+ */
+export const zGetUpdateOperationUpdateOperationsOperationIdGetResponse =
+  zOperationView;
+
+export type GetUpdateOperationUpdateOperationsOperationIdGetResponseZodType =
+  z.infer<typeof zGetUpdateOperationUpdateOperationsOperationIdGetResponse>;
+
+export const zActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostData =
+  z.object({
+    body: zActionConfirmation,
+    path: z.object({
+      operation_id: z.uuid(),
+      action: zOperatorAction,
+    }),
+    query: z.optional(z.never()),
+  });
+
+export type ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostDataZodType =
+  z.infer<
+    typeof zActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostData
+  >;
+
+/**
+ * Successful Response
+ */
+export const zActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponse =
+  zOperationView;
+
+export type ActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponseZodType =
+  z.infer<
+    typeof zActOnUpdateOperationUpdateOperationsOperationIdActionsActionPostResponse
+  >;
+
+export const zGetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetData =
+  z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+      operation_id: z.uuid(),
+    }),
+    query: z.optional(
+      z.object({
+        after: z.optional(z.int().gte(0).lt(9223372036854776000)).default(0),
+      })
+    ),
+  });
+
+export type GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetDataZodType =
+  z.infer<
+    typeof zGetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetData
+  >;
+
+/**
+ * Response Get Update Diagnostics Update Operations  Operation Id  Diagnostics Get
+ *
+ * Successful Response
+ */
+export const zGetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponse =
+  z.record(z.string(), z.unknown());
+
+export type GetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponseZodType =
+  z.infer<
+    typeof zGetUpdateDiagnosticsUpdateOperationsOperationIdDiagnosticsGetResponse
+  >;
 
 export const zGetNodeDefinitionsNodesGetData = z.object({
   body: z.optional(z.never()),
@@ -15122,6 +15545,25 @@ export const zGetSetupStatusSetupStatusGetResponse = zSetupStatus;
 
 export type GetSetupStatusSetupStatusGetResponseZodType = z.infer<
   typeof zGetSetupStatusSetupStatusGetResponse
+>;
+
+export const zPairSetupSetupPairingPostData = z.object({
+  body: zSetupPairingWritable,
+  path: z.optional(z.never()),
+  query: z.optional(z.never()),
+});
+
+export type PairSetupSetupPairingPostDataZodType = z.infer<
+  typeof zPairSetupSetupPairingPostData
+>;
+
+/**
+ * Successful Response
+ */
+export const zPairSetupSetupPairingPostResponse = zSetupStatus;
+
+export type PairSetupSetupPairingPostResponseZodType = z.infer<
+  typeof zPairSetupSetupPairingPostResponse
 >;
 
 export const zSubmitSetupStepOrganizationSetupOrganizationPostData = z.object({

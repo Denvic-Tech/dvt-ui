@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from '@/app/providers/store/hooks';
 
@@ -6,6 +7,7 @@ import { selectSystemUpdateState } from '@/features/profile/system-update';
 
 import {
   clearSystemUpdateMarker,
+  OPERATOR_UPDATE_SESSION_KEY,
   selectIsSystemAvailabilityBlocking,
   selectSystemAvailability,
   SYSTEM_UPDATE_IN_PROGRESS_KEY,
@@ -38,6 +40,11 @@ export const SystemAvailabilityGate = ({
   );
   const updateState = useAppSelector(selectSystemUpdateState);
   const { isAuthenticated } = useAuth();
+  const { pathname } = useLocation();
+  const monitoringProtectedOperation =
+    isAuthenticated &&
+    pathname === '/profile/update' &&
+    window.sessionStorage.getItem(OPERATOR_UPDATE_SESSION_KEY) !== null;
   const reloadTriggeredRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -132,6 +139,7 @@ export const SystemAvailabilityGate = ({
     if (
       availability.phase !== 'ready' ||
       updateState.marker != null ||
+      monitoringProtectedOperation ||
       reloadTriggeredRef.current
     ) {
       return;
@@ -140,7 +148,7 @@ export const SystemAvailabilityGate = ({
     reloadTriggeredRef.current = true;
     clearSystemUpdateMarker();
     window.location.reload();
-  }, [availability.phase, updateState.marker]);
+  }, [availability.phase, monitoringProtectedOperation, updateState.marker]);
 
   const allowsInitiatorSignIn = Boolean(
     updateState.marker &&
@@ -155,7 +163,11 @@ export const SystemAvailabilityGate = ({
   const shouldBlockShell =
     isAvailabilityBlocking || waitsForReadyReload || holdsForInitiator;
 
-  if (shouldBlockShell && !allowsInitiatorSignIn) {
+  if (
+    shouldBlockShell &&
+    !allowsInitiatorSignIn &&
+    !monitoringProtectedOperation
+  ) {
     return (
       <SystemUpdatingScreen
         reconnecting={availability.phase === 'reconnecting'}

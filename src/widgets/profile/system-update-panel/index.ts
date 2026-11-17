@@ -1,1 +1,1 @@
-export { SystemUpdatePanel } from './ui/SystemUpdatePanel';
+export { OperatorUpdatePanel } from './ui/OperatorUpdatePanel';

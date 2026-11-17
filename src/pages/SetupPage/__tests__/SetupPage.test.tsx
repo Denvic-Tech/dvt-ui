@@ -60,7 +60,9 @@ type MockUseSetupState = {
   loadSetupStatus: typeof loadSetupStatusMock;
   submitSetupStep: typeof submitSetupStepMock;
   getSubmitStatus: (code: string) => RequestStatus;
-  getSubmitError: (code: string) => { message: string } | null;
+  getSubmitError: (
+    code: string
+  ) => { message: string; detail?: unknown } | null;
 };
 
 const createUseSetupState = (
@@ -154,6 +156,60 @@ describe('pages/SetupPage', () => {
       });
       expect(loadSetupStatusMock).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('withholds initial setup fields until the browser is paired', () => {
+    setupStateRef.current = createUseSetupState({
+      status: { initialized: false, pairing_required: true, steps: [] },
+    });
+
+    render(<SetupPage />);
+
+    expect(
+      screen.getByText(
+        'Откройте первичную настройку из защищённого мастера установки DVT.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('shows the backend email validation error on the email field', () => {
+    setupStateRef.current = createUseSetupState({
+      status: {
+        initialized: false,
+        steps: [
+          {
+            code: 'superadmin',
+            title: 'Create superadmin',
+            submit_label: 'Create superadmin',
+            completed: false,
+            fields: [
+              {
+                key: 'email',
+                label: 'Email',
+                type: 'email',
+                required: true,
+                nullable: false,
+              },
+            ],
+          },
+        ],
+      },
+      getSubmitError: () => ({
+        message: 'HTTP 422',
+        detail: [{ loc: ['body', 'values', 'email'], msg: 'Invalid email' }],
+      }),
+    });
+
+    render(<SetupPage />);
+
+    expect(
+      screen.getByText('Введите корректный адрес электронной почты.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Email' })).toHaveAttribute(
+      'aria-invalid',
+      'true'
+    );
   });
 
   it('redirects to sign-in when setup is initialized and user is logged out', async () => {

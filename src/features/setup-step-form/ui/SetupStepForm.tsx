@@ -27,6 +27,7 @@ export interface SetupStepFormProps {
   initialValues: SetupFormValues;
   loading?: boolean;
   submitError?: string | null;
+  serverErrors?: FormErrors;
   onSubmit: (values: SetupFormValues) => Promise<void>;
 }
 
@@ -124,6 +125,7 @@ export const SetupStepForm: React.FC<SetupStepFormProps> = ({
   initialValues,
   loading = false,
   submitError,
+  serverErrors,
   onSubmit,
 }) => {
   const [values, setValues] = React.useState<SetupFormValues>(initialValues);
@@ -180,7 +182,8 @@ export const SetupStepForm: React.FC<SetupStepFormProps> = ({
       return;
     }
 
-    await onSubmit(values);
+    // Server-side field and request errors are surfaced by the owning setup page.
+    await onSubmit(values).catch(() => undefined);
   };
 
   return (
@@ -201,7 +204,7 @@ export const SetupStepForm: React.FC<SetupStepFormProps> = ({
           {fields.length > 0 ? (
             <Box sx={fieldsSectionSx}>
               {fields.map(field => {
-                const error = errors[field.key];
+                const error = errors[field.key] ?? serverErrors?.[field.key];
                 const helperText = getFieldHelperText(field, error);
 
                 if (field.inputKind === 'switch') {
