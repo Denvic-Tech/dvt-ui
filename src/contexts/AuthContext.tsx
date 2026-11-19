@@ -95,11 +95,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleAuthStateChange = (event: Event) => {
+      const { pathname, search } = window.location;
+      const isSetupRoute =
+        pathname === '/setup' || pathname.startsWith('/setup/');
+
+      resetCurrentUserCache();
+      setIsAuthenticated(false);
+
+      if (isSetupRoute) {
+        return;
+      }
+
       const customEvent = event as CustomEvent<AuthStateChangeDetail>;
       const providedReturnUrl = customEvent.detail?.returnUrl;
       const shouldShowNotification =
         customEvent.detail?.showNotification === true;
-      const fallbackReturnUrl = `${window.location.pathname}${window.location.search}`;
+      const fallbackReturnUrl = `${pathname}${search}`;
       const returnUrl =
         providedReturnUrl?.startsWith('/') === true
           ? providedReturnUrl
@@ -114,10 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
-      resetCurrentUserCache();
-      setIsAuthenticated(false);
-
-      if (window.location.pathname.startsWith('/sign_in')) {
+      if (pathname.startsWith('/sign_in')) {
         return;
       }
 
