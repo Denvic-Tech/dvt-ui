@@ -194,10 +194,7 @@ export function ProtectedUpdatePanel({
   }, [busy, channel, catalogRevision]);
 
   const path = catalog?.paths?.[version] ?? [];
-  const firstStep = path[0] ?? version;
-  const target =
-    catalog?.first_steps?.[version] ??
-    catalog?.releases.find(release => release.version === firstStep);
+  const target = catalog?.releases.find(release => release.version === version);
 
   async function run(action: () => Promise<void>) {
     setPending(true);
@@ -403,8 +400,8 @@ export function ProtectedUpdatePanel({
             )}
             {path.length > 1 && (
               <Alert severity='info'>
-                Требуется переход через {path.join(' → ')}. Сначала подготовьте{' '}
-                {path[0]}.
+                После подтверждения мастер последовательно установит{' '}
+                {path.join(' → ')}.
               </Alert>
             )}
             {channel === 'rc' && (
