@@ -9,6 +9,7 @@ const api = vi.hoisted(() => ({
   active: vi.fn(),
   history: vi.fn(),
   action: vi.fn(),
+  prepare: vi.fn(),
   releases: vi.fn(),
 }));
 
@@ -19,6 +20,7 @@ vi.mock('@/shared/gatewayClient', async importOriginal => ({
       releases: { get: api.releases },
       operations: {
         active: { get: api.active },
+        post: api.prepare,
         get: api.history,
         operationId: (id: string) => ({
           actions: {
@@ -107,6 +109,47 @@ describe('protected update', () => {
     expect(
       screen.getByRole('button', { name: 'Подготовить обновление' })
     ).toBeEnabled();
+  });
+
+  it('submits the final release when a compatible intermediate is required', async () => {
+    const intermediate = {
+      version: '1.25.0',
+      channel: 'stable',
+      manifest_digest: 'sha256:' + 'b'.repeat(64),
+    };
+    const final = {
+      version: '1.26.0',
+      channel: 'stable',
+      manifest_digest: 'sha256:' + 'c'.repeat(64),
+    };
+    api.active.mockResolvedValue({ data: {} });
+    api.history.mockResolvedValue({ data: [] });
+    api.releases.mockResolvedValue({
+      data: {
+        source: { version: '1.24.0', revision: '0070' },
+        releases: [final, intermediate],
+        paths: { '1.26.0': ['1.25.0', '1.26.0'] },
+        first_steps: { '1.26.0': intermediate },
+        recommended_stable: final,
+        trust_configured: true,
+      },
+    });
+    api.prepare.mockResolvedValue({ data: operation });
+    render(<ProtectedUpdatePanel managerOrigin='https://localhost:19169' />);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Подготовить обновление' })
+    );
+    await waitFor(() =>
+      expect(api.prepare).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            version: final.version,
+            manifest_digest: final.manifest_digest,
+          }),
+        }),
+        expect.anything()
+      )
+    );
   });
 
   it('keeps the same ID in the plan, independent manager URL, and confirmed apply', async () => {
